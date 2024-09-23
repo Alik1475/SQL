@@ -1,0 +1,94 @@
+
+
+DECLARE @ISIN VARCHAR(16) = 'US87238U2033'
+DECLARE @BuySell int = 1
+DECLARE @TSSEC VARCHAR(16) = 'ОТС_REPO'
+DECLARE @TradeDate int = 20240917
+DECLARE @Qty float = 10
+DECLARE @FirmID int = 6 -- BCS Cyprus
+DECLARE @payCur varchar(16) = 'EUR'
+
+--/*
+Insert into QORT_BACK_TDB_UAT.dbo.ImportTrades (
+			IsProcessed
+			, ET_Const
+			, IsDraft
+			, TradeDate
+			, TSSection_Name
+			, BuySell
+			, Security_Code
+			, Qty
+			, Price
+			, BackPrice
+			, Volume1
+			, Volume2
+			, CurrPriceAsset_ShortName, PutPlannedDate, PayPlannedDate
+			, PutAccount_ExportCode, PayAccount_ExportCode, SubAcc_Code
+			, AgreeNum, TT_Const, CpFirm_ShortName
+			, Comment
+			, AgreePlannedDate, Accruedint
+			--, TraderUser_ID, SalesManager_ID
+			, PT_Const, TSCommission, IsAccrued
+			, IsSynchronize--, CpSubacc_Code
+			, SS_Const
+			, FunctionType
+			, CurrPayAsset_ShortName
+			, CrossRate
+			--, ExternalNum
+			, TradeNum
+			, Discount
+			, RepoRate
+			, QFlags
+			, PriceEx
+		) --*/
+
+		
+		SELECT 1 as IsProcessed
+			, 2 as ET_Const
+			, 'n' as IsDraft 
+			, @TradeDate TradeDate
+			, @TSSEC  TSSection_Name
+			, @BuySell BuySell
+			, sec.SecCode Security_Code
+			, @Qty Qty
+			, mrk.LastPrice Price
+			, mrk.LastPrice BackPrice
+			, case when ass.AssetType_Const = 1 and ass.AssetClass_Const in (6,7,9) then (@Qty*mrk.LastPrice * ass.BaseValueOrigin/100) else @Qty*mrk.LastPrice end Volume1
+			, case when ass.AssetType_Const = 1 and ass.AssetClass_Const in (6,7,9) then (@Qty*mrk.LastPrice * ass.BaseValueOrigin/100) else @Qty*mrk.LastPrice end Volume2
+			, isnull(assBC.Name,'USD') CurrPriceAsset_ShortName
+			, @TradeDate PutPlannedDate
+			, @TradeDate PayPlannedDate
+			, 'ARMBR_DEPO' PutAccount_ExportCode
+			, 'Armbrok_Mn_OWN' PayAccount_ExportCode
+			, 'ARMBR_Subacc' SubAcc_Code
+			, '123' AgreeNum
+			, 6 TT_Const --OTC repo
+			, (Select Name from QORT_BACK_DB_UAT..Firms where id = @FirmID) CpFirm_ShortName		
+			, 'тестовая сделка' Comment
+			, @TradeDate AgreePlannedDate
+			, 0 Accruedint
+			--, uTrader.id TraderUser_ID
+			--, uSales.id SalesManager_ID
+			, IIF(sec.IsProcent = 'y',1,2) PT_Const
+			, 0 TSCommission
+			, 'n' IsAccrued
+			,  'n' IsSynchronize
+			--, d.[Counterparty Subaccount] CpSubacc_Code
+			, 1 SS_Const
+			, 0 FunctionType
+			, @payCur CurrPayAsset_ShortName
+			, 1 CrossRate
+			--, isnull(cast(d.AgreeMent as varchar), 'N/A') ExternalNum
+			, @TradeDate + 123 TradeNum
+			, 10 Discount
+			, 4 RepoRate
+			, 67108864 qflags
+			, 123 PriceEx-- Open REPO trade
+		FROM QORT_BACK_DB_UAT..Assets ass
+		left join QORT_BACK_DB_UAT.dbo.Securities sec with (nolock) on sec.Asset_ID =  ass.id and sec.TSSection_ID = (Select top 1 ID from QORT_BACK_DB_UAT..TSSections where name = 'ОТС_REPO')-- @TSSEC)
+		left join QORT_BACK_DB_UAT.dbo.MarketInfoHist mrk with (nolock) on mrk.Asset_ID = ass.id and mrk.OldDate = @TradeDate
+		left join QORT_BACK_DB_UAT.dbo.Assets assBC with (nolock) on assBC.ID = ass.BaseAsset_ID
+		--left join QORT_BACK_DB_TEST.dbo.Assets a with (nolock) on a.id = sec.Asset_ID
+		--left join QORT_BACK_DB_TEST.dbo.Accounts aPut with (nolock) on aPut.AccountCode = d.DeliveryAccount collate Cyrillic_General_CS_AS
+		--left join QORT_BACK_DB_TEST.dbo.Accounts aPay with (nolock) on aPay.AccountCode = d.[Payment Account] collate Cyrillic_General_CS_AS
+		where ass.Enabled = 0 and ass.isin = @isin
