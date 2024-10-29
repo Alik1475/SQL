@@ -1,6 +1,6 @@
 ﻿
 
--- exec QORT_ARM_SUPPORT.dbo.upload_REPO_OTC_Edgar @Nom = '404'
+-- exec QORT_ARM_SUPPORT.dbo.upload_REPO_OTC_Edgar
 
 
 
@@ -187,7 +187,7 @@ BEGIN
 
             ''Microsoft.ACE.OLEDB.12.0'',
 
-            ''Excel 12.0; Database='+ @FileName + '; HDR=NO;IMEX=1'',
+  ''Excel 12.0; Database='+ @FileName + '; HDR=NO;IMEX=1'',
 
             ''SELECT * FROM [' + '04' + '$A1:Q500]'')'
 
@@ -1075,7 +1075,7 @@ Insert into QORT_BACK_TDB.dbo.ImportTrades (
 
             WHERE 
 
-                crs.TradeAsset_ID = aaa.id
+      crs.TradeAsset_ID = aaa.id
 
                 AND crs.Date = CONVERT(INT, SUBSTRING(t.DataFirst, 7, 4) +  RIGHT('0' + SUBSTRING(t.DataFirst, 4, 2), 2) +  RIGHT('0' + SUBSTRING(t.DataFirst, 1, 2), 2))
 
@@ -1238,6 +1238,7 @@ Insert into QORT_BACK_TDB.dbo.ImportTrades (
             FROM QORT_BACK_DB..Trades trad1 
 
 			left outer join QORT_BACK_DB..Securities sec on sec.id = trad1.Security_ID
+
 			left outer join QORT_BACK_DB..Assets ass on ass.id = sec.Asset_ID
 
 			WHERE 
