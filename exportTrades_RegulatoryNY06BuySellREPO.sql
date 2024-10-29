@@ -6,7 +6,7 @@
 
 
 
--- exec QORT_ARM_SUPPORT.dbo.exportTrades_RegulatoryNY06BuySellREPO '20241022'
+-- exec QORT_ARM_SUPPORT.dbo.exportTrades_RegulatoryNY06BuySellREPO '20241029'
 
 
 
