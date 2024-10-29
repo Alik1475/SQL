@@ -2,7 +2,7 @@
 
 
 
--- exec QORT_ARM_SUPPORT.dbo.upload_DAILY_23_30
+-- exec QORT_ARM_SUPPORT_TEST.dbo.upload_DAILY_23_30
 
 CREATE PROCEDURE [dbo].[upload_DAILY_23_30]
 
@@ -26,9 +26,9 @@ BEGIN
 
 		
 
-		--exec QORT_ARM_SUPPORT.dbo.AB0001Correction -- обнуление собственной позиции Армброк 
+		--exec QORT_ARM_SUPPORT_TEST.dbo.AB0001Correction -- обнуление собственной позиции Армброк 
 
-		--exec QORT_ARM_SUPPORT.dbo.ChangeCurrent -- формирование и загрузка сделок конвертаций под списание брокерской комиссии.
+		exec QORT_ARM_SUPPORT_TEST.dbo.ChangeCurrent -- формирование и загрузка сделок конвертаций под списание брокерской комиссии.
 
 
 
@@ -40,7 +40,7 @@ BEGIN
 
 		set @Message = 'ERROR: ' + ERROR_MESSAGE(); 
 
-		insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
+		insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
 
 		print @Message
 

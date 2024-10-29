@@ -1,6 +1,6 @@
 ﻿
 
---exec QORT_ARM_SUPPORT.dbo.UpdateCouponForREPO
+--exec QORT_ARM_SUPPORT_TEST.dbo.DRAFT
 
 
 
@@ -44,31 +44,29 @@ BEGIN
 
 	into #t
 
-	from QORT_BACK_DB..Trades tr
+	from QORT_BACK_DB_UAT..Trades tr
 
-	left outer join QORT_BACK_DB..TSSections ts on ts.id = tr.TSSection_ID
+	left outer join QORT_BACK_DB_UAT..TSSections ts on ts.id = tr.TSSection_ID
 
-	left outer join QORT_BACK_DB..Securities sec on sec.id = tr.Security_ID
+	left outer join QORT_BACK_DB_UAT..Securities sec on sec.id = tr.Security_ID
 
-	left outer join QORT_BACK_DB..Coupons cup on cup.Asset_ID = sec.Asset_ID and cup.BeginDate <= @todayInt and cup.EndDate > @todayInt and cup.Enabled <> cup.id
+	left outer join QORT_BACK_DB_UAT..Coupons cup on cup.Asset_ID = sec.Asset_ID and cup.BeginDate < @todayInt and cup.EndDate > @todayInt
 
-	left outer join QORT_BACK_DB..Assets ass on cup.Asset_ID = ass.id
+	left outer join QORT_BACK_DB_UAT..Assets ass on cup.Asset_ID = ass.id
 
-	where-- tr.TradeDate > 20240101 and ts.Name in ('AMX_REPO','ОТС_REPO') and tr.PutDate = 0 and tr.Enabled <> tr.id and 
-
-	charindex('/',cup.Description) = 0
+	where tr.TradeDate > 20240101 and ts.Name in ('AMX_REPO','ОТС_REPO') and tr.PutDate = 0 and tr.Enabled <> tr.id and charindex('/',cup.Description) = 0
 
  
 
 	--select distinct * from #t
 
-	--insert into QORT_BACK_TDB..Coupons (ET_Const, IsProcessed, Asset_ShortName, CouponNum, Procent, Volume, Description)
+	 insert into QORT_BACK_TDB_UAT..Coupons (ET_Const, IsProcessed, Asset_ShortName, CouponNum, Procent, Volume, Description)
 
 	 select distinct 4 as ET_Const, 1 as IsProcessed, ShortName Asset_ShortName, CouponNum CouponNum, 0 as Procent, 0 as Volume, Description
 
 	 from #t 
 
-	-- return
+
 
 	 ------------------------------------------------блок возрата значений ставки и объема купона-------------------------------------------
 
@@ -76,9 +74,9 @@ BEGIN
 
 	into #tt
 
-	from QORT_BACK_DB..Coupons coup
+	from QORT_BACK_DB_UAT..Coupons coup
 
-	 left outer join QORT_BACK_DB..Assets asss on asss.id = coup.Asset_ID
+	 left outer join QORT_BACK_DB_UAT..Assets asss on asss.id = coup.Asset_ID
 
 	where charindex('/',coup.Description) <> 0
 
@@ -104,11 +102,11 @@ BEGIN
 
 		insert into @tab (idn) 
 
-		select trd.id idn from QORT_BACK_DB..Trades trd
+		select trd.id idn from QORT_BACK_DB_UAT..Trades trd
 
-			left outer join QORT_BACK_DB..Securities Sc on Sc.ID = trd.Security_ID 
+			left outer join QORT_BACK_DB_UAT..Securities Sc on Sc.ID = trd.Security_ID 
 
-			left outer join QORT_BACK_DB..Assets asse on asse.id = Sc.Asset_ID
+			left outer join QORT_BACK_DB_UAT..Assets asse on asse.id = Sc.Asset_ID
 
 		where trd.PutDate = 0 and trd.Enabled <> trd.id 
 
@@ -125,18 +123,12 @@ BEGIN
 		if EXISTS(select idn from @tab) -- проверка есть сделки с бумагой, у которой купон был сброшен или нет---------------------------
 
 			begin
-
 				set @n = @n - 1
-
 			end
-
 		  else
-
 			begin
 
-
-
-				--insert into QORT_BACK_TDB..Coupons (ET_Const, IsProcessed, Description, Asset_ShortName, CouponNum, Volume,Procent)
+				insert into QORT_BACK_TDB_UAT..Coupons (ET_Const, IsProcessed, Description, Asset_ShortName, CouponNum, Volume,Procent)
 
 				select 4 as ET_Const, 1 as IsProcessed, LEFT(Description1, CHARINDEX('/', Description1) - 1) Description
 
@@ -147,17 +139,12 @@ BEGIN
 				, SUBSTRING(Description1, CHARINDEX('/', Description1) + 1, CHARINDEX('/', Description1, CHARINDEX('/', Description1) + 1) - CHARINDEX('/', Description1) - 1) as Volume
 
 				, SUBSTRING(Description1, CHARINDEX('/', Description1, CHARINDEX('/', Description1) + 1) + 1, LEN(Description1)) as Procent
-
 				from #tt
-
 				where Asset_ID1 = @asssetID
 
 				set @n = @n - 1
-
 			--select * from @tab 
-
 			end
-
 	   END -- конец цикла
 
 
@@ -174,7 +161,7 @@ BEGIN
 
 		set @Message = 'ERROR: ' + ERROR_MESSAGE(); 
 
-		insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
+		insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
 
 		select @Message result, 'STATUS' defaultTask, 'red' color
 

@@ -1,7 +1,7 @@
 ﻿
--- exec QORT_ARM_SUPPORT_TEST..API_Raif
+-- exec QORT_ARM_SUPPORT_TEST..TestFlaskRequest_TEST
 
-CREATE PROCEDURE [dbo].[API_Raif]
+CREATE PROCEDURE [dbo].[TestFlaskRequest_TEST]
 
 AS
 
@@ -27,7 +27,7 @@ BEGIN
 
     DECLARE @todayInt INT = CAST(CONVERT(VARCHAR, @todayDate, 112) AS INT)
 
-	DECLARE @StatementDate NVARCHAR(50) = CONVERT(NVARCHAR, @todayDate, 23); -- Дата в формате yyyy-MM-dd
+	DECLARE @StatementDate NVARCHAR(50) = '2024-10-24' --CONVERT(NVARCHAR, @todayDate, 23); -- Дата в формате yyyy-MM-dd
 
     CREATE TABLE #Curloutput_TEST (output NVARCHAR(MAX));
 
@@ -107,7 +107,7 @@ BEGIN
 
 	declare @NotifyEmail varchar(1024)
 
-    declare @NotifyEmail1 varchar(1024)
+	declare @NotifyEmail1 varchar(1024)
 
     declare @SendMail int = 1
 
@@ -193,24 +193,26 @@ BEGIN
 
         -- Подготовка команды curl
 
-        SET @CurlCommand = 'curl --location "https://api.openapi.raiffeisen.ru/api/v1/statement/transactions/intraday?account=' + @Account + '&statementDate=' + @StatementDate + '&fields=ContractorInn,CreditDocument,Debet,Credit,DocumentNumber,Account,Org
-anizationName,Purpose,ValuationDate,ContractorName,OperationDate,OperationType,StatementDate,StatementType,Avisetype,ContractorAccount,ContractorBankName,AccountCurrency,Uip,IntradayOperationId" ' +
+        SET @CurlCommand = 'curl --location "https://api.openapi.raiffeisen.ru/api/v1/statement/transactions?account=' + @Account + '&statementDate=' + @StatementDate + '&fields=ContractorInn,CreditDocument,Debet,Credit,DocumentNumber,Account,Organization
+Name,Purpose,ValuationDate,ContractorName,OperationDate,OperationType,StatementDate,StatementType,Avisetype,ContractorAccount,ContractorBankName,AccountCurrency,Uip" ' +
 
                            '--header "Id-Token: ' + @IdToken + '" ' +
 
-               '--header "Authorization: Bearer ' + @AccessToken + '" ' +
+                        '--header "Authorization: Bearer ' + @AccessToken + '" ' +
 
                            '--header "Accept: application/json" '
 
 						    + '--output "C:\Temp\api_response.json"';
 
-          PRINT @CurlCommand; --return
+        
 
 
 
 
 
-      
+
+
+        PRINT @CurlCommand; --return
 
         BEGIN TRY
 
@@ -246,18 +248,7 @@ PowerShellCommand;
 						DECLARE @JsonContent NVARCHAR(MAX);
 				SELECT @JsonContent = BulkColumn
 				FROM OPENROWSET(BULK 'C:\Temp\api_response_converted.json', SINGLE_CLOB) AS JsonFile;
-				
 
-			DECLARE @LogFilePath NVARCHAR(255) = 'C:\Temp\api_response_log_' + @StatementDate + '.json';
-			DECLARE @Cmdlog NVARCHAR(4000);
-			DECLARE @PowerShellCommandlog NVARCHAR(4000);
-
-			SET @PowerShellCommandlog = 'powershell -Command "Add-Content -Path ''' + @LogFilePath + ''' -Value (''Timestamp: '' + (Get-Date).ToString(''yyyy-MM-dd HH:mm:ss'') + ''`n'' + [System.IO.File]::ReadAllText(''C:\Temp\api_response_converted.json'') + ''`n
-'')"';
-
-			-- Выполнение команды через xp_cmdshell
-			SET @Cmdlog = 'cmd.exe /c ' + @PowerShellCommandlog;
-			EXEC xp_cmdshell @Cmdlog;
 				-- Теперь можно работать с данными
 				PRINT @JsonContent;
 
@@ -334,15 +325,16 @@ PowerShellCommand;
 
                     JSON_VALUE(jsonData.value, '$.uip') AS Uip,
 
-					JSON_VALUE(jsonData.value, '$.intradayOperationId') AS IntradayOperationId,
+					'12345'+ cast(ABS(CHECKSUM(NEWID())) % 100 + 1 as varchar(16)) + cast(ABS(CHECKSUM(NEWID())) % 100 + 1 as varchar(16)) + cast(ABS(CHECKSUM(NEWID())) % 100 + 1 as varchar(16)) + cast(ABS(CHECKSUM(NEWID())) % 100 + 1 as varchar(16)) /*JSON_VALUE(jsonDa
+ta.value, '$.intradayOperationId')*/ AS IntradayOperationId,
 
                     NULL AS ErrorMessage,
 
                     @todayInt AS Date
 
-                FROM OPENJSON(@JsonContent) AS jsonData;
+                FROM OPENJSON(@JsonContent) AS jsonData
 
-				
+				--where  JSON_VALUE(jsonData.value, '$.documentNumber') = '393162';
 
             END
 
@@ -392,47 +384,15 @@ PowerShellCommand;
 
     -- Выводим результаты парсинга
 
-	select * from #ParsedResults
-
-
-
-		DELETE FROM #ParsedResults
-		WHERE IntradayOperationId IN (
-			SELECT par.IntradayOperationId
-			FROM QORT_ARM_SUPPORT_TEST.dbo.IntradayOperationId par
-		);
-
-		
-
-
-
-		INSERT INTO QORT_ARM_SUPPORT_TEST.dbo.IntradayOperationId (IntradayOperationId)
-
-		SELECT IntradayOperationId
-
-		FROM #ParsedResults par1
-
-			where NOT EXISTS (
-
-						select IntradayOperationId 
-
-						from QORT_ARM_SUPPORT_TEST.dbo.IntradayOperationId 
-
-						where par1.IntradayOperationId = IntradayOperationId
-
-					);
-
-select * from #ParsedResults-- return
-
-ALTER TABLE #ParsedResults
+				ALTER TABLE #ParsedResults
 			ADD RowNumber INT;
 
 			-- Заполняем новый столбец порядковым номером строки, отсортированным по BackId
 			WITH RowNumberCTE AS (
 				SELECT 
 				IntradayOperationId,
-					ROW_NUMBER() OVER (ORDER BY IntradayOperationId) AS Ro
-wNum
+					ROW_NUMBER() OVER (ORDER BY IntradayOperationId) A
+S RowNum
 				FROM #ParsedResults
 			)
 			UPDATE pr
@@ -534,7 +494,7 @@ urpose) + 1
 
                 FROM #ParsedResults
 
-			/*	WHERE PATINDEX('%АРМБРОК%', ContractorName) = 0
+				WHERE PATINDEX('%АРМБРОК%', ContractorName) = 0
 
 					and PATINDEX('%Райффайзенбанк%', ContractorName) = 0
 
@@ -546,7 +506,7 @@ urpose) + 1
 
 					--and OperationType = '0'
 
-					and SubAcc is not null*/
+					and SubAcc is not null
 
 
 
@@ -622,21 +582,49 @@ urpose) + 1
 
 		end
 
+   /* delete
+
+	FROM #ParsedResults
+
+	where EXISTS (
+
+				select IntradayOperationId
+
+				from QORT_ARM_SUPPORT_TEST.dbo.IntradayOperationId par
+
+				where par.IntradayOperationId = IntradayOperationId
+
+			)
 
 
-				select * from #ParsedResults
+
+INSERT INTO QORT_ARM_SUPPORT_TEST.dbo.IntradayOperationId (IntradayOperationId)
+
+SELECT IntradayOperationId
+
+FROM #ParsedResults par1
+
+	where NOT EXISTS (
+
+				select IntradayOperationId 
+
+				from QORT_ARM_SUPPORT_TEST.dbo.IntradayOperationId 
+
+				where par1.IntradayOperationId = IntradayOperationId
+
+			);
+
+select * from #ParsedResults*/
 
 
 
-				set @SendMail = 0
+	/*if exists (select IntradayOperationId FROM #ParsedResults		
 
-					if exists (select IntradayOperationId FROM #ParsedResults		
-
-							) begin set @SendMail = 1 end
+			) begin set @SendMail = 1 end*/
 
 	
 
-					if @SendMail = 1 begin
+	if @SendMail = 1 begin
 
 		
 
@@ -644,11 +632,11 @@ urpose) + 1
 
 
 
-	--set	@NotifyEmail = 'accounting@armbrok.am;QORT@armbrok.am;samvel.sahakyan@armbrok.am'
+	
 
 
 
-	-- блок формирования уведомления корректировках зачисления денег на счет клиента---
+			-- блок формирования уведомления корректировках зачисления денег на счет клиента---
 
 	declare @result table (Date varchar(32), SubAccCode varchar (32), Client_Name varchar (150), Type_Qort varchar(32), Type varchar(256), Size varchar (256), Sales varchar (250)
 
@@ -692,7 +680,7 @@ select QORT_ARM_SUPPORT_TEST.dbo.fIntToDateVarchar(corr.Date) Date
 
 from #ParsedResults pars
 
-left outer join QORT_BACK_DB_UAT..CorrectPositions corr on corr.BackID = pars.IntradayOperationId and corr.IsCanceled = 'n'
+left outer join QORT_BACK_DB_UAT..CorrectPositions corr on corr.BackID = pars.IntradayOperationId
 
 left outer join QORT_BACK_DB_UAT..Subaccs sub on sub.id = corr.Subacc_ID
 
@@ -746,7 +734,7 @@ while @n > 0
 
 		set @salesID = CAST ((select salesID from #tk where num = @n) as int)
 
-		set	@NotifyEmail = 'aleksandr.mironov@armbrok.am;'--'accounting@armbrok.am;QORT@armbrok.am;samvel.sahakyan@armbrok.am;'
+		set	@NotifyEmail = 'aleksandr.mironov@armbrok.am;'
 
 	
 

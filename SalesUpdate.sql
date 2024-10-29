@@ -14,7 +14,7 @@
 
 
 
--- exec QORT_ARM_SUPPORT.dbo.SalesUpdate
+-- exec QORT_ARM_SUPPORT_TEST.dbo.SalesUpdate
 
 CREATE PROCEDURE [dbo].[SalesUpdate]
 
@@ -50,11 +50,11 @@ select ss.user_id fatherID, ss.account_id ChildID, up.UserCode ownerfirmid, s1.S
 
 into #t
 
-from QORT_BACK_DB..UserSubaccs ss (nolock) 
+from QORT_BACK_DB_UAT..UserSubaccs ss (nolock) 
 
-left outer join QORT_BACK_DB..UserProperties up (nolock) on up.user_id = ss.user_id
+left outer join QORT_BACK_DB_UAT..UserProperties up (nolock) on up.user_id = ss.user_id
 
-left outer join QORT_BACK_DB..Subaccs s1 (nolock) on ss.account_id = s1.id
+left outer join QORT_BACK_DB_UAT..Subaccs s1 (nolock) on ss.account_id = s1.id
 
 where ss.account_id > 0 and ss.is_analytic = 'n' and up.UserCode <> ''
 
@@ -68,11 +68,11 @@ select sa.SubAccCode SubAccCodeSales, sa.id IDsubacc, frS.name, frS.id IDSales
 
 into #t1
 
-from QORT_BACK_DB..Subaccs sa
+from QORT_BACK_DB_UAT..Subaccs sa
 
-left outer join  QORT_BACK_DB..Firms fr on sa.OwnerFirm_ID = fr.id
+left outer join  QORT_BACK_DB_UAT..Firms fr on sa.OwnerFirm_ID = fr.id
 
-left outer join QORT_BACK_DB..Firms frS on fr.Sales_ID = frS.id
+left outer join QORT_BACK_DB_UAT..Firms frS on fr.Sales_ID = frS.id
 
 where sa.Enabled <> sa.id and sa.OwnerFirm_ID > 0 and fr.Sales_ID > 0 and sa.ACSTAT_Const = 5 -- только активные субсчета
 
@@ -104,7 +104,7 @@ from #t1 t1
 
 left join #t t on t.OwnerFirmID = t1.IDSales and t.childID = t1.IDsubacc
 
-left join QORT_BACK_DB..UserProperties up1 on up1.UserCode = t1.IDSales
+left join QORT_BACK_DB_UAT..UserProperties up1 on up1.UserCode = t1.IDSales
 
 where  t.ChildID is null
 
@@ -116,7 +116,7 @@ select * from #t4
 
 ----------------------------------------------------------удаляем записи где не найден текущий сейлз---------------------------------------
 
-insert into QORT_BACK_TDB..ImportUserSubaccs (ET_Const, IsProcessed, UID, Subacc_Code, ID)
+insert into QORT_BACK_TDB_UAT..ImportUserSubaccs (ET_Const, IsProcessed, UID, Subacc_Code, ID)
 
 select 8 ET_Const, 1 IsProcessed, t3.fatherID, t3.SubAccCodeAN, idR
 
@@ -124,13 +124,13 @@ from #t3 t3
 
 ----------------------------------------------------------добавляем записи где текущее состояние - нет записи в таблице с правами----------------------
 
-insert into QORT_BACK_TDB..ImportUserSubaccs (ET_Const, IsProcessed, UID, Subacc_Code, isAnalytic)
+insert into QORT_BACK_TDB_UAT..ImportUserSubaccs (ET_Const, IsProcessed, UID, Subacc_Code, isAnalytic)
 
 select 2 ET_Const, 1 IsProcessed,  t4.UserID, t4.SubAccCodeSales,'n'
 
 from #t4 t4
 
-where t4.IDSales in (942,1241,1265,618,1358,1238,2004) -- Елена, Мария, Тигран, Виктор, Карен, Эди, Алексей
+where t4.IDSales in (942,1241,1265) -- Елена, Мария. Тигран
 
 
 
@@ -144,7 +144,7 @@ where t4.IDSales in (942,1241,1265,618,1358,1238,2004) -- Елена, Мария
 
 		set @Message = 'ERROR: ' + ERROR_MESSAGE(); 
 
-		insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
+		insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
 
 		print @Message
 

@@ -1,5 +1,7 @@
 ﻿
 
+
+
 --exec QORT_ARM_SUPPORT_TEST.dbo.upload_CrossRates_CBA
 
 
@@ -56,7 +58,7 @@
 
 
 
-CREATE PROCEDURE [dbo].[upload_CrossRates_CBA]
+CREATE PROCEDURE [dbo].[upload_CrossRates_CBA_TEST]
 
 AS
 
@@ -376,3 +378,4 @@ BEGIN
 
 
 END
+

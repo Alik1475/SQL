@@ -2,11 +2,13 @@
 
 
 
+
+
  -- exec QORT_ARM_SUPPORT_TEST.dbo.upload_Deals
 
 
 
-CREATE PROCEDURE [dbo].[upload_Deals]
+CREATE PROCEDURE [dbo].[upload_Deals_junior]
 
 AS
 
@@ -50,7 +52,7 @@ BEGIN
 
 		--/*
 
-		declare @FileName varchar(128) = '\\192.168.14.22\Exchange\QORT_Files\TEST\Deals.xlsx'
+		declare @FileName varchar(128) = '\\192.168.14.22\Exchange\QORT_Files\TEST\Deals_junior.xlsx'
 
 		declare @Sheet varchar(64) = 'Deals' 
 
@@ -275,8 +277,8 @@ led = 0 and t.nullstatus = 'n') t
 
 			from QORT_BACK_DB_TEST.dbo.TradeProperties tp with (nolock) 
 
-			inner join QORT_BACK_DB_TEST.dbo.Trades t with (nolock) on t.id = tp.Trade_ID and t.TradeDate = cast(convert(varchar, d.Date, 112) as int) and t.BuySell = tt.BuySell /*and t.AgreeNum = cast(d.AgreeMent as varchar)*/ and t.Enabled = 0 and t.nullstatus =
- 'n'
+			inner join QORT_BACK_DB_TEST.dbo.Trades t with (nolock) on t.id = tp.Trade_ID and t.TradeDate = cast(convert(varchar, d.Date, 112) as int) and t.BuySell = tt.BuySell /*and t.AgreeNum = cast(d.AgreeMent as varchar)*/ and t.Enabled = 0 and t.nullstatus 
+= 'n'
 
 			where tp.ExternalNum = cast(d.AgreeMent as varchar)
 

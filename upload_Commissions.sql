@@ -1,6 +1,6 @@
 ﻿
 
--- exec QORT_ARM_SUPPORT.dbo.upload_Commissions
+-- exec QORT_ARM_SUPPORT_TEST.dbo.upload_Commissions
 
 
 
@@ -20,7 +20,7 @@ BEGIN
 
 
 
-		declare @FilePath varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\PRODUCTION\Commissions'
+		declare @FilePath varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\TEST\Commissions'
 
 		declare @Sheet varchar(16) = 'Commissions'
 
@@ -210,19 +210,19 @@ BEGIN
 
 				from #comms t
 
-				left outer join QORT_BACK_DB.dbo.Trades tt with (nolock) on tt.id = t.TradeId-- * 1000
+				left outer join QORT_BACK_DB_TEST.dbo.Trades tt with (nolock) on tt.id = t.TradeId-- * 1000
 
-				left outer join QORT_BACK_DB.dbo.Subaccs s with (nolock) on s.id = tt.SubAcc_ID
+				left outer join QORT_BACK_DB_TEST.dbo.Subaccs s with (nolock) on s.id = tt.SubAcc_ID
 
-				left outer join QORT_BACK_DB.dbo.Subaccs gs with (nolock) on gs.SubAccCode = t.SubAccForCrediting collate Cyrillic_General_CS_AS
+				left outer join QORT_BACK_DB_TEST.dbo.Subaccs gs with (nolock) on gs.SubAccCode = t.SubAccForCrediting collate Cyrillic_General_CS_AS
 
-				left outer join QORT_BACK_DB.dbo.Accounts acc with (nolock) on acc.id = tt.PayAccount_ID
+				left outer join QORT_BACK_DB_TEST.dbo.Accounts acc with (nolock) on acc.id = tt.PayAccount_ID
 
 				outer apply (
 
 					select top 1 a.id, a.ShortName
 
-					from QORT_BACK_DB.dbo.Assets a with (nolock) 
+					from QORT_BACK_DB_TEST.dbo.Assets a with (nolock) 
 
 					where a.ShortName = t.Currency and a.AssetType_Const = 3
 
@@ -258,7 +258,7 @@ BEGIN
 
 
 
-				set @aid = isnull((select max(aid) from QORT_BACK_TDB.dbo.Phases with (nolock)), 0)
+				set @aid = isnull((select max(aid) from QORT_BACK_TDB_TEST.dbo.Phases with (nolock)), 0)
 
 
 
@@ -268,13 +268,13 @@ BEGIN
 
 				from #comms t
 
-				left outer join QORT_BACK_TDB.dbo.Phases p with (nolock) on p.Trade_SID = t.TradeId and p.PC_Const = 9 --*/
+				left outer join QORT_BACK_TDB_TEST.dbo.Phases p with (nolock) on p.Trade_SID = t.TradeId and p.PC_Const = 9 --*/
 
 
 
 				--/*
 
-				insert into QORT_BACK_TDB.dbo.Phases( IsProcessed, ET_Const, PC_Const, BackID, Date
+				insert into QORT_BACK_TDB_TEST.dbo.Phases( IsProcessed, ET_Const, PC_Const, BackID, Date
 
 					, InfoSource, PhaseAccount_ExportCode, Subacc_Code, PhaseAsset_ShortName, CurrencyAsset_ShortName
 
@@ -292,9 +292,9 @@ BEGIN
 
 				from #comms t
 
-				left outer join QORT_BACK_DB.dbo.Phases p with (nolock) on p.Trade_ID = t.TradeId and p.PC_Const = 9 and p.IsCanceled = 'n' and p.Enabled = 0
+				left outer join QORT_BACK_DB_TEST.dbo.Phases p with (nolock) on p.Trade_ID = t.TradeId and p.PC_Const = 9 and p.IsCanceled = 'n' and p.Enabled = 0
 
-				where p.id is null or t.trueTradeId is null
+				where (p.id is null or t.trueTradeId is null)
 
 
 
@@ -304,7 +304,7 @@ BEGIN
 
 				set @WaitCount = 1200
 
-				while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB.dbo.Phases t with (nolock) where t.IsProcessed in (1,2)))
+				while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB_TEST.dbo.Phases t with (nolock) where t.IsProcessed in (1,2)))
 
 				begin
 
@@ -316,11 +316,11 @@ BEGIN
 
 
 
-				insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel)
+				insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel)
 
 				select 'TDB Commission Error: ' + @FileName +', ' + isnull(BackId, '') + ' - ' + isnull(ErrorLog, '') logMessage, 1001 errorLevel
 
-				from QORT_BACK_TDB.dbo.Phases a with (nolock)
+				from QORT_BACK_TDB_TEST.dbo.Phases a with (nolock)
 
 				where aid > @aid
 
@@ -338,16 +338,16 @@ BEGIN
 
 				from #comms t
 
-				inner join QORT_BACK_DB.dbo.Phases p with (nolock) on p.Trade_ID = t.TradeId and p.BackId = t.BackId and p.IsCanceled = 'n'
+				inner join QORT_BACK_DB_TEST.dbo.Phases p with (nolock) on p.Trade_ID = t.TradeId and p.BackId = t.BackId and p.IsCanceled = 'n'
 
 					
 
 				if @rowsInFile > 0 begin
 
-					insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel, logRecords)
+					insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel, logRecords)
 
-					select 'File uploaded: ' + @FileName + ', lines: ' + cast(@rowsInFile as varchar) +', new Commissions: ' + cast((@rowsNew - @rowsError) as varchar) + ' / ' + cast((@rowsNew) as varchar) logMessage, iif(@rowsError > 0, 1001, 2001) errorLevel, (@rowsN
-ew - @rowsError) logRecords
+					select 'File uploaded: ' + @FileName + ', lines: ' + cast(@rowsInFile as varchar) +', new Commissions: ' + cast((@rowsNew - @rowsError) as varchar) + ' / ' + cast((@rowsNew) as varchar) logMessage, iif(@rowsError > 0, 1001, 2001) errorLevel, (@rowsNe
+w - @rowsError) logRecords
 
 				end
 
@@ -401,7 +401,7 @@ ew - @rowsError) logRecords
 
 		set @Message = 'ERROR: ' + ERROR_MESSAGE() + ISNULL(', ' + @FileName, '');  
 
-		if @message not like '%12345 Cannot initialize the data source%' insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
+		if @message not like '%12345 Cannot initialize the data source%' insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
 
 		print @Message
 

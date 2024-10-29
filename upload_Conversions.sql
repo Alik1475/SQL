@@ -2,7 +2,7 @@
 
 
 
--- exec QORT_ARM_SUPPORT.dbo.upload_Conversions
+-- exec QORT_ARM_SUPPORT_test.dbo.upload_Conversions
 
 
 
@@ -90,18 +90,6 @@ BEGIN
 
 		SELECT * FROM @FILES 
 
-
-
-		delete f
-
-		from @files f
-
-		where not filename like '%.xlsx'
-
-
-
-		SELECT * FROM @FILES 
-
 		declare @FileId int = 0
 
 		declare @FileName varchar(255)
@@ -116,7 +104,7 @@ BEGIN
 
 		where f.fileId > @FileId
 
-		SET @rowsInFile = (SELECT MAX(fileId) FROM @FILES where filename is not null)
+		SET @rowsInFile = (SELECT MAX(fileId-1) FROM @FILES)
 
 		
 
@@ -202,7 +190,7 @@ BEGIN
 
 				set @WaitCount = 1200 -------------------- задержка, не передаем в ТДБ сделку, пока предыдущая не закончила грузиться----------------------
 
-		while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB.dbo.ImportTrades t with (nolock) where t.IsProcessed in (1,2)))
+		while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB_UAT.dbo.ImportTrades t with (nolock) where t.IsProcessed in (1,2)))
 
 		begin
 
@@ -216,7 +204,7 @@ BEGIN
 
 --/*
 
-		insert into QORT_BACK_TDB.dbo.ImportTrades (
+		insert into QORT_BACK_TDB_UAT.dbo.ImportTrades (
 
 			IsProcessed, ET_Const, IsDraft
 
@@ -228,17 +216,7 @@ BEGIN
 
 			, CurrPriceAsset_ShortName, PutPlannedDate, PayPlannedDate
 
-			, PutAccount_ExportCode
-
-			, PayAccount_ExportCode
-
-			, ForbidSyncPayAccs
-
-			, CPPutAccount_ExportCode
-
-			, CPPayAccount_ExportCode	
-
-			, SubAcc_Code
+			, PutAccount_ExportCode, PayAccount_ExportCode, SubAcc_Code
 
 			--, AgreeNum
 
@@ -274,25 +252,15 @@ BEGIN
 
 			select 1 as IsProcessed, 2 as ET_Const, 'y' as IsDraft
 
-			, TradeDate as TradeDate, replace(convert(varchar,getdate(),108), ':', '')+'000' TradeTime, 'OTC_FX' TSSection_Name
+			, 20240724 as TradeDate, replace(convert(varchar,getdate(),108), ':', '')+'000' TradeTime, 'OTC_FX' TSSection_Name
 
 			, 2 as BuySell, Security_Code as Security_Code, Qty as Qty, Price as Price
 
 			, Volume as Volume
 
-			, CurrPriceAsset_ShortName as CurrPriceAsset_ShortName, TradeDate PutPlannedDate, TradeDate PayPlannedDate
+			, CurrPriceAsset_ShortName as CurrPriceAsset_ShortName, 20240724 PutPlannedDate, 20240724 PayPlannedDate
 
-			, 'Armbrok_Mn_Client' PutAccount_ExportCode
-
-			, 'Armbrok_Mn_Client' PayAccount_ExportCode
-
-			, 'y' ForbidSyncPayAccs
-
-			, 'Armbrok_Mn_OWN' CPPutAccount_ExportCode
-
-			, 'Armbrok_Mn_OWN' CPPayAccount_ExportCode		
-
-			, SubAcc as SubAcc_Code
+			, 'ARMBR_MONEY' PutAccount_ExportCode, 'ARMBR_MONEY' PayAccount_ExportCode, SubAcc as SubAcc_Code
 
 		--	, AgreeNum
 
@@ -324,7 +292,7 @@ BEGIN
 
 				(cast(
 
-						right(SubAcc,4) as varchar(8))+cast(isnull((select max(ID) from QORT_BACK_DB.dbo.Trades with (nolock))+1,0) as varchar(8))) as int) TradeNum
+						right(SubAcc,4) as varchar(8))+cast(isnull((select max(ID) from QORT_BACK_DB_UAT.dbo.Trades with (nolock))+1,0) as varchar(8))) as int) TradeNum
 
 			, '00001' CpFirm_BOCode
 
@@ -376,7 +344,7 @@ BEGIN
 
 		set @Message = 'ERROR: ' + ERROR_MESSAGE() + ISNULL(', ' + @FileName, '');  
 
-		if @message not like '%12345 Cannot initialize the data source%' insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
+		if @message not like '%12345 Cannot initialize the data source%' insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
 
 		print @Message
 

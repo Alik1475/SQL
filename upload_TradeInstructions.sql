@@ -2,19 +2,17 @@
 
 
 
-
-
--- exec QORT_ARM_SUPPORT.dbo.upload_TradeInstructions
+-- exec QORT_ARM_SUPPORT_TEST.dbo.upload_TradeInstructions
 
 /*
 
-	exec QORT_ARM_SUPPORT.dbo.upload_TradeInstructions
+	exec QORT_ARM_SUPPORT_TEST.dbo.upload_TradeInstructions
 
 
 
 	select top 100 *
 
-	from QORT_ARM_SUPPORT.dbo.uploadLogs with (nolock)
+	from QORT_ARM_SUPPORT_TEST.dbo.uploadLogs with (nolock)
 
 	order by 1 desc
 
@@ -42,7 +40,7 @@ BEGIN
 
 
 
-		declare @lastTdbId int = isnull((select max(aid) from QORT_BACK_TDB.dbo.ImportTradeInstrs t with (nolock)), 0)
+		declare @lastTdbId int = isnull((select max(aid) from QORT_BACK_TDB_TEST.dbo.ImportTradeInstrs t with (nolock)), 0)
 
 		declare @NewOrders int = 0
 
@@ -52,7 +50,7 @@ BEGIN
 
 
 
-		declare @FileName varchar(128) = '\\192.168.14.22\Exchange\QORT_Files\PRODUCTION\Orders.xlsx'
+		declare @FileName varchar(128) = '\\192.168.14.22\Exchange\QORT_Files\TEST\test\Orders.xlsx'
 
 		declare @SheetSec varchar(64) = 'Orders'
 
@@ -141,8 +139,6 @@ BEGIN
 			, [Price (если CurrencyAsset_ID = EUR + PriceType = 2] PriceEUR
 
 			, [Price (если CurrencyAsset_ID = RUR + PriceType = 2] PriceRUR
-
-			, [Yield] Yield
 
 			, [PRC_Const, где Limit =2, Market 3] PRC_Const_TXT
 
@@ -258,7 +254,7 @@ BEGIN
 
 		from #tSec t
 
-		left outer join QORT_BACK_DB.dbo.Subaccs s with (nolock) on s.ConstitutorCode = t.ConstitutorCode and s.IsAnalytic = 'n' and s.Enabled = 0
+		left outer join QORT_BACK_DB_TEST.dbo.Subaccs s with (nolock) on s.ConstitutorCode = t.ConstitutorCode and s.IsAnalytic = 'n' and s.Enabled = 0
 
 
 
@@ -270,7 +266,7 @@ BEGIN
 
 		from #tFX t
 
-		left outer join QORT_BACK_DB.dbo.Subaccs s with (nolock) on s.ConstitutorCode = t.ConstitutorCode and s.IsAnalytic = 'n' and s.Enabled = 0
+		left outer join QORT_BACK_DB_TEST.dbo.Subaccs s with (nolock) on s.ConstitutorCode = t.ConstitutorCode and s.IsAnalytic = 'n' and s.Enabled = 0
 
 
 
@@ -280,7 +276,7 @@ BEGIN
 
 		from #tSec t
 
-		left outer join QORT_BACK_DB.dbo.TradeInstrs i with (nolock) on i.AuthorSubAcc_ID = t.SubAccId and i.Enabled = 0 and i.BONum = t.BONum
+		left outer join QORT_BACK_DB_TEST.dbo.TradeInstrs i with (nolock) on i.AuthorSubAcc_ID = t.SubAccId and i.Enabled = 0 and i.BONum = t.BONum
 
 
 
@@ -288,7 +284,7 @@ BEGIN
 
 		from #tFX t
 
-		left outer join QORT_BACK_DB.dbo.TradeInstrs i with (nolock) on i.AuthorSubAcc_ID = t.SubAccId and i.Enabled = 0 and i.BONum = t.BONum
+		left outer join QORT_BACK_DB_TEST.dbo.TradeInstrs i with (nolock) on i.AuthorSubAcc_ID = t.SubAccId and i.Enabled = 0 and i.BONum = t.BONum
 
 
 
@@ -296,19 +292,17 @@ BEGIN
 
 		from #tSec t
 
-		inner join QORT_BACK_DB.dbo.TradeInstrs i with (nolock) on i.AuthorSubAcc_ID = t.SubAccId and i.Enabled = 0 and i.AuthorPTS = t.BONum
+		inner join QORT_BACK_DB_TEST.dbo.TradeInstrs i with (nolock) on i.AuthorSubAcc_ID = t.SubAccId and i.Enabled = 0 and i.AuthorPTS = t.BONum
 
 		where t.QortIdExisted is null and t.BONum <> ''
 
 
 
-
-
 		update t set t.QortIdExisted = i.id
 
 		from #tFX t
 
-		inner join QORT_BACK_DB.dbo.TradeInstrs i with (nolock) on i.AuthorSubAcc_ID = t.SubAccId and i.Enabled = 0 and i.AuthorPTS = t.BONum
+		inner join QORT_BACK_DB_TEST.dbo.TradeInstrs i with (nolock) on i.AuthorSubAcc_ID = t.SubAccId and i.Enabled = 0 and i.AuthorPTS = t.BONum
 
 		where t.QortIdExisted is null and t.BONum <> ''
 
@@ -374,7 +368,7 @@ BEGIN
 
 
 
-		insert into QORT_BACK_TDB.dbo.ImportTradeInstrs(IsProcessed, ET_Const, /*BONum*/ AuthorPTS, RegisterNum, Date, Time, PRC_Const, TS_Code, Date2, AuthorSubAcc_Code
+		insert into QORT_BACK_TDB_TEST.dbo.ImportTradeInstrs(IsProcessed, ET_Const, /*BONum*/ AuthorPTS, RegisterNum, Date, Time, PRC_Const, TS_Code, Date2, AuthorSubAcc_Code
 
 			, OwnerFirm_BOCode, Type, Qty, Security_Code, CurrencyAsset_ShortName
 
@@ -398,13 +392,13 @@ BEGIN
 
 		from #tFX ti
 
-		left outer join QORT_BACK_DB.dbo.Subaccs s with (nolock) on s.id = ti.SubAccId
+		left outer join QORT_BACK_DB_TEST.dbo.Subaccs s with (nolock) on s.id = ti.SubAccId
 
-		left outer join QORT_BACK_DB.dbo.Firms fo with (nolock) on fo.id = s.OwnerFirm_ID
+		left outer join QORT_BACK_DB_TEST.dbo.Firms fo with (nolock) on fo.id = s.OwnerFirm_ID
 
-		left outer join QORT_BACK_DB.dbo.TSSections tss with (nolock) on tss.Name = ti.TSSectionName
+		left outer join QORT_BACK_DB_TEST.dbo.TSSections tss with (nolock) on tss.Name = ti.TSSectionName
 
-		left outer join QORT_BACK_DB.dbo.TSs ts with (nolock) on ts.id = tss.TS_ID
+		left outer join QORT_BACK_DB_TEST.dbo.TSs ts with (nolock) on ts.id = tss.TS_ID
 
 		where ti.QortIdExisted is null
 
@@ -418,21 +412,17 @@ BEGIN
 
 		--/*
 
-		insert into QORT_BACK_TDB.dbo.ImportTradeInstrs(IsProcessed, ET_Const, /*BONum*/ AuthorPTS, RegisterNum, Date, Time, PRC_Const, TS_Code, Date2, FinishDate --Date1
+		insert into QORT_BACK_TDB_TEST.dbo.ImportTradeInstrs(IsProcessed, ET_Const, /*BONum*/ AuthorPTS, RegisterNum, Date, Time, PRC_Const, TS_Code, Date2, FinishDate --Date1
 
-			, AuthorSubAcc_Code, OwnerFirm_BOCode, Type
-
-			, PriceType
+			, AuthorSubAcc_Code, OwnerFirm_BOCode, Type, PriceType
 
 			, Qty, Security_Code, CurrencyAsset_ShortName, IS_Const, Price, AuthorComment, TYPE_Const, IsAgent, Section_Name, AuthorFIO) -- */
 
 		select 1 IsProcessed, 2 ET_Const, t.BONum, t.RegisterNum, t.InstrDate, t.InstrTime, case t.PRC_Const_TXT when 'Market' then 3 when 'Limit' then 2 end PRC_Const, ts.Code, t.Date2, t.Date1 FinishDate
 
-			, isnull(s.SubAccCode, t.ConstitutorCode + ' NOT FOUND'), fo.BOCode, Case t.TypeTxt when 'Buy' then 7 when 'Sell' then 8 end Type
+			, isnull(s.SubAccCode, t.ConstitutorCode + ' NOT FOUND'), fo.BOCode, Case t.TypeTxt when 'Buy' then 7 when 'Sell' then 8 end Type, iif(PricePercent > 0, 1, 2) PriceType
 
-			, case when t.Yield > 0 then 20 when t.PricePercent > 0 then 1 else 2 end PriceType
-
-			, t.Qty, isnull(sec.SecCode, t.ISIN + ' NOT FOUND'), replace(t.Currency, 'RUR', 'RUB'), t.IS_Const_TXT IS_Const, coalesce(t.Yield * 100, t.PricePercent *100, t.PriceAMD, t.PriceUSD, t.PriceEUR, t.PriceRUR) Price, t.AuthorComment, 2 TYPE_Const
+			, t.Qty, isnull(sec.SecCode, t.ISIN + ' NOT FOUND'), replace(t.Currency, 'RUR', 'RUB'), t.IS_Const_TXT IS_Const, coalesce(t.PricePercent *100, t.PriceAMD, t.PriceUSD, t.PriceEUR, t.PriceRUR) Price, t.AuthorComment, 2 TYPE_Const
 
 			, 'y' IsAgent, tss.Name, 'Import From Excel' AuthorFIO
 
@@ -440,17 +430,17 @@ BEGIN
 
 		from #tSec t
 
-		left outer join QORT_BACK_DB.dbo.Subaccs s with (nolock) on s.id = t.SubAccId
+		left outer join QORT_BACK_DB_TEST.dbo.Subaccs s with (nolock) on s.id = t.SubAccId
 
-		left outer join QORT_BACK_DB.dbo.Firms fo with (nolock) on fo.id = s.OwnerFirm_ID
+		left outer join QORT_BACK_DB_TEST.dbo.Firms fo with (nolock) on fo.id = s.OwnerFirm_ID
 
-		left outer join QORT_BACK_DB.dbo.TSSections tss with (nolock) on tss.Name = t.Section_ID
+		left outer join QORT_BACK_DB_TEST.dbo.TSSections tss with (nolock) on tss.Name = t.Section_ID
 
-		left outer join QORT_BACK_DB.dbo.TSs ts with (nolock) on ts.id = tss.TS_ID
+		left outer join QORT_BACK_DB_TEST.dbo.TSs ts with (nolock) on ts.id = tss.TS_ID
 
-		outer apply (select top 1 a.id Asset_ID, a.ISIN, a.ShortName from QORT_BACK_DB.dbo.Assets a with (nolock) where a.ISIN = t.ISIN and a.Enabled = 0 and t.ISIN <> '' order by 1) a
+		outer apply (select top 1 a.id Asset_ID, a.ISIN, a.ShortName from QORT_BACK_DB_TEST.dbo.Assets a with (nolock) where a.ISIN = t.ISIN and a.Enabled = 0 and t.ISIN <> '' order by 1) a
 
-		outer apply (select top 1 sec.SecCode from QORT_BACK_DB.dbo.Securities sec with (nolock) where sec.Asset_ID = a.Asset_ID and sec.TSSection_ID = tss.id and sec.Enabled = 0 order by 1) sec
+		outer apply (select top 1 sec.SecCode from QORT_BACK_DB_TEST.dbo.Securities sec with (nolock) where sec.Asset_ID = a.Asset_ID and sec.TSSection_ID = tss.id and sec.Enabled = 0 order by 1) sec
 
 		where t.QortIdExisted is null
 
@@ -470,7 +460,7 @@ BEGIN
 
 		set @WaitCount = 1200
 
-		while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB.dbo.ImportTradeInstrs t with (nolock) where t.IsProcessed in (1,2)))
+		while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB_TEST.dbo.ImportTradeInstrs t with (nolock) where t.IsProcessed in (1,2)))
 
 		begin
 
@@ -486,16 +476,17 @@ BEGIN
 
 
 
-		if @NewOrders > 0 begin set @Message = 'File Uploaded - "'+@filename+'": ' + cast(@NewOrders as varchar) + ' new instructions'; insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel, logRecords) select @message, 2001, @NewOrders; end;
+		if @NewOrders > 0 begin set @Message = 'File Uploaded - "'+@filename+'": ' + cast(@NewOrders as varchar) + ' new instructions'; insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel, logRecords) select @message, 2001, @NewOrders; end;
 
 
 
-		insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel)
+
+		insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel)
 
 		select 'TDB Instr Error: ' + isnull(cast(Date as varchar), '') +' BONum ' + isnull(cast(BONum as varchar), '') + ', RegisterNum ' + isnull(cast(RegisterNum as varchar), '') + ', SubAccCode ' + isnull(AuthorSubAcc_Code, '') + ', AuthorPTS ' + isnull(Auth
 orPTS, '') + ' - ' + isnull(ErrorLog, '') logMessage, 1001 errorLevel
 
-		from QORT_BACK_TDB.dbo.ImportTradeInstrs a with (nolock)
+		from QORT_BACK_TDB_TEST.dbo.ImportTradeInstrs a with (nolock)
 
 		where aid > @lastTdbId
 
@@ -507,7 +498,7 @@ orPTS, '') + ' - ' + isnull(ErrorLog, '') logMessage, 1001 errorLevel
 
 		from #tSec t
 
-		left outer join QORT_BACK_DB.dbo.TradeInstrs i with (nolock) on i.AuthorSubAcc_ID = t.SubAccId and i.Enabled = 0 and i.BONum = t.BONum
+		left outer join QORT_BACK_DB_TEST.dbo.TradeInstrs i with (nolock) on i.AuthorSubAcc_ID = t.SubAccId and i.Enabled = 0 and i.BONum = t.BONum
 
 		where t.QortIdExisted is null
 
@@ -517,7 +508,7 @@ orPTS, '') + ' - ' + isnull(ErrorLog, '') logMessage, 1001 errorLevel
 
 		from #tFX t
 
-		left outer join QORT_BACK_DB.dbo.TradeInstrs i with (nolock) on i.AuthorSubAcc_ID = t.SubAccId and i.Enabled = 0 and i.BONum = t.BONum
+		left outer join QORT_BACK_DB_TEST.dbo.TradeInstrs i with (nolock) on i.AuthorSubAcc_ID = t.SubAccId and i.Enabled = 0 and i.BONum = t.BONum
 
 		where t.QortIdExisted is null
 
@@ -533,7 +524,7 @@ orPTS, '') + ' - ' + isnull(ErrorLog, '') logMessage, 1001 errorLevel
 
 		set @Message = 'ERROR: ' + ERROR_MESSAGE() + ISNULL(', ' + @FileName, '');  
 
-		if @message not like '%12345 Cannot initialize the data source%' insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
+		if @message not like '%12345 Cannot initialize the data source%' insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
 
 		print @Message
 

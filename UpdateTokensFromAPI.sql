@@ -1,4 +1,4 @@
-﻿-- exec QORT_ARM_SUPPORT..UpdateTokensFromAPI
+﻿-- exec QORT_ARM_SUPPORT_TEST..UpdateTokensFromAPI
 
 
 
@@ -39,7 +39,7 @@ BEGIN
 			--@IdToken = [IdToken],
 			--@AccessToken = [AccessToken]
 			 @RefreshToken = [RefreshToken]
-		FROM [QORT_ARM_SUPPORT].[dbo].[TokenHistory]
+		FROM [QORT_ARM_SUPPORT_TEST].[dbo].[TokenHistory]
 		ORDER BY [RetrievedAt] DESC;
 
 
@@ -68,7 +68,7 @@ print @CurlCommand
 
     -- Выполняем команду curl через xp_cmdshell
 
-   EXEC xp_cmdshell @CurlCommand;
+  -- EXEC xp_cmdshell @CurlCommand;
 
 
 
@@ -100,7 +100,7 @@ print @CurlCommand
 
   
 
-  INSERT INTO QORT_ARM_SUPPORT.dbo.TokenHistory (AccessToken, RefreshToken, IdToken, TokenType, RetrievedAt)
+  --INSERT INTO QORT_ARM_SUPPORT_TEST.dbo.TokenHistory (AccessToken, RefreshToken, IdToken, TokenType, RetrievedAt)
 
     SELECT 
 

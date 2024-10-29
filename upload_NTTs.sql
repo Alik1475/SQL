@@ -1,6 +1,4 @@
-﻿			-- exec QORT_ARM_SUPPORT.dbo.upload_NTTs
-
-
+﻿
 
 CREATE PROCEDURE [dbo].[upload_NTTs]
 
@@ -18,7 +16,7 @@ BEGIN
 
 
 
-		declare @FilePath varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\PRODUCTION\NTTS'
+		declare @FilePath varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\TEST\NTTS'
 
 		declare @Sheet varchar(16) = 'NTTs'
 
@@ -194,19 +192,19 @@ BEGIN
 
 				from #ntts n
 
-				left outer join QORT_BACK_DB.dbo.Subaccs s with (nolock) on s.SubAccCode = n.SubAcc_ID collate Cyrillic_General_CS_AS
+				left outer join QORT_BACK_DB_TEST.dbo.Subaccs s with (nolock) on s.SubAccCode = n.SubAcc_ID collate Cyrillic_General_CS_AS
 
-				left outer join QORT_BACK_DB.dbo.Subaccs gs with (nolock) on gs.SubAccCode = n.GetSubAccount collate Cyrillic_General_CS_AS
+				left outer join QORT_BACK_DB_TEST.dbo.Subaccs gs with (nolock) on gs.SubAccCode = n.GetSubAccount collate Cyrillic_General_CS_AS
 
-				left outer join QORT_BACK_DB.dbo.Accounts acc with (nolock) on acc.AccountCode = n.Account_ID collate Cyrillic_General_CS_AS or acc.ExportCode = n.Account_ID collate Cyrillic_General_CS_AS
+				left outer join QORT_BACK_DB_TEST.dbo.Accounts acc with (nolock) on acc.AccountCode = n.Account_ID collate Cyrillic_General_CS_AS or acc.ExportCode = n.Account_ID collate Cyrillic_General_CS_AS
 
-				left outer join QORT_BACK_DB.dbo.Accounts gacc with (nolock) on gacc.AccountCode = n.GetAccount collate Cyrillic_General_CS_AS or gacc.ExportCode = n.GetAccount collate Cyrillic_General_CS_AS
+				left outer join QORT_BACK_DB_TEST.dbo.Accounts gacc with (nolock) on gacc.AccountCode = n.GetAccount collate Cyrillic_General_CS_AS or acc.ExportCode = n.GetAccount collate Cyrillic_General_CS_AS
 
 				outer apply (
 
 					select top 1 a.id, a.ShortName
 
-					from QORT_BACK_DB.dbo.Assets a with (nolock) 
+					from QORT_BACK_DB_TEST.dbo.Assets a with (nolock) 
 
 					where (a.ShortName = n.Asset_Id or (len(n.Asset_Id) = 12 and a.ISIN = n.Asset_Id)) 
 
@@ -248,23 +246,27 @@ BEGIN
 
 
 
+
+
+
+
 				delete cp
 
 				from #ntts n
 
-				inner join QORT_BACK_TDB.dbo.CancelCorrectPositions cp with (nolock) on cp.BackId = n.BackId
+				inner join QORT_BACK_TDB_TEST.dbo.CancelCorrectPositions cp with (nolock) on cp.BackId = n.BackId
 
 
 
 
 
-				insert into QORT_BACK_TDB.dbo.CancelCorrectPositions(IsProcessed, BackID)
+				insert into QORT_BACK_TDB_TEST.dbo.CancelCorrectPositions(IsProcessed, BackID)
 
 				select distinct 1 IsProcessed, cp.BackId
 
 				from #ntts n
 
-				left outer join QORT_BACK_DB.dbo.CorrectPositions cp with (nolock) on cp.Date = cast(convert(varchar, n.Date, 112) as int) and cp.BackId = n.BackId and cp.IsCanceled = 'n'
+				left outer join QORT_BACK_DB_TEST.dbo.CorrectPositions cp with (nolock) on cp.Date = cast(convert(varchar, n.Date, 112) as int) and cp.BackId = n.BackId and cp.IsCanceled = 'n'
 
 				where cp.BackID is NOT null
 
@@ -274,7 +276,7 @@ BEGIN
 
 				set @WaitCount = 1200
 
-				while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB.dbo.CancelCorrectPositions t with (nolock) where t.IsProcessed in (1,2)))
+				while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB_TEST.dbo.CancelCorrectPositions t with (nolock) where t.IsProcessed in (1,2)))
 
 				begin
 
@@ -296,7 +298,7 @@ BEGIN
 
 					from #ntts n
 
-					inner join QORT_BACK_DB.dbo.CorrectPositions cp with (nolock) on cp.Date = cast(convert(varchar, n.Date, 112) as int) and cp.BackId = n.BackId and cp.IsCanceled = 'n'
+					inner join QORT_BACK_DB_TEST.dbo.CorrectPositions cp with (nolock) on cp.Date = cast(convert(varchar, n.Date, 112) as int) and cp.BackId = n.BackId and cp.IsCanceled = 'n'
 
 				))
 
@@ -312,37 +314,23 @@ BEGIN
 
 
 
-				set @aid = isnull((select max(aid) from QORT_BACK_TDB.dbo.CorrectPositions with (nolock)), 0)
+
+
+				set @aid = isnull((select max(aid) from QORT_BACK_TDB_TEST.dbo.CorrectPositions with (nolock)), 0)
 
 
 
 
-
-				/*
-
-				select IsProcessed, ET_Const, CT_Const, BackID, RegistrationDate, EventDate
-
-					, date, PlanDate, InfoSource, Account_ExportCode, Subacc_Code, Asset
-
-					, Size, Comment, Comment2, GetSubacc_Code, GetAccount_ExportCode, IsInternal
-
-				from QORT_BACK_TDB.dbo.CorrectPositions
-
-				*/
 
 
 
 				--/*
 
-				insert into QORT_BACK_TDB.dbo.CorrectPositions( IsProcessed, ET_Const, CT_Const, BackID, RegistrationDate, EventDate
+				insert into QORT_BACK_TDB_TEST.dbo.CorrectPositions( IsProcessed, ET_Const, CT_Const, BackID, RegistrationDate, EventDate
 
 					, date, PlanDate, InfoSource, Account_ExportCode, Subacc_Code, Asset
 
 					, Size, Comment, Comment2, GetSubacc_Code, GetAccount_ExportCode, IsInternal) --*/
-
-				--select 1 IsProcessed, 2 ET_Const, n.CT_Const, n.BackID, n.RegistrationDate, n.EventDate
-
-					--, n.date, n.PlanDate, n.InfoSource, n.AccountExportCode, n.SubaccCode, n.AssetShortName
 
 				select 1 IsProcessed, 2 ET_Const, n.CT_Const, n.BackID, cast(convert(varchar, n.RegistrationDate, 112) as int), cast(convert(varchar, n.EventDate, 112) as int)
 
@@ -352,11 +340,9 @@ BEGIN
 
 				from #ntts n
 
-				/*
+				left outer join QORT_BACK_DB_TEST.dbo.CorrectPositions cp with (nolock) on cp.Date = cast(convert(varchar, n.Date, 112) as int) and cp.BackId = n.BackId and cp.IsCanceled = 'n'
 
-				left outer join QORT_BACK_DB.dbo.CorrectPositions cp with (nolock) on cp.Date = cast(convert(varchar, n.Date, 112) as int) and cp.BackId = n.BackId and cp.IsCanceled = 'n'
-
-				where cp.BackID is null
+				/*where cp.BackID is null
 
 				except
 
@@ -368,7 +354,7 @@ BEGIN
 
 				from #ntts n
 
-				inner join QORT_BACK_TDB.dbo.CorrectPositions cp on cp.BackID = n.backId and cp.ImportInsertDate = cast(convert(varchar, getdate(), 112) as int)
+				inner join QORT_BACK_TDB_TEST.dbo.CorrectPositions cp on cp.BackID = n.backId and cp.ImportInsertDate = cast(convert(varchar, getdate(), 112) as int)
 
 				*/
 
@@ -380,7 +366,7 @@ BEGIN
 
 				set @WaitCount = 1200
 
-				while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB.dbo.CorrectPositions t with (nolock) where t.IsProcessed in (1,2)))
+				while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB_TEST.dbo.CorrectPositions t with (nolock) where t.IsProcessed in (1,2)))
 
 				begin
 
@@ -392,11 +378,11 @@ BEGIN
 
 
 
-				insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel)
+				insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel)
 
 				select 'TDB NTTs Error: ' + @FileName +', ' + isnull(BackId, '') + ' - ' + isnull(ErrorLog, '') logMessage, 1001 errorLevel
 
-				from QORT_BACK_TDB.dbo.CorrectPositions a with (nolock)
+				from QORT_BACK_TDB_TEST.dbo.CorrectPositions a with (nolock)
 
 				where aid > @aid
 
@@ -412,13 +398,13 @@ BEGIN
 
 				from #ntts n
 
-				inner join QORT_BACK_DB.dbo.CorrectPositions cp with (nolock) on cp.Date = cast(convert(varchar, n.Date, 112) as int) and cp.BackId = n.BackId and cp.IsCanceled = 'n' -- on cp.Date = n.Date and cp.BackId = n.BackId and cp.IsCanceled = 'n'
+				inner join QORT_BACK_DB_TEST.dbo.CorrectPositions cp with (nolock) on cp.Date = cast(convert(varchar, n.Date, 112) as int) and cp.BackId = n.BackId and cp.IsCanceled = 'n'
 
 					
 
 				if @rowsNew > 0 begin
 
-					insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel, logRecords)
+					insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel, logRecords)
 
 					select 'File uploaded: ' + @FileName +', new NTTs: ' + cast((@rowsNew - @rowsError) as varchar) + ' / ' + cast((@rowsNew) as varchar) logMessage, iif(@rowsError > 0, 1001, 2001) errorLevel, (@rowsNew - @rowsError) logRecords
 
@@ -433,8 +419,6 @@ BEGIN
 			END
 
 
-
-			--if (@rowsInFile > 0) and (@rowsInFile = @rowsDone) begin
 
 			if (@rowsInFile > 0) and (@rowsNew > 0) begin-- and (@rowsInFile = @rowsDone) begin
 
@@ -474,9 +458,9 @@ BEGIN
 
 		while @@TRANCOUNT > 0 ROLLBACK TRAN
 
-		set @Message = 'ERROR: ' + ERROR_MESSAGE() + ISNULL(', ' + @FileName, ''); 
+		set @Message = 'ERROR: ' + ERROR_MESSAGE() + ISNULL(', ' + @FileName, '');  
 
-		if @message not like '%12345 Cannot initialize the data source%' insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
+		if @message not like '%12345 Cannot initialize the data source%' insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
 
 		print @Message
 

@@ -4,7 +4,9 @@
 
 
 
- -- exec QORT_ARM_SUPPORT.dbo.upload_ClientsUnicode
+
+
+ -- exec QORT_ARM_SUPPORT_TEST.dbo.upload_ClientsUnicode
 
 
 
@@ -38,11 +40,11 @@ BEGIN
 
 
 
-		set @aid = isnull((select max(aid) from QORT_BACK_TDB.dbo.Firms with (nolock)), 0)
+		set @aid = isnull((select max(aid) from QORT_BACK_TDB_TEST.dbo.Firms with (nolock)), 0)
 
 
 
-		declare @FileName varchar(128) = '\\192.168.14.22\Exchange\QORT_Files\PRODUCTION\Clients\Clients_Import UniCode1.xlsx';
+		declare @FileName varchar(128) = '\\192.168.14.22\Exchange\QORT_Files\PRODUCTION\Clients\Clients_Import UniCode_TEST.xlsx';
 
 		declare @Sheet1 varchar(64) = 'Sheet1' 
 
@@ -72,45 +74,31 @@ BEGIN
 
 
 
-		select nullif([ID], '') ID
+		select nullif([BO Code], '') BOCode
 
-			, isnull([Comment2], '') Comment2
+			, nullif([Full Name], '') NameU
 
-			--, nullif([Address], '') AddrFSettlementU
+			, nullif([Address], '') AddrFSettlementU
+
+			, nullif([NEW], '') OrgCathegoriyID
 
 		into #t
 
 		from ##fUnicode
 
-		
-
-		select * from #t --return
 
 
 
-		 insert into QORT_BACK_TDB.dbo.CorrectPositions (ET_Const, IsProcessed, SystemID, Comment2)
 
+		insert into QORT_BACK_TDB_TEST.dbo.Firms (ET_Const, IsProcessed, BOCode, NameU, AddrFSettlementU, OrgCathegoriy_NAME)
 
-
-	select 4 as et_const, 1 as isprocessed, id, comment2  FROM #t-- where id in(31858)
-
-		return
-
-
-
-/*
-
-
-
-		insert into QORT_BACK_TDB.dbo.Firms (ET_Const, IsProcessed, BOCode, NameU, AddrFSettlementU)
-
-		select 4 ET_Const, 1 IsProcessed, f.BOCode, t.NameU, t.AddrFSettlementU
+		select 4 ET_Const, 1 IsProcessed, f.BOCode, t.NameU, t.AddrFSettlementU, t.OrgCathegoriyID
 
 		from #t t
 
-		inner join QORT_BACK_DB.dbo.Firms f with (nolock) on f.BOCode = t.BOCode
+		inner join QORT_BACK_DB_TEST.dbo.Firms f with (nolock) on f.BOCode = t.BOCode
 
-		inner join QORT_BACK_DB.dbo.FirmProperties fp with (nolock) on fp.Firm_ID = f.id
+		inner join QORT_BACK_DB_TEST.dbo.FirmProperties fp with (nolock) on fp.Firm_ID = f.id
 
 		--where (t.NameU <> '' and t.NameU <> fp.NameU) or (t.AddrFSettlementU <> '' and t.AddrFSettlementU <> fp.AddrFSettlementU)
 
@@ -118,14 +106,14 @@ BEGIN
 
 
 
-		set @rows = @@ROWCOUNT; if @rows > 0 begin set @Message = 'File Uploaded - "'+@filename+'": ' + cast(@rows as varchar) + ' updated clients'; insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel, logRecords) values (@message, 2001, @rows); 
-end;
+		set @rows = @@ROWCOUNT; if @rows > 0 begin set @Message = 'File Uploaded - "'+@filename+'": ' + cast(@rows as varchar) + ' updated clients'; insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel, logRecords) values (@message, 2001, @ro
+ws); end;
 
 
 
 		set @WaitCount = 1200
 
-		while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB.dbo.Firms t with (nolock) where t.IsProcessed in (1,2)))
+		while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB_TEST.dbo.Firms t with (nolock) where t.IsProcessed in (1,2)))
 
 		begin
 
@@ -137,17 +125,17 @@ end;
 
 		
 
-		insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel)
+		insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel)
 
 		select 'TDB Clients Error: Bocode ' + BOCode +' - ' + isnull(ErrorLog, '') logMessage, 1001 errorLevel
 
-		from QORT_BACK_TDB.dbo.Firms a with (nolock)
+		from QORT_BACK_TDB_TEST.dbo.Firms a with (nolock)
 
 		where aid > @aid
 
 			and IsProcessed = 4
 
-*/
+
 
 	end try
 
@@ -157,13 +145,13 @@ end;
 
 		set @Message = 'ERROR: ' + ERROR_MESSAGE(); 
 
-		if @message not like '%Cannot initialize the data source%' insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
+		if @message not like '%Cannot initialize the data source%' insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
 
 		print @Message
 
 	end catch
 
-	
+
 
 END
 

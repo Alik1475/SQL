@@ -6,9 +6,7 @@
 
 
 
-
-
--- exec QORT_ARM_SUPPORT.dbo.CheckTradeAssetsSanction
+-- exec QORT_ARM_SUPPORT_TEST.dbo.CheckTradeAssetsSanction
 
 CREATE PROCEDURE [dbo].[CheckTradeAssetsSanction]
 
@@ -16,7 +14,7 @@ CREATE PROCEDURE [dbo].[CheckTradeAssetsSanction]
 
       @SendMail bit = 0
 
-	 ,@NotifyEmail varchar(1024) = 'aleksandr.mironov@armbrok.am;sona.nalbandyan@armbrok.am;Hayk.Manaselyan@armbrok.am;compliance@armbrok.am;armine.khachatryan@armbrok.am'
+	 ,@NotifyEmail varchar(1024) = 'aleksandr.mironov@armbrok.am'--;sona.nalbandyan@armbrok.am;'
 
 AS
 
@@ -44,19 +42,19 @@ BEGIN
 
 
 
-		--insert into QORT_ARM_SUPPORT.dbo.IDTradeHistForCheckInstr (idtradehist) values (64000) -- временно для тестов
+		--insert into QORT_ARM_SUPPORT_TEST.dbo.IDTradeHistForCheckInstr (idtradehist) values (64000) -- временно для тестов
 
 
 
 		select  @OldIDTradeHist = r.IDTradehist					-- забираем из внешней таблицы последнее значение Founder_ID
 
-		from QORT_ARM_SUPPORT..IDTradeHistForCheckInstr r
+		from QORT_ARM_SUPPORT_TEST..IDTradeHistForCheckInstr r
 
 			
 
 		select @CurIDTradeHist = max(h.id)
 
-		from QORT_BACK_DB.dbo.TradesHist h -- определяем текущее значение ID
+		from QORT_BACK_DB_UAT.dbo.TradesHist h -- определяем текущее значение ID
 
 	
 
@@ -80,7 +78,7 @@ select
 
 	into #Trades 
 
-from QORT_BACK_DB..TradesHist 
+from QORT_BACK_DB_UAT..TradesHist 
 
 
 
@@ -118,7 +116,7 @@ select
 
 into #TradesNum
 
-from QORT_BACK_DB..TradesHist q
+from QORT_BACK_DB_UAT..TradesHist q
 
  
 
@@ -224,21 +222,21 @@ insert into @result (TradeDate, TradeID, ISIN, AssetName, IssueName, ClientName,
 
 	 
 
-	from QORT_BACK_DB.dbo.Trades f
+	from QORT_BACK_DB_UAT.dbo.Trades f
 
 	inner join #TradesSec j on j.FID = f.id
 
-	left outer join QORT_BACK_DB.dbo.Securities m on m.id = f.Security_ID
+	left outer join QORT_BACK_DB_UAT.dbo.Securities m on m.id = f.Security_ID
 
-	left outer join QORT_BACK_DB.dbo.Assets k on k.id = m.Asset_ID
+	left outer join QORT_BACK_DB_UAT.dbo.Assets k on k.id = m.Asset_ID
 
-	left outer join QORT_BACK_DB.dbo.Subaccs l on f.SubAcc_ID = l.id
+	left outer join QORT_BACK_DB_UAT.dbo.Subaccs l on f.SubAcc_ID = l.id
 
-	left outer join QORT_BACK_DB.dbo.Firms v on l.OwnerFirm_ID = v.id
+	left outer join QORT_BACK_DB_UAT.dbo.Firms v on l.OwnerFirm_ID = v.id
 
-	left outer join QORT_BACK_DB.dbo.OrgCathegories o on o.id = v.OrgCathegoriy_ID
+	left outer join QORT_BACK_DB_UAT.dbo.OrgCathegories o on o.id = v.OrgCathegoriy_ID
 
-	left outer join QORT_BACK_DB.dbo.Firms v1 on k.EmitentFirm_ID = v1.id
+	left outer join QORT_BACK_DB_UAT.dbo.Firms v1 on k.EmitentFirm_ID = v1.id
 
 	where k.IsInSanctionList = 'y'
 
@@ -262,7 +260,7 @@ insert into @result (TradeDate, TradeID, ISIN, AssetName, IssueName, ClientName,
 
 		(
 
-			select '//1\\' + cast(QORT_ARM_SUPPORT.dbo.fIntToDateVarchar (tt.TradeDate) as varchar)
+			select '//1\\' + cast(cast(cast(tt.TradeDate as varchar) as date) as varchar)
 
 				+ '//2\\' + cast(tt.TradeID as varchar)
 
@@ -298,7 +296,7 @@ insert into @result (TradeDate, TradeID, ISIN, AssetName, IssueName, ClientName,
 
 			--	+ '//3\\'
 
-			-- exec QORT_ARM_SUPPORT.dbo.CheckTradeAssetsSanction
+			-- exec QORT_ARM_SUPPORT_TEST.dbo.CheckTradeAssetsSanction
 
 			from @result tt
 
@@ -362,7 +360,7 @@ insert into @result (TradeDate, TradeID, ISIN, AssetName, IssueName, ClientName,
 
 		EXEC msdb.dbo.sp_send_dbmail
 
-			@profile_name = 'qort-sql-mail'
+			@profile_name = 'qort-test-sql'
 
 			, @recipients = @NotifyEmail
 
@@ -404,21 +402,21 @@ insert into @result2 (TradeDate, TradeID, ISIN, AssetName, IssueName, ClientName
 
 	 
 
-	from QORT_BACK_DB.dbo.Trades f
+	from QORT_BACK_DB_UAT.dbo.Trades f
 
 	inner join #TradesSec j on j.FID = f.id
 
-	left outer join QORT_BACK_DB.dbo.Securities m on m.id = f.Security_ID
+	left outer join QORT_BACK_DB_UAT.dbo.Securities m on m.id = f.Security_ID
 
-	left outer join QORT_BACK_DB.dbo.Assets k on k.id = m.Asset_ID
+	left outer join QORT_BACK_DB_UAT.dbo.Assets k on k.id = m.Asset_ID
 
-	left outer join QORT_BACK_DB.dbo.Subaccs l on f.SubAcc_ID = l.id
+	left outer join QORT_BACK_DB_UAT.dbo.Subaccs l on f.SubAcc_ID = l.id
 
-	left outer join QORT_BACK_DB.dbo.Firms v on l.OwnerFirm_ID = v.id
+	left outer join QORT_BACK_DB_UAT.dbo.Firms v on l.OwnerFirm_ID = v.id
 
-	left outer join QORT_BACK_DB.dbo.OrgCathegories o on o.id = v.OrgCathegoriy_ID
+	left outer join QORT_BACK_DB_UAT.dbo.OrgCathegories o on o.id = v.OrgCathegoriy_ID
 
-	left outer join QORT_BACK_DB.dbo.Firms v1 on k.EmitentFirm_ID = v1.id
+	left outer join QORT_BACK_DB_UAT.dbo.Firms v1 on k.EmitentFirm_ID = v1.id
 
 	where o.Name = 'Russian person' and k.EmitDate > 20220412
 
@@ -478,7 +476,7 @@ insert into @result2 (TradeDate, TradeID, ISIN, AssetName, IssueName, ClientName
 
 			--	+ '//3\\'
 
-			
+			-- exec QORT_ARM_SUPPORT_TEST.dbo.CheckTradeAssetsSanction
 
 			from @result2 tt
 
@@ -542,7 +540,7 @@ insert into @result2 (TradeDate, TradeID, ISIN, AssetName, IssueName, ClientName
 
 		EXEC msdb.dbo.sp_send_dbmail
 
-			@profile_name = 'qort-sql-mail'
+			@profile_name = 'qort-test-sql'
 
 			, @recipients = @NotifyEmail
 
@@ -562,9 +560,9 @@ insert into @result2 (TradeDate, TradeID, ISIN, AssetName, IssueName, ClientName
 
 			--Обновляем значение в счетчике текущего ID таблицы изменений сделок.
 
-	IF OBJECT_ID('QORT_ARM_SUPPORT.dbo.IDTradeHistForCheckInstr', 'U') IS NOT NULL delete from QORT_ARM_SUPPORT.dbo.IDTradeHistForCheckInstr;
+	IF OBJECT_ID('QORT_ARM_SUPPORT_TEST.dbo.IDTradeHistForCheckInstr', 'U') IS NOT NULL delete from QORT_ARM_SUPPORT_TEST.dbo.IDTradeHistForCheckInstr;
 
-	insert into QORT_ARM_SUPPORT.dbo.IDTradeHistForCheckInstr (idtradehist) values (@CurIDTradeHist)
+	insert into QORT_ARM_SUPPORT_TEST.dbo.IDTradeHistForCheckInstr (idtradehist) values (@CurIDTradeHist)
 
 
 
@@ -576,7 +574,7 @@ insert into @result2 (TradeDate, TradeID, ISIN, AssetName, IssueName, ClientName
 
 		set @Message = 'ERROR: ' + ERROR_MESSAGE(); 
 
-		insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
+		insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
 
 		print @Message
 

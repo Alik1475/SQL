@@ -6,7 +6,7 @@
 
 
 
--- exec QORT_ARM_SUPPORT.dbo.exportTrades_RegulatoryNY06BuySellREPO '20241022'
+-- exec QORT_ARM_SUPPORT_TEST.dbo.exportTrades_RegulatoryNY06BuySellREPO '20240805'
 
 
 
@@ -22,7 +22,9 @@ BEGIN
 
 	begin try
 
-	--select 'Report Done: ' + cast(@TradeDate as varchar(36)) ResultStatus, 'green' ResultColor return
+---------------------------Brokerage turnover by dealing (all trades)     ------------------------------------ 		
+
+
 
 		SET NOCOUNT ON
 
@@ -32,9 +34,9 @@ BEGIN
 
 		--declare @TradeDateFrom int = cast(convert(varchar, dateadd(day, -1, @TradeDate), 112) as int)
 
-		declare @TradeDateFrom int = cast(convert(varchar, QORT_ARM_SUPPORT.dbo.fGetPrevBusinessDay(@TradeDate), 112) as int)
+		declare @TradeDateFrom int = cast(convert(varchar, QORT_ARM_SUPPORT_TEST.dbo.fGetPrevBusinessDay(@TradeDate), 112) as int)
 
-		declare @TradeDateTo int = cast(convert(varchar, convert(date, @TradeDate,101), 112) as int)
+		declare @TradeDateTo int = cast(convert(varchar, @TradeDate, 112) as int)
 
 		declare @TradeTimeFrom int = 160000000 --(16:00:00.000)
 
@@ -42,11 +44,9 @@ BEGIN
 
 		
 
-		--select 'Report Done: ' + cast(@TradeDateFrom  as varchar(36)) + '/' + cast(@TradeDate as varchar(36)) + '/'+ cast(@TradeDateTo as varchar(36)) ResultStatus, 'green' ResultColor return
+		
 
-
-
-		declare @TradeDateToTXT varchar(32) = QORT_ARM_SUPPORT.dbo.fIntToDateVarcharShort(@TradeDateTo)
+		declare @TradeDateToTXT varchar(32) = QORT_ARM_SUPPORT_TEST.dbo.fIntToDateVarcharShort(@TradeDateTo)
 
 
 
@@ -63,7 +63,7 @@ BEGIN
 		declare @TempFileName varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\Regulatory Reports\NY06_workTemplate\archive\42000_NY06_workTemplate_'+cast(@TradeDateTo as varchar) + '_at_' + convert(varchar, getdate(), 112) + '_' + replace(convert(varchar, g
 etdate(), 108), ':', '') + '.xls'
 
-		declare @ResultFileName varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\Regulatory Reports\NY06_workTemplate\42000_NY06_'+cast(@TradeDateTo as varchar)+'.xls'
+		declare @ResultFileName varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\TEST\Reporting\42000_NY06_'+cast(@TradeDateTo as varchar)+'.xls'
 
 		declare @Sheet1 varchar(32) = '1.buy-sell'
 
@@ -115,7 +115,7 @@ etdate(), 108), ':', '') + '.xls'
 
 
 
-		select t.id TradeId, row_number() over(partition by tt.tt order by t.TradeDate, t.TradeTime, t.id) Num_A
+				select t.id TradeId, row_number() over(partition by tt.tt order by t.TradeDate, t.TradeTime, t.id) Num_A
 
 			, iif(fo.IsResident = 'y', isnull(nullif(cast(fpo.MIC as nvarchar), ''), N'é»½Ç¹»Ýï'), N'áã é»½Ç¹»Ýï') Code_B
 
@@ -123,15 +123,7 @@ etdate(), 108), ':', '') + '.xls'
 
 			, '42000' ArmCode_C
 
-			, case
-
-				when isnull(pRepo1.PhaseTime,0) <> 0 then QORT_ARM_SUPPORT.dbo.fIntToTimeVarchar(pRepo1.PhaseTime)
-
-				else
-
-					iif(ttt.TradeTime <= 1900, '', QORT_ARM_SUPPORT.dbo.fIntToTimeVarchar(ttt.TradeTime)) 
-
-					end Time_D -- change time 1000 to 1900 alik 20/02/2024
+			, iif(ttt.TradeTime <= 1900, '', QORT_ARM_SUPPORT_TEST.dbo.fIntToTimeVarchar(ttt.TradeTime)) Time_D -- change time 1000 to 1900 alik 20/02/2024
 
 			, iif(t.BuySell = 1, N'³éù', N'í³×³éù') BuySell_E
 
@@ -141,8 +133,8 @@ etdate(), 108), ':', '') + '.xls'
 
 			--, '??? - ' + fEmit.Name + iif(EmitCountry.Name <> '', ', ' + EmitCountry.Name, '') Emitent_H
 
-	        , iif(a.Country = 'Armenia', '', isnull(fEmitProp.NameU,'')) + iif(a.Country = 'Armenia', '', iif(AssetCountry.NameU <> '', ', ' + substring(AssetCountry.NameU, Charindex('/',AssetCountry.NameU) + 1, LEN(AssetCountry.NameU) - Charindex('/',Asset
-Country.NameU)), '')) 
+	        , iif(a.Country = 'Armenia', '', iif(isnull(fEmitProp.GenNameU, '') <> '', fEmitProp.GenNameU, fEmitProp.NameU)) + iif(a.Country = 'Armenia', '', iif(AssetCountry.NameU <> '', ', ' + substring(AssetCountry.NameU, Charindex('/',AssetCountry.NameU)
+ + 1, LEN(AssetCountry.NameU) - Charindex('/',AssetCountry.NameU)), '')) 
 
 						Emitent_H -- Алик 26/02/2024 добавил условие iif(a.Country = 'Armenia'. Если страна эмитента Армения,но название не указываем.
 
@@ -161,17 +153,11 @@ Country.NameU)), ''))
 
 			--, QORT_ARM_SUPPORT.dbo.fFloatToCurrency5(t.Price) Price_J
 
-			, iif(t.PT_Const=2, cast(t.volume1/t.Qty as decimal(32,5)), cast(t.volume1/t.Qty as decimal(32,5))) Price_J -- 1 - %, 2 - abs --Alik 25/09/2024 add for abs - t.volume1/t.Qty; Алик 26/02/2024 если тип цены %, то вычисляем сумма/количество=цена
+			, iif(t.PT_Const=2, cast(t.Price as decimal(32,5)), cast(t.volume1/t.Qty as decimal(32,5))) Price_J -- 1 - %, 2 - abs -- Алик 26/02/2024 если тип цены %, то вычисляем сумма/количество=цена
 
 			--, iif(a.Country = 'Armenia', '', QORT_ARM_SUPPORT.dbo.fFloatToCurrency5(t.Qty)) [Qty_K]
 
-			, CASE WHEN a.ISIN = 'XS2080321198' THEN
-
-				cast(a.BaseValueOrigin * t.QTY as decimal(32,2))
-
-				ELSE
-
-				iif(a.EmitentFirm_ID = 137, NULL, cast(t.Qty as decimal(32,5)))  END [Qty_K] -- Алик 04/03/2024 поправил количество знаков после запятой на 5; 26/02/2024 a.EmitentFirm_ID = 137 это REPUBLIC OF ARMENIA. Исключение для гос.бумаг
+			, iif(a.EmitentFirm_ID = 137, NULL, cast(t.Qty as decimal(32,5))) [Qty_K] -- Алик 04/03/2024 поправил количество знаков после запятой на 5; 26/02/2024 a.EmitentFirm_ID = 137 это REPUBLIC OF ARMENIA. Исключение для гос.бумаг
 
 			--, QORT_ARM_SUPPORT.dbo.fFloatToCurrency5(t.Volume1) Volume_L
 
@@ -203,11 +189,11 @@ Country.NameU)), ''))
 
 				   else isnull(fpts.NameU, '') end TradePlace_O
 
-			, left(QORT_ARM_SUPPORT.dbo.fIntToDateVarcharShort(t.TradeDate),6)+right(QORT_ARM_SUPPORT.dbo.fIntToDateVarcharShort(t.TradeDate),2) TradeDate_P
+			, left(QORT_ARM_SUPPORT_TEST.dbo.fIntToDateVarcharShort(t.TradeDate),6)+right(QORT_ARM_SUPPORT_TEST.dbo.fIntToDateVarcharShort(t.TradeDate),2) TradeDate_P
 
 			--, QORT_ARM_SUPPORT.dbo.fIntToDateVarcharShort(iif(t.PutDate > 0, t.PutDate, t.PutplannedDate)) PutDate_Q
 
-			,  left(QORT_ARM_SUPPORT.dbo.fIntToDateVarcharShort(t.PutplannedDate),6)+right(QORT_ARM_SUPPORT.dbo.fIntToDateVarcharShort(t.PutplannedDate),2) PutDate_Q
+			,  left(QORT_ARM_SUPPORT_TEST.dbo.fIntToDateVarcharShort(t.PutplannedDate),6)+right(QORT_ARM_SUPPORT_TEST.dbo.fIntToDateVarcharShort(t.PutplannedDate),2) PutDate_Q
 
 			--, '$$$'  + isnull(fpcp.MIC, '') CPCode_R
 
@@ -223,17 +209,17 @@ Country.NameU)), ''))
 
 			--, isnull(fExtBro.FirmShortName, '') ExternalBroker_S
 
-			, isnull(fExtBroP.NameU,'') ExternalBroker_S
+			, iif(isnull(fExtBroP.GenNameU, '') = '',isnull(fExtBroP.NameU,''), fExtBroP.GenNameU) ExternalBroker_S
 
 			, tt.tt
 
-			, left (t.AgreeNum,iif(charindex( '/', t.AgreeNum) = 0, len(t.AgreeNum ), charindex( '/', t.AgreeNum ) - 1))  AgreeNum_R_D -- Алик 26/02/2024 значение договора t.AgreeNum до '/'
+			, iif(len(t.AgreeNum) > 2, left(t.AgreeNum, /*charindex( '/', t.AgreeNum) - 1*/ 3), t.AgreeNum)  AgreeNum_R_D -- Алик 26/02/2024 значение договора t.AgreeNum до '/'
 
 			, iif(tt.tt=2, N'é»åá', '') RepoType_R_F
 
 			--, iif(tt.tt=2, iif(p.TransactionDate > 0, N'»ñÏ³ñ³Ó·í³Í', N'Ýáñ ÏÝùí³Í'), '') RepoType2_R_G
 
-			, iif(isnull(pRepo1.id,0) <> 0, N'»ñÏ³ñ³Ó·í³Í', N'Ýáñ ÏÝùí³Í') RepoType2_R_G
+			, iif(pRepo1.QtyBefore=0, N'»ñÏ³ñ³Ó·í³Í', N'Ýáñ ÏÝùí³Í') RepoType2_R_G
 
 			--, iif(tt.tt=2 and t.RepoRate > 1e-8, QORT_ARM_SUPPORT.dbo.fFloatToCurrency5(t.RepoRate) + '%' + ' ???', '???') RepoRate_R_O
 
@@ -241,17 +227,15 @@ Country.NameU)), ''))
 
 			, iif(tt.tt=2 and t.RepoRate > 1e-8, convert(decimal(32,8), t.RepoRate), NULL) RepoRate_R_O
 
-			,/* QORT_ARM_SUPPORT.dbo.fIntToDateVarcharShort(iif(tt.tt=2, t.BackDate, 19000101))*/ QORT_ARM_SUPPORT.dbo.fIntToDateVarcharShort (t.BackDate) RepoBackDate_R_P
+			, iif(tt.tt=2, QORT_ARM_SUPPORT_TEST.dbo.fIntToDateVarcharShort(t.BackDate), '') RepoBackDate_R_P
 
 			, iif(tt.tt=2, iif(t.TT_Const = 3 OR t.TSSection_ID = 157, N'86100', N'ãÏ³ñ·³íáñíáÕ ßáõÏ³'), '') RepoLocation_Q -- Alik 26/02/2024 "OR t.TSSection_ID = 157" - секция AMX_REPO
 
-			, QORT_ARM_SUPPORT.dbo.fIntToDateVarcharShort(iif(t.RepoTrade_ID > 0 and tp.AgreeHeaderDate > 19010101, tp.AgreeHeaderDate, t.TradeDate)) TradeDate_R_R
+			, QORT_ARM_SUPPORT_TEST.dbo.fIntToDateVarcharShort(iif(t.RepoTrade_ID > 0 and tp.AgreeHeaderDate > 19010101, tp.AgreeHeaderDate, t.TradeDate)) TradeDate_R_R
 
-			, QORT_ARM_SUPPORT.dbo.fIntToDateVarcharShort(t.TradeDate) TradeDate2_R_S -- в форму не выводится. Выводится TradeDate_R_R. Возможно в будущем потребуется, если вдруг не будет равно.
+			, QORT_ARM_SUPPORT_TEST.dbo.fIntToDateVarcharShort(t.TradeDate) TradeDate2_R_S -- в форму не выводится. Выводится TradeDate_R_R. Возможно в будущем потребуется, если вдруг не будет равно.
 
-			, iif(tt.tt=2 and p.TransactionDate > 0, QORT_ARM_SUPPORT.dbo.fIntToDateVarcharShort(p.TransactionDate), '') TransactionDate_R_T
-
-			, pRepo1.PhaseTime
+			, iif(tt.tt=2 and p.TransactionDate > 0, QORT_ARM_SUPPORT_TEST.dbo.fIntToDateVarcharShort(p.TransactionDate), '') TransactionDate_R_T
 
 		into #r
 
@@ -259,7 +243,7 @@ Country.NameU)), ''))
 
 			select t.id TradeId, t.TradeDate, t.TradeTime
 
-			from QORT_BACK_DB.dbo.Trades t with (nolock, index = PK_Trades)
+			from QORT_BACK_DB_UAT.dbo.Trades t with (nolock, index = PK_Trades)
 
 			where t.TradeDate between @TradeDateFrom and @TradeDateTo
 
@@ -275,89 +259,65 @@ Country.NameU)), ''))
 
 			select t.id TradeId, t.EventDate TradeDate, 0 TradeTime 
 
-			from QORT_BACK_DB.dbo.Trades t with (nolock, index = PK_Trades)
+			from QORT_BACK_DB_UAT.dbo.Trades t with (nolock, index = PK_Trades)
 
 			where t.EventDate = @TradeDateTo and t.EventDate <> t.TradeDate 
-
-			union
-
-			select t.RepoTrade_ID TradeId, t.EventDate TradeDate, 0 TradeTime
-
-			from QORT_BACK_DB.dbo.Trades t with (nolock, index = PK_Trades)
-
-			      OUTER APPLY (
-
-						SELECT TOP 1 *
-
-						FROM QORT_BACK_DB.dbo.Phases ph
-
-						WHERE ph.PhaseDate = @TradeDateTo
-
-						AND ph.PC_Const in (13,14)
-
-						and ph.Trade_ID = t.id 
-
-								) AS ph
-
-			where
-
-			  t.TT_Const in (6) and ph.id is not Null
 
 			  
 
 		) ttt
 
-		inner join QORT_BACK_DB.dbo.Trades t with (nolock) on t.id = ttt.TradeId
+		inner join QORT_BACK_DB_UAT.dbo.Trades t with (nolock) on t.id = ttt.TradeId
 
-		left outer join QORT_BACK_DB.dbo.TradeProperties tp with (nolock) on tp.Trade_ID = t.id
+		left outer join QORT_BACK_DB_UAT.dbo.TradeProperties tp with (nolock) on tp.Trade_ID = t.id
 
-		left outer join QORT_BACK_DB.dbo.TSSections tss with (nolock) on tss.id = t.TSSection_ID
+		left outer join QORT_BACK_DB_UAT.dbo.TSSections tss with (nolock) on tss.id = t.TSSection_ID
 
-		left outer join QORT_BACK_DB.dbo.Subaccs s with (nolock) on s.id = t.SubAcc_ID
+		left outer join QORT_BACK_DB_UAT.dbo.Subaccs s with (nolock) on s.id = t.SubAcc_ID
 
-		left outer join QORT_BACK_DB.dbo.Firms fo with (nolock) on fo.id = s.OwnerFirm_ID
+		left outer join QORT_BACK_DB_UAT.dbo.Firms fo with (nolock) on fo.id = s.OwnerFirm_ID
 
-		left outer join QORT_BACK_DB.dbo.FirmProperties fpo with (nolock) on fpo.Firm_ID = fo.id
+		left outer join QORT_BACK_DB_UAT.dbo.FirmProperties fpo with (nolock) on fpo.Firm_ID = fo.id
 
-		left outer join QORT_BACK_DB.dbo.Securities sec with (nolock) on sec.id = t.Security_ID
+		left outer join QORT_BACK_DB_UAT.dbo.Securities sec with (nolock) on sec.id = t.Security_ID
 
-		left outer join QORT_BACK_DB.dbo.Assets a with (nolock) on a.id = sec.Asset_ID
+		left outer join QORT_BACK_DB_UAT.dbo.Assets a with (nolock) on a.id = sec.Asset_ID
 
-		--left outer join QORT_BACK_DB.dbo.Firms fEmit with (nolock) on fEmit.id = a.EmitentFirm_ID
+		--left outer join QORT_BACK_DB_UAT.dbo.Firms fEmit with (nolock) on fEmit.id = a.EmitentFirm_ID
 
-		left outer join QORT_BACK_DB.dbo.FirmProperties fEmitProp with (nolock) on fEmitProp.Firm_ID = a.EmitentFirm_ID
+		left outer join QORT_BACK_DB_UAT.dbo.FirmProperties fEmitProp with (nolock) on fEmitProp.Firm_ID = a.EmitentFirm_ID
 
-		--left outer join QORT_BACK_DB.dbo.Countries EmitCountry with (nolock) on EmitCountry.id = fEmit.Country_ID
+		--left outer join QORT_BACK_DB_UAT.dbo.Countries EmitCountry with (nolock) on EmitCountry.id = fEmit.Country_ID
 
-		left outer join QORT_BACK_DB.dbo.Countries AssetCountry with (nolock) on AssetCountry.Name = a.Country
+		left outer join QORT_BACK_DB_UAT.dbo.Countries AssetCountry with (nolock) on AssetCountry.Name = a.Country
 
-		left outer join QORT_BACK_DB.dbo.Assets aPay with (nolock) on aPay.id = t.CurrPayAsset_ID
+		left outer join QORT_BACK_DB_UAT.dbo.Assets aPay with (nolock) on aPay.id = t.CurrPayAsset_ID
 
-		left outer join QORT_BACK_DB.dbo.Firms fcp with (nolock) on fcp.id = t.CpFirm_ID
+		left outer join QORT_BACK_DB_UAT.dbo.Firms fcp with (nolock) on fcp.id = t.CpFirm_ID
 
-		left outer join QORT_BACK_DB.dbo.FirmProperties fpcp with (nolock) on fpcp.Firm_ID = fcp.id
+		left outer join QORT_BACK_DB_UAT.dbo.FirmProperties fpcp with (nolock) on fpcp.Firm_ID = fcp.id
 
-		--left outer join QORT_BACK_DB.dbo.TSs cpts with (nolock) on cpts.Code = fcp.FirmShortName
+		--left outer join QORT_BACK_DB_UAT.dbo.TSs cpts with (nolock) on cpts.Code = fcp.FirmShortName
 
-		left outer join QORT_BACK_DB.dbo.Firms fExtBro with (nolock) on fExtBro.id = t.ExtBrokerFirm_ID
+		left outer join QORT_BACK_DB_UAT.dbo.Firms fExtBro with (nolock) on fExtBro.id = t.ExtBrokerFirm_ID
 
-		left outer join QORT_BACK_DB.dbo.FirmProperties fExtBroP with (nolock) on fExtBroP.Firm_ID = fExtBro.id
+		left outer join QORT_BACK_DB_UAT.dbo.FirmProperties fExtBroP with (nolock) on fExtBroP.Firm_ID = fExtBro.id
 
 
 
-		left outer join QORT_BACK_DB.dbo.TSs ts with (nolock) on ts.id = tss.TS_ID
+		left outer join QORT_BACK_DB_UAT.dbo.TSs ts with (nolock) on ts.id = tss.TS_ID
 
-		left outer join QORT_BACK_DB.dbo.Firms fts with (nolock) on fts.FirmShortName = ts.Name and fts.Enabled = 0
+		left outer join QORT_BACK_DB_UAT.dbo.Firms fts with (nolock) on fts.FirmShortName = ts.Name and fts.Enabled = 0
 
-		left outer join QORT_BACK_DB.dbo.FirmProperties fpts with (nolock) on fpts.Firm_ID = fts.id
+		left outer join QORT_BACK_DB_UAT.dbo.FirmProperties fpts with (nolock) on fpts.Firm_ID = fts.id
 
 
 
 		outer apply(select case when t.TT_Const in (1,5,7) then 1 when t.TT_Const in (3,6) then 2 end tt) tt
 
-		outer apply(select top 1 p.PhaseDate TransactionDate from QORT_BACK_DB.dbo.Phases p with (nolock) where p.Trade_ID = t.RepoTrade_ID and p.IsCanceled = 'n' order by ID desc) p
+		outer apply(select top 1 p.PhaseDate TransactionDate from QORT_BACK_DB_UAT.dbo.Phases p with (nolock) where p.Trade_ID = t.RepoTrade_ID and p.IsCanceled = 'n' order by 1 desc) p
 
-		outer apply(select top 1 p.PhaseTime, p.id from QORT_BACK_DB.dbo.Phases p with (nolock) where p.Trade_ID = t.RepoTrade_ID and p.IsCanceled = 'n' and p.PC_Const in (13,14) order by id desc) pRepo1
+		outer apply(select top 1 p.QtyBefore from QORT_BACK_DB_UAT.dbo.Phases p with (nolock) where p.Trade_ID = t.ID and p.IsCanceled = 'n' and p.PC_Const = 4) pRepo1
 
 		where /*t.TradeDate between @TradeDateFrom and @TradeDateTo
 
@@ -393,12 +353,11 @@ Country.NameU)), ''))
 
 		select r.Num_A, r.Code_B, r.ArmCode_C, r.AgreeNum_R_D, r.Time_D Time_E, RepoType_R_F, RepoType2_R_G
 
-			, r.PriceType_F PriceType_H, r.ISIN_G ISIN_I, r.Emitent_H Emitent_J, FORMAT(ROUND(r.BaseValueVolume_I, 5), 'N5') BaseValueVolume_K
+			, r.PriceType_F PriceType_H, r.ISIN_G ISIN_I, r.Emitent_H Emitent_J, r.BaseValueVolume_I BaseValueVolume_K
 
-			, FORMAT(ROUND(r.Qty_K, 5), 'N5') Qty_L, FORMAT(ROUND(r.Volume_L, 5), 'N5')  Volume_M, r.PayCurrency_M PayCurrency_N, FORMAT(ROUND(r.RepoRate_R_O, 5), 'N5') + '%' RepoRate_R_O, dbo.fVarcharDateYYYYToVarcharDateYY(r.RepoBackDate_R_P) RepoBackDate_R_P
+			, r.Qty_K Qty_L, r.Volume_L Volume_M, r.PayCurrency_M PayCurrency_N, r.RepoRate_R_O, r.RepoBackDate_R_P
 
-			, RepoLocation_Q, /*r.TradeDate_P*/ dbo.fVarcharDateYYYYToVarcharDateYY(r.TradeDate_R_R) TradeDate_R, dbo.fVarcharDateYYYYToVarcharDateYY(r.TradeDate_R_R) TradeDate_R_R, dbo.fVarcharDateYYYYToVarcharDateYY(r.TransactionDate_R_T) TransactionDate_R_T --
- Алик 26/02/2024 поменял r.TradeDate2_R_S на r.TradeDate_R_R. выводим равное значение, до настройки механизма отражения РЕПО вендором
+			, RepoLocation_Q, /*r.TradeDate_P*/ r.TradeDate_R_R TradeDate_R, r.TradeDate_R_R, r.TransactionDate_R_T -- Алик 26/02/2024 поменял r.TradeDate2_R_S на r.TradeDate_R_R. выводим равное значение, до настройки механизма отражения РЕПО вендором
 
 			, r.CPCode_R CPCode_U, r.ExternalBroker_S ExternalBroker_V
 
@@ -408,7 +367,7 @@ Country.NameU)), ''))
 
 		where r.tt = 2
 
-		--print dbo.fVarcharDateYYYYToVarcharDateYY('02/10/2024')
+
 
 
 
@@ -538,7 +497,7 @@ Country.NameU)), ''))
 
 		select 'Report Done: ' + @ResultFileName ResultStatus, 'green' ResultColor
 
-		--print @ResultFileName 
+
 
 
 
@@ -555,4 +514,6 @@ Country.NameU)), ''))
 
 
 END
+
+
 

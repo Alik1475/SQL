@@ -4,9 +4,9 @@
 
 
 
--- exec QORT_ARM_SUPPORT.dbo.exportTradeConfirmationsList @TradesList = '6916, 6917, 6918, 6919, 6920, 111, 22222'
+-- exec QORT_ARM_SUPPORT_TEST.dbo.exportTradeConfirmationsList @TradesList = '6916, 6917, 6918, 6919, 6920, 111, 22222'
 
--- exec QORT_ARM_SUPPORT.dbo.exportTradeConfirmationsList @TradesList = '6916, 6917, 11111'
+-- exec QORT_ARM_SUPPORT_TEST.dbo.exportTradeConfirmationsList @TradesList = '6916, 6917, 11111'
 
 
 
@@ -54,7 +54,7 @@ BEGIN
 
 		select val
 
-		from QORT_ARM_SUPPORT.dbo.fnt_ParseString_Num(replace(@TradesList, ' ', ','), ',')
+		from QORT_ARM_SUPPORT_TEST.dbo.fnt_ParseString_Num(replace(@TradesList, ' ', ','), ',')
 
 		where TRY_CONVERT(bigint, val) > 0
 
@@ -88,7 +88,7 @@ BEGIN
 
 			--insert into @res (TradeId, resultStatus, resultPath, resultColor, resultDateTime)
 
-			exec QORT_ARM_SUPPORT.dbo.exportTradeConfirmation @TradeId = @TradeId
+			exec QORT_ARM_SUPPORT_TEST.dbo.exportTradeConfirmation @TradeId = @TradeId
 
 				, @resultStatus = @resultStatus out
 
@@ -116,7 +116,7 @@ BEGIN
 
 		set @Message = 'ERROR: ' + ERROR_MESSAGE(); 
 
-		--insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
+		--insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
 
 		insert into @res(resultStatus, resultColor)
 
@@ -126,11 +126,7 @@ BEGIN
 
 
 
-	select * 
-
-	from @res
-
-	order by 1
+	select * from @res
 
 END
 

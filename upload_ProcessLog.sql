@@ -10,19 +10,35 @@ BEGIN
 
 
 
+
+
+	
+
+
+
 	declare @logIdMin int = 0
 
 	declare @logIdMax int = 0
 
-	select @logIdMin = min(logId), @logIdMax = max(logId)
+	declare @TestMode tinyint = 0
 
-	from QORT_ARM_SUPPORT.dbo.uploadLogs with (nolock)
+	declare @recipients varchar(512) = 'qortsupport@armbrok.am;'
+
+
+
+	select @logIdMin = min(logId), @logIdMax = max(logId), @TestMode = max(iif(logProc in ('upload_Deals', 'upload_CrossRates_CBA'), 0, 1))
+
+	from QORT_ARM_SUPPORT_TEST.dbo.uploadLogs with (nolock)
 
 	where logDate > getdate()-1 and errorLevel between 1000 and 2999 and isProcessed = 0
 
 
 
 	if @logIdMin <> 0 begin
+
+
+
+		if @TestMode >= 0 set @recipients = @recipients + 'aleksandr.mironov@armbrok.am;'
 
 
 
@@ -56,9 +72,11 @@ BEGIN
 
 			+ '</tr>'
 
-			from QORT_ARM_SUPPORT.dbo.uploadLogs with (nolock)
+			from QORT_ARM_SUPPORT_TEST.dbo.uploadLogs with (nolock)
 
 			where logDate > getdate()-1 and errorLevel between 1000 and 2999 and isProcessed = 0 and logId between @logIdMin and @logIdMax
+
+				and iif(logProc in ('upload_Deals', 'upload_CrossRates_CBA'), 0, 1) = @TestMode
 
 			order by logDate, logId
 
@@ -74,11 +92,11 @@ BEGIN
 
 		EXEC msdb.dbo.sp_send_dbmail
 
-			@profile_name = 'qort-sql-mail'
+			@profile_name = 'qort-test-sql'
 
-			, @recipients = 'qortsupport@armbrok.am;aleksandr.mironov@armbrok.am;armine.khachatryan@armbrok.am;arevik.petrosyan@armbrok.am;lilit.manvelyan@armbrok.am;sona.nalbandyan@armbrok.am;'
+			, @recipients = @recipients
 
-			, @subject = 'PROD qort sql processings'
+			, @subject = 'TEST qort sql processings'
 
 			, @BODY_FORMAT = 'HTML'
 
@@ -88,9 +106,11 @@ BEGIN
 
 		update l set l.isProcessed = 1
 
-		from QORT_ARM_SUPPORT.dbo.uploadLogs l
+		from QORT_ARM_SUPPORT_TEST.dbo.uploadLogs l
 
 		where logDate > getdate()-1 and errorLevel between 1000 and 2999 and isProcessed = 0 and logId between @logIdMin and @logIdMax
+
+			and iif(logProc in ('upload_Deals', 'upload_CrossRates_CBA'), 0, 1) = @TestMode
 
 
 

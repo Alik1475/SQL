@@ -4,27 +4,7 @@
 
 
 
--- exec QORT_ARM_SUPPORT.dbo.exportTradeConfirmation @TradeId = 6916
-
--- exec QORT_ARM_SUPPORT.dbo.exportTradeConfirmation @TradeId = 5843
-
-/*
-
-	exec QORT_ARM_SUPPORT.dbo.exportTradeConfirmation @TradeId = 6709
-
-	exec QORT_ARM_SUPPORT.dbo.exportTradeConfirmation @TradeId = 6916
-
-	exec QORT_ARM_SUPPORT.dbo.exportTradeConfirmation @TradeId = 6948
-
-	exec QORT_ARM_SUPPORT.dbo.exportTradeConfirmation @TradeId = 6245 -- с поручением
-
-	exec QORT_ARM_SUPPORT.dbo.exportTradeConfirmation @TradeId = 7071
-
-
-
-	6245, 6916
-
-*/
+-- exec QORT_ARM_SUPPORT_TEST.dbo.exportTradeConfirmation @TradeId = 6916
 
 
 
@@ -32,13 +12,13 @@ CREATE PROCEDURE [dbo].[exportTradeConfirmation]
 
 	@TradeId bigint
 
-	, @resultStatus varchar(1024) = null out 
+	, @resultStatus varchar(1024) out
 
-	, @resultPath varchar(255) = null out
+	, @resultPath varchar(255) out
 
-	, @resultColor varchar(32) = null out
+	, @resultColor varchar(32) out
 
-	, @resultDateTime varchar(32) = null out
+	, @resultDateTime varchar(32) out
 
 AS
 
@@ -64,41 +44,25 @@ BEGIN
 
 		declare @Message varchar(1024)
 
-		declare @ArmBrokShortName varchar(32) = 'Armbrok OJSC'
-
-		/*declare @FileDir varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\TEST\Отчет по сделкам\temp'
+		declare @FileDir varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\TEST\Отчет по сделкам\temp'
 
 		declare @FileDirOut varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\TEST\Отчет по сделкам\temp\out'
 
-		declare @FileDirResOTC varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\TEST\Отчет по сделкам\temp\OTC_Sec'
-
-		declare @FileDirResFX varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\TEST\Отчет по сделкам\temp\FX'*/
-
-		declare @FileDir varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\PRODUCTION\Trade Confo OLD\Technical do not delete\Templates for Confo'
-
-		declare @FileDirOut varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\PRODUCTION\Trade Confo OLD\Actual Trade Confo\Archive'
-
-		declare @FileDirResOTC varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\PRODUCTION\Trade Confo OLD\Actual Trade Confo\OTC_SPOT'
-
-		declare @FileDirResFX varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\PRODUCTION\Trade Confo OLD\Actual Trade Confo\OTC_FX'
+		declare @FileDirRes varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\TEST\Отчет по сделкам\temp\result'
 
 		if right(@FileDir, 1) <> '' set @FileDir = @FileDir + '\'
 
 		if right(@FileDirOut, 1) <> '' set @FileDirOut = @FileDirOut + '\'
 
-		if right(@FileDirResOTC, 1) <> '' set @FileDirResOTC = @FileDirResOTC + '\'
+		if right(@FileDirRes, 1) <> '' set @FileDirRes = @FileDirRes + '\'
 
-		if right(@FileDirResFX, 1) <> '' set @FileDirResFX = @FileDirResFX + '\'
+		declare @FileNameData varchar(128) = 'sec_04.xlsx'
 
-		declare @FileDirRes varchar(255)
+		--declare @FileNameEmpty varchar(128) = 'sec_01a.xlsx'
 
-		declare @FileNameData varchar(128) --= 'sec_06.xlsx'
+		declare @FileNameEmpty varchar(128) = 'sec_04e.xlsx'
 
-		declare @FileNameEmpty varchar(128) --= 'sec_06e.xlsx'
 
-		declare @ReportDate int = cast(convert(varchar, getdate(), 112) as int)
-
-		declare @Sheet varchar(64) = 'Security'
 
 
 
@@ -128,6 +92,8 @@ BEGIN
 
 
 
+		declare @Sheet varchar(64) = 'Security'
+
 		declare @sql varchar(max)
 
 
@@ -136,15 +102,7 @@ BEGIN
 
 		if OBJECT_ID('tempdb..##rep07', 'U') is not null drop table ##rep07
 
-		if OBJECT_ID('tempdb..##bal07', 'U') is not null drop table ##bal07
-
-		if OBJECT_ID('tempdb..##balPos', 'U') is not null drop table ##balPos
-
 		create table ##rep07 (repFrom varchar(128), repTo varchar(128))
-
-		create table ##bal07 (Num int identity, Currency varchar(32), Balance float)
-
-		create table ##balPos (a int, c varchar(32))
 
 
 
@@ -159,8 +117,6 @@ BEGIN
 		declare @TradeDate int
 
 		declare @SubAccCode varchar(128)
-
-		declare @SubAccID int
 
 		declare @FirmShortName varchar(128)
 
@@ -185,6 +141,8 @@ BEGIN
 		declare @TSSectionName varchar(128)
 
 		declare @TransactionMarket varchar(128)
+
+		declare @OrderType varchar(128)
 
 		declare @TradeTime int
 
@@ -230,38 +188,6 @@ BEGIN
 
 		declare @IsAccrued varchar(1)
 
-		declare @IsBond bit
-
-		declare @Bonus float
-
-		declare @BonusString varchar(32)
-
-		declare @TrnType varchar(32)
-
-
-
-		declare @CurrencyBuy varchar(32)
-
-		declare @CurrencySell varchar(32)
-
-		declare @VolumeBuy float
-
-		declare @VolumeSell float
-
-		declare @RateBuy float
-
-		declare @RateSell float
-
-
-
-		declare @OrderType varchar(128) = ''
-
-		declare @OrderNums varchar(512) = ''
-
-		declare @OrderComments varchar(512) = ''
-
-
-
 
 
 		select @TrueTradeId = t.id, @TradeDate = t.TradeDate, @TradeTime = t.TradeTime, @SubAccCode = s.SubAccCode, @firmShortName = fo.FirmShortName
@@ -278,7 +204,7 @@ BEGIN
 
 			, @TSSectionName = tss.Name, @TransactionMarket = ts.Code
 
-			--, @OrderType = 'OrderType'
+			, @OrderType = 'OrderType'
 
 			, @ExpectedSettlementDate = t.PutPlannedDate, @SettlementDate = t.PutDate, @PaymentDate = t.PayDate
 
@@ -306,45 +232,35 @@ BEGIN
 
 			, @OtherPartyOfTransaction = fcp.FirmShortName
 
-			, @Bonus = pBonus.pBonus
+		from QORT_BACK_DB_TEST.dbo.Trades t with (nolock)
 
-			, @BonusString = aBonusCur.ShortName
+		left outer join QORT_BACK_DB_TEST.dbo.Subaccs s with (nolock) on s.id = t.SubAcc_ID
 
-			, @SubAccID = s.id
+		left outer join QORT_BACK_DB_TEST.dbo.Firms fo with (nolock) on fo.id = s.OwnerFirm_ID
 
-		from QORT_BACK_DB.dbo.Trades t with (nolock)
+		left outer join QORT_BACK_DB_TEST.dbo.Securities sec with (nolock) on sec.id = t.Security_ID
 
-		left outer join QORT_BACK_DB.dbo.Subaccs s with (nolock) on s.id = t.SubAcc_ID
+		left outer join QORT_BACK_DB_TEST.dbo.Assets a with (nolock) on a.id = sec.Asset_ID
 
-		left outer join QORT_BACK_DB.dbo.Firms fo with (nolock) on fo.id = s.OwnerFirm_ID
+		left outer join QORT_BACK_DB_TEST.dbo.Firms fi with (nolock) on fi.id = a.EmitentFirm_ID
 
-		left outer join QORT_BACK_DB.dbo.Securities sec with (nolock) on sec.id = t.Security_ID
+		left outer join QORT_BACK_DB_TEST.dbo.TSSections tss with (nolock) on tss.id = t.TSSection_ID
 
-		left outer join QORT_BACK_DB.dbo.Assets a with (nolock) on a.id = sec.Asset_ID
+		left outer join QORT_BACK_DB_TEST.dbo.TSs ts with (nolock) on ts.id = tss.TS_ID
 
-		left outer join QORT_BACK_DB.dbo.Firms fi with (nolock) on fi.id = a.EmitentFirm_ID
+		left outer join QORT_BACK_DB_TEST.dbo.Assets aPay with (nolock) on aPay.id = t.CurrPayAsset_ID
 
-		left outer join QORT_BACK_DB.dbo.TSSections tss with (nolock) on tss.id = t.TSSection_ID
+		left outer join QORT_BACK_DB_TEST.dbo.Assets aPrice with (nolock) on aPrice.id = t.CurrPriceAsset_ID
 
-		left outer join QORT_BACK_DB.dbo.TSs ts with (nolock) on ts.id = tss.TS_ID
+		left outer join QORT_BACK_DB_TEST.dbo.Assets aCur with (nolock) on aCur.id = a.BaseCurrencyAsset_ID
 
-		left outer join QORT_BACK_DB.dbo.Assets aPay with (nolock) on aPay.id = t.CurrPayAsset_ID
+		left outer join QORT_ARM_SUPPORT_TEST.dbo.Assets_AS AssetSort with (nolock) on AssetSort.ConstInt = a.AssetSort_Const
 
-		left outer join QORT_BACK_DB.dbo.Assets aPrice with (nolock) on aPrice.id = t.CurrPriceAsset_ID
+		left outer join QORT_BACK_DB_TEST.dbo.Firms fcp with (nolock) on fcp.id = t.CpFirm_ID
 
-		left outer join QORT_BACK_DB.dbo.Assets aCur with (nolock) on aCur.id = a.BaseCurrencyAsset_ID
+		outer apply (select -sum(p.QtyBefore * p.QtyAfter) Comm, max(p.PhaseAsset_ID) CommAsset from QORT_BACK_DB_TEST.dbo.Phases p with (nolock) where p.Trade_ID = @TradeId and p.IsCanceled = 'n' and p.Enabled = 0 and p.PC_Const = 9) Comm
 
-		left outer join QORT_ARM_SUPPORT.dbo.Assets_AS AssetSort with (nolock) on AssetSort.ConstInt = a.AssetSort_Const
-
-		left outer join QORT_BACK_DB.dbo.Firms fcp with (nolock) on fcp.id = t.CpFirm_ID
-
-		outer apply (select -sum(p.QtyBefore * p.QtyAfter) Comm, max(p.PhaseAsset_ID) CommAsset from QORT_BACK_DB.dbo.Phases p with (nolock) where p.Trade_ID = @TradeId and p.IsCanceled = 'n' and p.Enabled = 0 and p.PC_Const = 9) Comm
-
-		outer apply (select abs(sum(p.QtyBefore * p.QtyAfter)) pBonus, max(p.PhaseAsset_ID) pBonusAsset from QORT_BACK_DB.dbo.Phases p with (nolock) where p.Trade_ID = @TradeId and p.IsCanceled = 'n' and p.Enabled = 0 and p.PC_Const = 11) pBonus
-
-		left outer join QORT_BACK_DB.dbo.Assets aCommCur with (nolock) on aCommCur.id = Comm.CommAsset
-
-		left outer join QORT_BACK_DB.dbo.Assets aBonusCur with (nolock) on aBonusCur.id = pBonus.pBonusAsset
+		left outer join QORT_BACK_DB_TEST.dbo.Assets aCommCur with (nolock) on aCommCur.id = Comm.CommAsset
 
 		where t.id = @TradeId
 
@@ -355,68 +271,6 @@ BEGIN
 		if @TrueTradeId is null RAISERROR ('Trade Not Found', 16, 1);
 
 
-
-		if @SecurityType = 'Currency' begin
-
-			set @FileDirRes = @FileDirResFX
-
-			set @FileNameData = 'fx_02.xlsx'
-
-			set @FileNameEmpty = 'fx_02e.xlsx'
-
-			set @Sheet = 'FX'
-
-
-
-			if @TransactionType = 'Buy' begin
-
-				set @CurrencyBuy = @AssetName
-
-				set @CurrencySell = @PriceCurrency
-
-				set @VolumeBuy = @Quantity
-
-				set @VolumeSell = @Volume1
-
-				set @RateBuy = @Volume1 / nullif(@Quantity, 0)
-
-				set @RateSell = @Quantity / nullif(@Volume1, 0)
-
-			end else begin
-
-				set @CurrencyBuy = @PriceCurrency
-
-				set @CurrencySell = @AssetName
-
-				set @VolumeBuy = @Volume1
-
-				set @VolumeSell = @Quantity
-
-				set @RateBuy = @Quantity / nullif(@Volume1, 0)
-
-				set @RateSell = @Volume1 / nullif(@Quantity, 0)
-
-			end
-
-
-
-			if @RateBuy < 0.5 set @RateBuy = 0
-
-			if @RateSell < 0.5 set @RateSell = 0
-
-
-
-		end else begin
-
-			set @FileDirRes = @FileDirResOTC
-
-			set @FileNameData = 'sec_06.xlsx'
-
-			set @FileNameEmpty = 'sec_06e.xlsx'
-
-			set @Sheet = 'Security'
-
-		end
 
 
 
@@ -446,99 +300,11 @@ BEGIN
 
 		if (@IsAccrued <> 'y' or @SecurityType <> 'Bonds') set @CleanValue = @Volume1 else set @CleanValue = @Volume1 - @Accruedint
 
-		if (@IsAccrued = 'y' or @SecurityType <> 'Bonds') set @TotalValue = @Volume1 else set @TotalValue = @Volume1 + @Accruedint
+		if (@IsAccrued <> 'y' or @SecurityType <> 'Bonds') set @TotalValue = @Volume1 else set @TotalValue = @Volume1 + @Accruedint
 
-		set @OtherPartyOfTransaction = iif(@OtherPartyOfTransaction = @ArmBrokShortName, @OtherPartyOfTransaction, 'Other')
+		set @OtherPartyOfTransaction = iif(@OtherPartyOfTransaction = 'ArmBrok', @OtherPartyOfTransaction, 'Other')
 
 		if @ISIN = '' set @ISIN = @AssetShortName
-
-		set @TransactionStatus = iif(@PaymentDate > 0 and @SettlementDate > 0, 'Settled', 'Unsettled')
-
-		set @IsBond = iif(@SecurityType = 'Bonds', 1, 0)
-
-		if @Bonus <> 0 and @BonusString <> '' 
-
-			set @BonusString = @BonusString + ' ' + QORT_ARM_SUPPORT.dbo.fFloatToMoney2Varchar(@Bonus)
-
-			else set @BonusString = '0%'
-
-		set @TrnType = iif(@OtherPartyOfTransaction = @ArmBrokShortName, 'internal', 'external')
-
-
-
-		declare @BalancesTitle varchar(256)
-
-		if @PaymentDate > 0 
-
-			set @BalancesTitle = 'Balance as of the end of ' + QORT_ARM_SUPPORT.dbo.fIntToDateVarchar(@PaymentDate)
-
-			else set @BalancesTitle = 'Balance at the time of report creation'
-
-
-
-
-
-		--select top 1 @OrderType = 'Partial, ' + case ti.PRC_Const when 2 then 'Limit, ' when 3 then 'Market, ' else 'Other, ' end + iif(ti.Date2> 0, QORT_ARM_SUPPORT.dbo.fIntToDateVarchar(ti.Date2), 'Open')
-
-		--select top 1 @OrderType = iif(ti.IsComplete = 'y', 'All or none, ', 'Partial, ') + case ti.PRC_Const when 2 then 'Limit, ' when 3 then 'Market, ' else 'Other, ' end + iif(ti.Date2> 0, QORT_ARM_SUPPORT.dbo.fIntToDateVarchar(ti.Date2), 'Open')		
-
-		select top 1 @OrderType = iif(ti.IsComplete = 'y', 'All or none, ', 'Partial, ') 
-
-			+ case ti.PRC_Const when 2 then 'Limit, ' when 3 then 'Market, ' when 4 then 'Limit, ' when 5 then 'Limit, ' else 'Other, ' end 
-
-			+ iif(ti.Date2> 0, QORT_ARM_SUPPORT.dbo.fIntToDateVarchar(ti.Date2), 'Open')		
-
-		from QORT_BACK_DB.dbo.TradeInstrLinks til with (nolock)
-
-		inner join QORT_BACK_DB.dbo.TradeInstrs ti with (nolock) on ti.id = til.TradeInstr_ID
-
-		where til.Trade_ID = @TradeId
-
-		order by til.id
-
-
-
-		if @OrderType <> '' begin
-
-			select @OrderNums = isnull(cast((
-
-				select ti.RegisterNum + '; '
-
-				from QORT_BACK_DB.dbo.TradeInstrLinks til with (nolock)
-
-				inner join QORT_BACK_DB.dbo.TradeInstrs ti with (nolock) on ti.id = til.TradeInstr_ID
-
-				where til.Trade_ID = @TradeId and ti.RegisterNum <> ''
-
-				order by til.id
-
-				for xml path('')
-
-			) as varchar(max)), '')
-
-			if @OrderNums <> '' set @OrderNums = left(@OrderNums, len(@OrderNums)-1)
-
-
-
-			select @OrderComments = isnull(cast((
-
-				select ti.AuthorComment + '; '
-
-				from QORT_BACK_DB.dbo.TradeInstrLinks til with (nolock)
-
-				inner join QORT_BACK_DB.dbo.TradeInstrs ti with (nolock) on ti.id = til.TradeInstr_ID
-
-				where til.Trade_ID = @TradeId and ti.AuthorComment <> ''
-
-				order by til.id
-
-				for xml path('')
-
-			) as varchar(max)), '')
-
-			if @OrderComments <> '' set @OrderComments = left(@OrderComments, len(@OrderComments)-1)
-
-		end
 
 
 
@@ -550,9 +316,7 @@ BEGIN
 
 			('@TradeId', cast(@TradeId as varchar(128))) 
 
-			, ('@ReportDate', QORT_ARM_SUPPORT.dbo.fIntToDateVarchar(@ReportDate))
-
-			, ('@TradeDate', QORT_ARM_SUPPORT.dbo.fIntToDateVarchar(@TradeDate))
+			, ('@TradeDate', QORT_ARM_SUPPORT_TEST.dbo.fIntToDateVarchar(@TradeDate))
 
 			, ('@SubAccCode', @SubAccCode)
 
@@ -574,21 +338,17 @@ BEGIN
 
 			, ('@OrderType', @OrderType)
 
-			, ('@OrderNums', @OrderNums)
-
-			, ('@OrderComments', @OrderComments)
-
 			, ('@SecurityType', @SecurityType)
 
-			, ('@TradeTime', QORT_ARM_SUPPORT.dbo.fIntToTimeVarchar(@TradeTime))
+			, ('@TradeTime', QORT_ARM_SUPPORT_TEST.dbo.fIntToTimeVarchar(@TradeTime))
 
-			, ('@ExpectedSettlementDate', QORT_ARM_SUPPORT.dbo.fIntToDateVarchar(@ExpectedSettlementDate))
+			, ('@ExpectedSettlementDate', QORT_ARM_SUPPORT_TEST.dbo.fIntToDateVarchar(@ExpectedSettlementDate))
 
-			, ('@SettlementDate', QORT_ARM_SUPPORT.dbo.fIntToDateVarchar(@SettlementDate))
+			, ('@SettlementDate', QORT_ARM_SUPPORT_TEST.dbo.fIntToDateVarchar(@SettlementDate))
 
-			, ('@PaymentDate', QORT_ARM_SUPPORT.dbo.fIntToDateVarchar(@PaymentDate))
+			, ('@PaymentDate', QORT_ARM_SUPPORT_TEST.dbo.fIntToDateVarchar(@PaymentDate))
 
-			, ('@NominalValue', QORT_ARM_SUPPORT.dbo.fFloatToMoney2Varchar(@NominalValue))
+			, ('@NominalValue', QORT_ARM_SUPPORT_TEST.dbo.fFloatToMoney2Varchar(@NominalValue))
 
 			, ('@TradeCurrency', @TradeCurrency)
 
@@ -596,56 +356,29 @@ BEGIN
 
 			, ('@AssetCurrency', isnull(@AssetCurrency, ''))
 
-			, ('@Quantity', QORT_ARM_SUPPORT.dbo.fFloatToMoney2Varchar(@Quantity))
+			, ('@Quantity', QORT_ARM_SUPPORT_TEST.dbo.fFloatToMoney2Varchar(@Quantity))
 
-			--, ('@Yield', QORT_ARM_SUPPORT.dbo.fFloatToMoney2Varchar(@Yield)+ '%')
+			, ('@Yield', QORT_ARM_SUPPORT_TEST.dbo.fFloatToMoney2Varchar(@Yield)+ '%')
 
-			--, ('@Yield', cast(@Yield as varchar)+ '%')
+			, ('@TotalNominal', QORT_ARM_SUPPORT_TEST.dbo.fFloatToMoney2Varchar(@TotalNominal))--*/
 
-			, ('@Yield', QORT_ARM_SUPPORT.dbo.fFloatYieldToVarchar(@Yield)+ '%')
+			, ('@Price', QORT_ARM_SUPPORT_TEST.dbo.fFloatToMoney2Varchar(@Price))
 
-			, ('@TotalNominal', QORT_ARM_SUPPORT.dbo.fFloatToMoney2Varchar(@TotalNominal))--*/
+			, ('@Volume1', QORT_ARM_SUPPORT_TEST.dbo.fFloatToMoney2Varchar(@Volume1))
 
-			, ('@PricePercents', iif(@IsBond = 1, QORT_ARM_SUPPORT.dbo.fFloatToMoney2Varchar(@Price) + '%', ''))
+			, ('@Accruedint', QORT_ARM_SUPPORT_TEST.dbo.fFloatToMoney2Varchar(@Accruedint))
 
-			, ('@Price', QORT_ARM_SUPPORT.dbo.fFloatToMoney2Varchar(@Price * iif(@IsBond = 1, @NominalValue / 100, 1)))
+			, ('@CleanValue', QORT_ARM_SUPPORT_TEST.dbo.fFloatToMoney2Varchar(@CleanValue))
 
-			, ('@Volume1', QORT_ARM_SUPPORT.dbo.fFloatToMoney2Varchar(@Volume1))
-
-			, ('@Accruedint', QORT_ARM_SUPPORT.dbo.fFloatToMoney2Varchar(@Accruedint))
-
-			, ('@CleanValue', QORT_ARM_SUPPORT.dbo.fFloatToMoney2Varchar(@CleanValue))
-
-			, ('@TotalValue', QORT_ARM_SUPPORT.dbo.fFloatToMoney2Varchar(@TotalValue))
+			, ('@TotalValue', QORT_ARM_SUPPORT_TEST.dbo.fFloatToMoney2Varchar(@TotalValue))
 
 			, ('@CommissionCurrrency', isnull(@CommissionCurrrency, ''))
 
-			, ('@Commission', QORT_ARM_SUPPORT.dbo.fFloatToMoney2Varchar(@Commission))
+			, ('@Commission', QORT_ARM_SUPPORT_TEST.dbo.fFloatToMoney2Varchar(@Commission))
 
 			, ('@TransactionStatus', @TransactionStatus)
 
 			, ('@OtherPartyOfTransaction', @OtherPartyOfTransaction)
-
-			, ('@Bonus', @BonusString)
-
-			, ('@TrnType', @TrnType)
-
-
-
-			, ('@CurrencyBuy', @CurrencyBuy)
-
-			, ('@CurrencySell', @CurrencySell)
-
-			, ('@VolumeBuy', QORT_ARM_SUPPORT.dbo.fFloatToMoney2Varchar(@VolumeBuy))
-
-			, ('@VolumeSell', QORT_ARM_SUPPORT.dbo.fFloatToMoney2Varchar(@VolumeSell))
-
-			, ('@RateBuy', QORT_ARM_SUPPORT.dbo.fFloatYieldToVarchar(round(@RateBuy, 4)))
-
-			, ('@RateSell', QORT_ARM_SUPPORT.dbo.fFloatYieldToVarchar(round(@RateSell, 4)))
-
-			, ('@BalancesTitle', @BalancesTitle)
-
 
 		) as t(repFrom, repTo)
 
@@ -773,104 +506,6 @@ BEGIN
 
 		*/
 
-		declare @BalanceDate int
-
-		if @PaymentDate > 0 set @BalanceDate = @PaymentDate else set @BalanceDate = @ReportDate
-
-		declare @TodayInt int = cast(convert(varchar, getdate(), 112) as int)
-
-		declare @BalanceTitleStart varchar(32) = '@CashBalanceStart'
-
-		declare @BalanceColumn1 varchar(32)
-
-		declare @BalanceColumn2 varchar(32)
-
-		declare @BalanceRowStart int
-
-
-
-		select @sql = cast((
-
-		select 'select a, ''' + c.name + ''' c from ##t07 where cast(' + c.Name + ' as varchar) = ''' + @BalanceTitleStart + ''' union all '
-
-		from tempdb.sys.columns c with (nolock)
-
-		where c.object_id = object_id('tempdb.dbo.##t07')
-
-		and c.name like 'F%'
-
-		order by column_id
-
-		for xml path('')) as varchar(max))
-
-
-
-		set @sql = 'insert into ##balPos(a, c) ' + left(@sql, len(@sql) - 10)
-
-
-
-		print @sql
-
-		exec(@sql)
-
-
-
-		select top 1 @BalanceRowStart = a, @BalanceColumn1 = c, @BalanceColumn2 = left(c, 1) + cast(cast(right(c, len(c)-1) as int) + 2 as varchar)
-
-		from ##balPos p
-
-
-
-		if @BalanceDate < @TodayInt begin
-
-			insert into ##bal07(Currency, Balance)
-
-			select a.ShortName, sum(ph.VolFree)
-
-			from QORT_BACK_DB.dbo.PositionHist ph with (nolock)
-
-			inner join QORT_BACK_DB.dbo.Assets a with (nolock) on a.id = ph.Asset_ID
-
-			where ph.OldDate = @BalanceDate and ph.Subacc_ID = @SubAccID and a.AssetType_Const = 3 and abs(ph.VolFree) > 1e-8
-
-			group by a.ShortName order by 1
-
-		end else begin
-
-			insert into ##bal07(Currency, Balance)
-
-			select a.ShortName, sum(ph.VolFree)
-
-			from QORT_BACK_DB.dbo.Position ph with (nolock)
-
-			inner join QORT_BACK_DB.dbo.Assets a with (nolock) on a.id = ph.Asset_ID
-
-			where ph.Subacc_ID = @SubAccID and a.AssetType_Const = 3 and abs(ph.VolFree) > 1e-8
-
-			group by a.ShortName order by 1
-
-		end
-
-
-
-		set @sql = 'update t set t.' + @BalanceColumn2 + ' = b.Currency, t.' + @BalanceColumn1 + ' = QORT_ARM_SUPPORT.dbo.fFloatToMoney2Varchar(b.Balance)
-
-			from ##bal07 b
-
-			inner join ##t07 t on t.a = b.Num*2 + ' + cast(@BalanceRowStart as varchar) + ' - 2'
-
-		
-
-		--select @BalanceRowStart, @BalanceColumn2, @BalanceColumn1, @BalanceTitleStart
-
-
-
-		if @BalanceRowStart > 0 
-
-		exec(@sql)
-
-
-
 
 
 		SET @sql = 'insert into OPENROWSET (
@@ -947,7 +582,7 @@ BEGIN
 
 		set @Message = 'ERROR: ' + ERROR_MESSAGE(); 
 
-		--insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
+		--insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
 
 		select @resultStatus = @Message, @resultColor = 'red'
 

@@ -1,6 +1,6 @@
 ﻿
 
---exec QORT_ARM_SUPPORT.dbo.updateBrokCommission
+--exec QORT_ARM_SUPPORT_TEST.dbo.updateBrokCommission
 
 
 
@@ -102,23 +102,23 @@ BEGIN
 
 		into ##Result
 
-		FROM QORT_BACK_DB.dbo.BlockCommissionOnTrades Comm with (nolock) 
+		FROM QORT_BACK_DB_TEST.dbo.BlockCommissionOnTrades Comm with (nolock) 
 
-		left outer join QORT_BACK_DB.dbo.Assets ass on ass.id = Comm.Asset_ID
+		left outer join QORT_BACK_DB_TEST.dbo.Assets ass on ass.id = Comm.Asset_ID
 
-		left outer join QORT_BACK_DB.dbo.Subaccs sub on sub.id = Comm.Subacc_ID
+		left outer join QORT_BACK_DB_TEST.dbo.Subaccs sub on sub.id = Comm.Subacc_ID
 
-		left outer join QORT_BACK_DB.dbo.Accounts acc on acc.id = Comm.Account_ID
+		left outer join QORT_BACK_DB_TEST.dbo.Accounts acc on acc.id = Comm.Account_ID
 
-		left outer join QORT_BACK_DB.dbo.Trades tr on tr.id = Comm.Trade_ID
+		left outer join QORT_BACK_DB_TEST.dbo.Trades tr on tr.id = Comm.Trade_ID
 
-		left outer join QORT_BACK_DB.dbo.Assets asss on asss.id = Comm.Calc_Currency_ID
+		left outer join QORT_BACK_DB_TEST.dbo.Assets asss on asss.id = Comm.Calc_Currency_ID
 
-		left outer join QORT_BACK_DB.dbo.Accounts accc on accc.id = Comm.GetAccount_ID
+		left outer join QORT_BACK_DB_TEST.dbo.Accounts accc on accc.id = Comm.GetAccount_ID
 
-		left outer join QORT_BACK_DB.dbo.Subaccs subb on subb.id = Comm.GetSubacc_ID
+		left outer join QORT_BACK_DB_TEST.dbo.Subaccs subb on subb.id = Comm.GetSubacc_ID
 
-		left outer join QORT_BACK_DB.dbo.TSSections tss on tss.id = tr.TSSection_ID
+		left outer join QORT_BACK_DB_TEST.dbo.TSSections tss on tss.id = tr.TSSection_ID
 
 		
 
@@ -134,7 +134,7 @@ BEGIN
 
 		--/*
 
-		insert into QORT_BACK_TDB.dbo.ImportBlockCommissionOnTrades (ET_Const,Isprocessed
+		insert into QORT_BACK_TDB_TEST.dbo.ImportBlockCommissionOnTrades (ET_Const,Isprocessed
 
 		, AccountExportCode
 
@@ -192,7 +192,7 @@ BEGIN
 
 			set @WaitCount = 1200
 
-		while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB.dbo.ImportBlockCommissionOnTrades t with (nolock) where t.IsProcessed in (1,2)))
+		while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB_TEST.dbo.ImportBlockCommissionOnTrades t with (nolock) where t.IsProcessed in (1,2)))
 
 		begin
 
@@ -205,14 +205,19 @@ BEGIN
 
 
 	ALTER TABLE ##Result
+
 	ADD Order_ID INT
 
 
 
 		  UPDATE ##Result
+
 	SET Order_ID = isnull(tsl.TradeInstr_ID, CAST(right(SubAccCode,4) as int))
+
 	FROM ##Result rs
-	left outer join QORT_BACK_DB.dbo.TradeInstrLinks tsl on tsl.Trade_ID = rs.Trade_ID
+
+	left outer join QORT_BACK_DB_TEST.dbo.TradeInstrLinks tsl on tsl.Trade_ID = rs.Trade_ID
+
 	
 
 
@@ -251,7 +256,7 @@ BEGIN
 
 	  from ##Result r
 
-	  left outer join QORT_BACK_DB.dbo.Trades tra on tra.id = r.trade_id
+	  left outer join QORT_BACK_DB_TEST.dbo.Trades tra on tra.id = r.trade_id
 
 	  where r.TSSection_Name = 'AMX_Securities'
 
@@ -260,12 +265,19 @@ BEGIN
 
 
 	  UPDATE #t
+
 	SET total_sum = sub.total_sum
+
 	FROM (
+
     SELECT rank_num, SUM(size) AS total_sum
+
     FROM #t
+
     GROUP BY rank_num
+
 	) AS sub
+
 	WHERE #t.rank_num = sub.rank_num;
 
 
@@ -314,7 +326,7 @@ BEGIN
 
 	  from ##Result r
 
-	  left outer join QORT_BACK_DB.dbo.Trades tra on tra.id = r.trade_id
+	  left outer join QORT_BACK_DB_TEST.dbo.Trades tra on tra.id = r.trade_id
 
 	  where r.TSSection_Name = 'AIX_Securities' and r.ShortName = 'AMD'--
 
@@ -323,12 +335,19 @@ BEGIN
 
 
 	    UPDATE #t1
+
 	SET total_sum = sub.total_sum
+
 	FROM (
+
     SELECT rank_num, SUM(size) AS total_sum
+
     FROM #t1
+
     GROUP BY rank_num
+
 	) AS sub
+
 	WHERE #t1.rank_num = sub.rank_num;
 
 
@@ -377,7 +396,7 @@ BEGIN
 
 	  from ##Result r
 
-	  left outer join QORT_BACK_DB.dbo.Trades tra on tra.id = r.trade_id
+	  left outer join QORT_BACK_DB_TEST.dbo.Trades tra on tra.id = r.trade_id
 
 	  where r.TSSection_Name = 'AIX_Securities' and r.ShortName = 'USD'--
 
@@ -386,12 +405,19 @@ BEGIN
 
 
 	    UPDATE #t2
+
 	SET total_sum = sub.total_sum
+
 	FROM (
+
     SELECT rank_num, SUM(size) AS total_sum
+
     FROM #t2
+
     GROUP BY rank_num
+
 	) AS sub
+
 	WHERE #t2.rank_num = sub.rank_num;
 
 
@@ -400,7 +426,7 @@ BEGIN
 
 	 
 
-	 set @totalcurt = ROUND(100000 / (select bid from QORT_BACK_DB.dbo.CrossRatesHist where OldDate = @todayInt
+	 set @totalcurt = ROUND(100000 / (select bid from QORT_BACK_DB_TEST.dbo.CrossRatesHist where OldDate = @todayInt
 
 																						and InfoSource = 'CBA-1'
 
@@ -427,11 +453,12 @@ BEGIN
 
 
 	  ALTER TABLE ##Result
+
 		DROP COLUMN Order_ID
 
 
 
-		insert into QORT_BACK_TDB.dbo.ImportBlockCommissionOnTrades (ET_Const,Isprocessed
+		insert into QORT_BACK_TDB_TEST.dbo.ImportBlockCommissionOnTrades (ET_Const,Isprocessed
 
 		, AccountExportCode
 
@@ -489,7 +516,7 @@ BEGIN
 
 		---------------------------------- удаление значений в таблице начисленных комиссий--------
 
-		delete FROM QORT_BACK_DB.dbo.BlockPositionHist where Date = @todayInt
+		delete FROM QORT_BACK_DB_TEST.dbo.BlockPositionHist where Date = @todayInt
 
 
 
@@ -503,7 +530,7 @@ BEGIN
 
 		set @Message = 'ERROR: ' + ERROR_MESSAGE(); 
 
-		insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
+		insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
 
 		select @Message result, 'STATUS' defaultTask, 'red' color
 

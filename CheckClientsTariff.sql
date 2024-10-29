@@ -12,7 +12,7 @@
 
 
 
--- exec QORT_ARM_SUPPORT.dbo.CheckClientsTariff
+-- exec QORT_ARM_SUPPORT_TEST.dbo.CheckClientsTariff
 
 CREATE PROCEDURE [dbo].[CheckClientsTariff]
 
@@ -22,7 +22,7 @@ CREATE PROCEDURE [dbo].[CheckClientsTariff]
 
 	 
 
-	 ,@NotifyEmail varchar(1024) = 'backoffice@armbrok.am;accounting@armbrok.am;onboarding@armbrok.am;sona.nalbandyan@armbrok.am;armine.khachatryan@armbrok.am;aleksandr.mironov@armbrok.am;'
+	 ,@NotifyEmail varchar(1024) = 'aleksandr.mironov@armbrok.am'--'backoffice@armbrok.am;accounting@armbrok.am;depo@armbrok.am;onboarding@armbrok.am;sales@armbrok.am;sona.nalbandyan@armbrok.am;armine.khachatryan@armbrok.am;aleksandr.mironov@armbrok.am;'
 
 AS
 
@@ -52,19 +52,19 @@ BEGIN
 
 		--IF OBJECT_ID('QORT_ARBACK_DB_TEST.dbo.IDSubaccsHistForCheckTerminated', 'U') IS NOT NULL delete from QORT_ARBACK_DB_TEST.dbo.IDSubaccsHistForCheckTerminated;
 
-		--update  QORT_ARM_SUPPORT.dbo.IDSubaccsHistForCheckTerminated set idClientsTariffHist = 3416 -- временно для тестов
+		--update  QORT_ARM_SUPPORT_TEST.dbo.IDSubaccsHistForCheckTerminated set idClientsTariffHist = 3416 -- временно для тестов
 
 
 
 		select  @OldidClientsTariffHist = r.idClientsTariffHist					-- забираем из внешней таблицы последнее значение ID
 
-		from QORT_ARM_SUPPORT..IDSubaccsHistForCheckTerminated r
+		from QORT_ARM_SUPPORT_TEST..IDSubaccsHistForCheckTerminated r
 
 			
 
 		select @CuridClientsTariffHist = max(h.id)
 
-		from QORT_BACK_DB.dbo.ClientTariffsHist h -- определяем текущее значение ID
+		from QORT_BACK_DB_UAT.dbo.ClientTariffsHist h -- определяем текущее значение ID
 
 	
 
@@ -102,7 +102,7 @@ BEGIN
 
 		into #SubAcc
 
-		from QORT_BACK_DB..ClientTariffsHist q
+		from QORT_BACK_DB_UAT..ClientTariffsHist q
 
 		where
 
@@ -134,7 +134,7 @@ WITH RankedData AS (
 
         b.Tariff_ID AS Tariff_IDold,
 
-        ROW_NUMBER() OVER (PARTITION BY a.ID ORDER BY b.id desc) AS rn
+        ROW_NUMBER() OVER (PARTITION BY a.Firm_ID ORDER BY b.id ASC) AS rn
 
     FROM 
 
@@ -142,7 +142,7 @@ WITH RankedData AS (
 
     LEFT JOIN 
 
-        QORT_BACK_DB..ClientTariffsHist b  -- Замените на название вашей нижней таблицы
+        QORT_BACK_DB_UAT..ClientTariffsHist b  -- Замените на название вашей нижней таблицы
 
     ON 
 
@@ -150,7 +150,7 @@ WITH RankedData AS (
 
     WHERE 
 
-       a.id >= b.id
+        a.id >= b.id
 
 ),
 
@@ -172,8 +172,6 @@ MaxNum AS (
 
 )
 
-
-
 SELECT 
 
     r.rn,
@@ -186,7 +184,7 @@ SELECT
 
     r.Tariff_ID,
 
-r.MatchingID,
+    r.MatchingID,
 
     r.Founder_IDold,
 
@@ -202,19 +200,14 @@ FROM
 
 LEFT JOIN 
 
-    MaxNum m ON r.id = m.id;
+    MaxNum m ON r.id = m.id;  -- Присоединяем максимальные значения по id
 
 
+	select * from #t3 
 
+	delete from #t3 where  rn <> 1 --not (rn = 2 or (rn = 1 and Num = 1));
 
-
-select * from #SubAcc 
-
-	select * from #t3 order by id
-
-	delete from #t3 where not (rn = 2 or (rn = 1 and Num = 1));
-
-	
+	select * from #SubAcc 
 
 	select * from #t3 
 
@@ -240,7 +233,7 @@ select * from #SubAcc
 
 		from #t3 ab
 
-		left outer join QORT_BACK_DB..Firms s on s.id = ab.Firm_ID
+		left outer join QORT_BACK_DB_UAT..Firms s on s.id = ab.Firm_ID
 
 		
 
@@ -254,7 +247,7 @@ select * from #SubAcc
 
 				+ '//2\\' + cast (isnull(sub.SubAccCode,'pls add!') as varchar) 
 
-				--+ '//4\\' + 'BGColor="'+QORT_ARM_SUPPORT.dbo.fColorGradient(DelayPercent, 50 - 100 / @MaxDaysPercent, 4) +'"//5\\'+ cast(DaysDelayed as varchar)
+				--+ '//4\\' + 'BGColor="'+QORT_ARM_SUPPORT_TEST.dbo.fColorGradient(DelayPercent, 50 - 100 / @MaxDaysPercent, 4) +'"//5\\'+ cast(DaysDelayed as varchar)
 
 				+ '//2\\' + isnull(cast(sub.ConstitutorCode as varchar),'pls add!')
 
@@ -275,12 +268,6 @@ select * from #SubAcc
 						+ case when tt.Num  = 1
 
 								then 'Tariff plan for new client: ' + '"' + isnull(tar.Name,'-') + '"'
-
-								else '' end	
-
-						+ case when tt.Num  <> 1 and tt.Tariff_ID = tt.Tariff_IDold and tt.Founder_ID = tt.Founder_IDold
-
-								then 'Other changes'
 
 								else '' end	
 
@@ -316,21 +303,21 @@ select * from #SubAcc
 
 			from #t3 tt
 
-			left outer join QORT_BACK_DB..ClientTariffsHist Hst on Hst.id = tt.id
+			left outer join QORT_BACK_DB_UAT..ClientTariffsHist Hst on Hst.id = tt.id
 
-			left outer join QORT_BACK_DB..Subaccs sub on sub.id = Hst.PutSubacc_ID
+			left outer join QORT_BACK_DB_UAT..Subaccs sub on sub.id = Hst.PutSubacc_ID
 
-			left outer join QORT_BACK_DB..Firms f on f.id = tt.Firm_ID
+			left outer join QORT_BACK_DB_UAT..Firms f on f.id = tt.Firm_ID
 
-			left outer join QORT_BACK_DB..ClientTariffsHist tr on tr.id = tt.id
+			left outer join QORT_BACK_DB_UAT..ClientTariffsHist tr on tr.id = tt.id
 
-			left outer join QORT_BACK_DB..Firms f1 on f1.id = f.Sales_ID
+			left outer join QORT_BACK_DB_UAT..Firms f1 on f1.id = f.Sales_ID
 
-			left outer join QORT_BACK_DB..Tariffs  tar on tar.id = Hst.Tariff_ID
+			left outer join QORT_BACK_DB_UAT..Tariffs  tar on tar.id = Hst.Tariff_ID
 
-			left outer join QORT_BACK_DB..Tariffs  tar1 on tar1.id = tt.Tariff_IDold
+			left outer join QORT_BACK_DB_UAT..Tariffs  tar1 on tar1.id = tt.Tariff_IDold
 
-			left outer join QORT_BACK_DB..Users  u on u.id = Hst.user_modified
+			left outer join QORT_BACK_DB_UAT..Users  u on u.id = Hst.user_modified
 
 			for xml path('')
 
@@ -392,7 +379,7 @@ select * from #SubAcc
 
 		EXEC msdb.dbo.sp_send_dbmail
 
-			@profile_name = 'qort-sql-mail'--'qort-test-sql'--
+			@profile_name = 'qort-test-sql'--'qort-sql-mail'--
 
 			, @recipients = @NotifyEmail
 
@@ -414,9 +401,9 @@ select * from #SubAcc
 
 			--Обновляем значение в счетчике текущего ID таблицы изменений сделок.
 
-	--IF OBJECT_ID('QORT_ARBACK_DB_TEST.dbo.IDSubaccsHistForCheckTerminated', 'U') IS NOT NULL delete from QORT_ARM_SUPPORT.dbo.IDSubaccsHistForCheckTerminated;
+	--IF OBJECT_ID('QORT_ARBACK_DB_TEST.dbo.IDSubaccsHistForCheckTerminated', 'U') IS NOT NULL delete from QORT_ARM_SUPPORT_TEST.dbo.IDSubaccsHistForCheckTerminated;
 
-	update QORT_ARM_SUPPORT.dbo.IDSubaccsHistForCheckTerminated set idClientsTariffHist = @CuridClientsTariffHist
+	update QORT_ARM_SUPPORT_TEST.dbo.IDSubaccsHistForCheckTerminated set idClientsTariffHist = @CuridClientsTariffHist
 
 	
 
@@ -428,7 +415,7 @@ select * from #SubAcc
 
 		set @Message = 'ERROR: ' + ERROR_MESSAGE(); 
 
-		insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
+		insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
 
 		print @Message
 

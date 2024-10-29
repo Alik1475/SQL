@@ -12,7 +12,7 @@
 
 
 
--- exec QORT_ARM_SUPPORT.dbo.CheckClientsTerminated
+-- exec QORT_ARM_SUPPORT_TEST.dbo.CheckClientsTerminated
 
 CREATE PROCEDURE [dbo].[CheckClientsTerminated]
 
@@ -22,7 +22,7 @@ CREATE PROCEDURE [dbo].[CheckClientsTerminated]
 
 	 
 
-	 ,@NotifyEmail varchar(1024) = 'backoffice@armbrok.am;accounting@armbrok.am;depo@armbrok.am;onboarding@armbrok.am;sales@armbrok.am;sona.nalbandyan@armbrok.am;armine.khachatryan@armbrok.am;aleksandr.mironov@armbrok.am;'
+	 ,@NotifyEmail varchar(1024) = 'aleksandr.mironov@armbrok.am'--'backoffice@armbrok.am;accounting@armbrok.am;depo@armbrok.am;onboarding@armbrok.am;sales@armbrok.am;sona.nalbandyan@armbrok.am;armine.khachatryan@armbrok.am;aleksandr.mironov@armbrok.am;'
 
 AS
 
@@ -50,21 +50,21 @@ BEGIN
 
 
 
-		--IF OBJECT_ID('QORT_ARM_SUPPORT.dbo.IDSubaccsHistForCheckTerminated', 'U') IS NOT NULL delete from QORT_ARM_SUPPORT.dbo.IDSubaccsHistForCheckTerminated;
+		--IF OBJECT_ID('QORT_ARBACK_DB_TEST.dbo.IDSubaccsHistForCheckTerminated', 'U') IS NOT NULL delete from QORT_ARBACK_DB_TEST.dbo.IDSubaccsHistForCheckTerminated;
 
-		--insert into QORT_ARM_SUPPORT.dbo.IDSubaccsHistForCheckTerminated (idSubaccsHist) values (5036) -- временно для тестов
+		--insert into QORT_ARBACK_DB_TEST.dbo.IDSubaccsHistForCheckTerminated (idSubaccsHist) values (5036) -- временно для тестов
 
 
 
 		select  @OldidSubaccsHist = r.idSubaccsHist					-- забираем из внешней таблицы последнее значение ID
 
-		from QORT_ARM_SUPPORT ..IDSubaccsHistForCheckTerminated r
+		from QORT_ARM_SUPPORT_TEST..IDSubaccsHistForCheckTerminated r
 
 			
 
 		select @CuridSubaccsHist = max(h.id)
 
-		from QORT_BACK_DB.dbo.SubaccsHist h -- определяем текущее значение ID
+		from QORT_BACK_DB_UAT.dbo.SubaccsHist h -- определяем текущее значение ID
 
 	
 
@@ -98,7 +98,7 @@ BEGIN
 
 		into #SubAcc
 
-		from QORT_BACK_DB..SubaccsHist q
+		from QORT_BACK_DB_UAT..SubaccsHist q
 
 		where
 
@@ -134,7 +134,7 @@ BEGIN
 
 		into #SubAccNum
 
-		from QORT_BACK_DB..SubaccsHist q
+		from QORT_BACK_DB_UAT..SubaccsHist q
 
 		 --left join #SubAcc su on su.id = q.id
 
@@ -212,15 +212,15 @@ BEGIN
 
 		declare @NotifyMessage varchar(max)
 
-				declare @NotifyTitle varchar(1024)
+		declare @NotifyTitle varchar(1024)
 
 		select @NotifyTitle = STRING_AGG(s.SubaccName, ', ') 
 
 		from #TradesSec ab
 
-		left outer join QORT_BACK_DB..Subaccs s on s.id = ab.FID
+		left outer join QORT_BACK_DB_UAT..Subaccs s on s.id = ab.FID
 
-		--print @NotifyTitle
+		print @NotifyTitle
 
 	set @NotifyMessage = cast(
 
@@ -268,23 +268,23 @@ BEGIN
 
 				--+ '//2\\' + DelayPercent
 
-				--+ '//2\\' + QORT_ARM_SUPPORT.dbo.fColorGradient(DelayPercent, 50, 4) BGColor
+				--+ '//2\\' + QORT_ARBACK_DB_TEST.dbo.fColorGradient(DelayPercent, 50, 4) BGColor
 
 			--	+ '//3\\'
 
-			-- exec QORT_ARM_SUPPORT.dbo.CheckTradeAssetsSanction
+			-- exec QORT_ARBACK_DB_TEST.dbo.CheckTradeAssetsSanction
 
 			from #TradesSec tt
 
-			left outer join QORT_BACK_DB..Subaccs s on s.id = tt.FID
+			left outer join QORT_BACK_DB_UAT..Subaccs s on s.id = tt.FID
 
-			left outer join QORT_BACK_DB..Firms f on f.id = s.OwnerFirm_ID
+			left outer join QORT_BACK_DB_UAT..Firms f on f.id = s.OwnerFirm_ID
 
-			left outer join QORT_BACK_DB..Users u on u.id = s.user_modified
+			left outer join QORT_BACK_DB_UAT..Users u on u.id = s.user_modified
 
-			left outer join QORT_BACK_DB..Firms f1 on f1.id = f.Sales_ID
+			left outer join QORT_BACK_DB_UAT..Firms f1 on f1.id = f.Sales_ID
 
-			left outer join QORT_BACK_DB..FirmDEPOAccs f2 on f2.Code = s.SubAccCode collate Cyrillic_General_CI_AS
+			left outer join QORT_BACK_DB_UAT..FirmDEPOAccs f2 on f2.Code = s.SubAccCode collate Cyrillic_General_CI_AS
 
 			for xml path('')
 
@@ -346,7 +346,7 @@ BEGIN
 
 		EXEC msdb.dbo.sp_send_dbmail
 
-			@profile_name = 'qort-sql-mail'--'qort-test-sql'
+			@profile_name = 'qort-test-sql'--'qort-sql-mail'--
 
 			, @recipients = @NotifyEmail
 
@@ -368,11 +368,11 @@ BEGIN
 
 			--Обновляем значение в счетчике текущего ID таблицы изменений сделок.
 
-	--IF OBJECT_ID('QORT_ARM_SUPPORT.dbo.IDSubaccsHistForCheckTerminated', 'U') IS NOT NULL delete from QORT_ARM_SUPPORT.dbo.IDSubaccsHistForCheckTerminated;
+	IF OBJECT_ID('QORT_ARBACK_DB_TEST.dbo.IDSubaccsHistForCheckTerminated', 'U') IS NOT NULL delete from QORT_ARM_SUPPORT_TEST.dbo.IDSubaccsHistForCheckTerminated;
 
-	--insert into QORT_ARM_SUPPORT.dbo.IDSubaccsHistForCheckTerminated (idSubaccsHist) values (@CuridSubaccsHist)
+	insert into QORT_ARM_SUPPORT_TEST.dbo.IDSubaccsHistForCheckTerminated (idSubaccsHist) values (@CuridSubaccsHist)
 
-	update QORT_ARM_SUPPORT.dbo.IDSubaccsHistForCheckTerminated set idSubaccsHist = @CuridSubaccsHist
+	
 
 	end try
 
@@ -382,7 +382,7 @@ BEGIN
 
 		set @Message = 'ERROR: ' + ERROR_MESSAGE(); 
 
-		insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
+		insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
 
 		print @Message
 

@@ -6,11 +6,9 @@
 
 
 
+--exec QORT_ARM_SUPPORT_TEST.dbo.reportForSales @SelectData = 1
 
-
---exec QORT_ARM_SUPPORT.dbo.reportForSales @SelectData = 1
-
---exec QORT_ARM_SUPPORT.dbo.reportForSales @SendMail = 0
+--exec QORT_ARM_SUPPORT_TEST.dbo.reportForSales @SendMail = 0
 
 
 
@@ -20,7 +18,7 @@ CREATE PROCEDURE [dbo].[reportForSales]
 
 	, @SendMail bit = 1 -- включена отправка
 
-	, @NotifyEmail varchar(1024) = 'aleksandr.mironov@armbrok.am;qort@armbrok.am;viktor.dolzhenko@armbrok.am;'
+	, @NotifyEmail varchar(1024) = 'aleksandr.mironov@armbrok.am'--;qortsupport@armbrok.am;
 
 	, @IsClient bit = null
 
@@ -70,9 +68,9 @@ begin try
 
 	declare @Sheet varchar(32) = 'Trades'
 
-	declare @fileTemplate varchar(512) = 'templateTradesWeekly#.xlsx'
+	declare @fileTemplate varchar(512) = 'template_TradesWeekly#.xlsx'
 
-	declare @fileReport varchar(512) = 'TradesWeekly#'+cast(DATEPART(week,dateadd(DAY, -8, GETDATE())) as varchar(12))+'.xlsx'
+	declare @fileReport varchar(512) = 'TradesWeekly#'+cast(DATEPART(week,dateadd(DAY, -7, GETDATE())) as varchar(12))+'.xlsx'
 
 	declare @cmd varchar(512)
 
@@ -82,7 +80,7 @@ begin try
 
 
 
-declare @date as int = cast(convert(varchar, dateadd(DAY, -8, GETDATE()), 112) as int)
+declare @date as int = cast(convert(varchar, dateadd(DAY, -7, GETDATE()), 112) as int)
 
 
 
@@ -90,69 +88,69 @@ if OBJECT_ID('tempdb..##t', 'U') is not null drop table ##t
 
 
 
-select frs.Name Sales
+select frs.Name Sale
 
-, iif(QORT_ARM_SUPPORT.dbo.fIntToDateVarchar(isnull(tri.Date,'')) = '','-', QORT_ARM_SUPPORT.dbo.fIntToDateVarchar(isnull(tri.Date,''))) OrderDate
+, QORT_ARM_SUPPORT_TEST.dbo.fIntToDateVarchar(isnull(tri.Date,'')) OrderDate
 
-, ISNULL(tri.RegisterNum,'-') OrderNum
+, ISNULL(tri.RegisterNum,'') OrderNum
 
 , sa.SubAccCode ClientCode 
 
 , fr.name Client
 
-, QORT_ARM_SUPPORT.dbo.fIntToDateVarchar (tr.TradeDate) TradeDate
+, QORT_ARM_SUPPORT_TEST.dbo.fIntToDateVarchar (tr.TradeDate) TradeDate
 
 , IIF(tr.BuySell = 1, 'BUY', 'SELL') Operation
 
-, iif(ass.ISIN = '','-', ass.ISIN )ISIN
+, ass.ISIN ISIN
 
 , ass.ShortName Asset
 
-, iif(ass.isin = '', format(cast(tr.Qty as float),'F2'), format(cast(tr.Qty as float),'F0')) Quantity
+, tr.Qty Quantity
 
 , tr.Price Price
 
 , asss.ShortName PriceCurrency
 
-, cast(tr.Volume1 as decimal (32,2)) Volume
+, tr.Volume1 Volume
 
 , frss.Name Counterparty
 
 , tr.id Trade_ID
 
-, iif(tr.AgreeNum = '','-', tr.AgreeNum) AgreeNum
+, tr.AgreeNum AgreeNum
+
+
 
 into ##t
 
-from QORT_BACK_DB..Trades tr
+from QORT_BACK_DB_UAT..Trades tr
 
 
 
-left outer join QORT_BACK_DB..Subaccs sa on sa.id = tr.SubAcc_ID
+left outer join QORT_BACK_DB_UAT..Subaccs sa on sa.id = tr.SubAcc_ID
 
-left outer join QORT_BACK_DB..Firms fr on fr.id = sa.OwnerFirm_ID
+left outer join QORT_BACK_DB_UAT..Firms fr on fr.id = sa.OwnerFirm_ID
 
-left outer join QORT_BACK_DB..Firms frs on frs.id = fr.Sales_ID
+left outer join QORT_BACK_DB_UAT..Firms frs on frs.id = fr.Sales_ID
 
-left outer join QORT_BACK_DB..Securities sec on sec.id = tr.Security_ID
+left outer join QORT_BACK_DB_UAT..Securities sec on sec.id = tr.Security_ID
 
-left outer join QORT_BACK_DB..Assets ass on ass.id = sec.Asset_ID
+left outer join QORT_BACK_DB_UAT..Assets ass on ass.id = sec.Asset_ID
 
-left outer join QORT_BACK_DB..Assets asss on asss.id = tr.CurrPriceAsset_ID
+left outer join QORT_BACK_DB_UAT..Assets asss on asss.id = tr.CurrPriceAsset_ID
 
-left outer join QORT_BACK_DB..Firms frss on frss.id = tr.CpFirm_ID
+left outer join QORT_BACK_DB_UAT..Firms frss on frss.id = tr.CpFirm_ID
 
-left outer join QORT_BACK_DB..TradeInstrLinks trl on trl.Trade_ID = tr.id
+left outer join QORT_BACK_DB_UAT..TradeInstrLinks trl on trl.Trade_ID = tr.id
 
-left outer join QORT_BACK_DB..TradeInstrs tri on tri.id = trl.TradeInstr_ID
+left outer join QORT_BACK_DB_UAT..TradeInstrs tri on tri.id = trl.TradeInstr_ID
 
 where fr.Sales_ID = 618 -- ID Viktor Dolzhenko
 
 	and tr.TradeDate > @date
 
-	and trl.Trade_ID is not null
-
-	select * from ##t
+	select * from ##t 
 
 
 
@@ -168,9 +166,9 @@ where fr.Sales_ID = 618 -- ID Viktor Dolzhenko
 
 			''Excel 12.0; Database='+ @FilePath + @fileReport + '; HDR=YES;IMEX=0'',
 
-			''SELECT * FROM [' + @Sheet + '$A1:P1000000]'')
+			''SELECT * FROM [' + @Sheet + '$A1:N1000000]'')
 
-			select Sales, OrderDate, OrderNum, ClientCode, Client, TradeDate, Operation, ISIN, Asset, Quantity, Price, PriceCurrency, Volume, Counterparty, Trade_ID, AgreeNum'
+			select Sale, ClientCode, Client, TradeDate, Operation, ISIN, Asset, Quantity, Price, PriceCurrency, Volume, Counterparty, Trade_ID, AgreeNum'
 
 			+ ' from ##t'
 
@@ -188,7 +186,8 @@ where fr.Sales_ID = 618 -- ID Viktor Dolzhenko
 
 				--+ '//2\\' + iif(tt.IsClient = 0, 'no', 'yes')-- isClientDeal
 
-				+ '//1\\' + tt.Sales collate Cyrillic_General_CI_AS
+				+ '//1\\' + tt.Sale collate Cyrillic_General_CI_AS
+
 				--+ '//1\\' + isnull(tp.ExternalNum,'') collate Cyrillic_General_CI_AS
 
 				+ '//2\\' + cast(tt.OrderDate as varchar)
@@ -273,7 +272,7 @@ where fr.Sales_ID = 618 -- ID Viktor Dolzhenko
 
 			+ '<td>Sale'
 
-			--+ '<td>ExternalNum'
+			--+ '<td>ExternalNum'		
 
 			+ '</td><td>OrderDate'
 
@@ -313,11 +312,11 @@ where fr.Sales_ID = 618 -- ID Viktor Dolzhenko
 
 			set @fileReport = @FilePath + @fileReport
 
-			set @NotifyTitle = 'Weekly Report #'+cast(DATEPART(week,dateadd(DAY, -8, GETDATE())) as varchar(12))
+			set @NotifyTitle = 'Weekly Report #'+cast(DATEPART(week,dateadd(DAY, -7, GETDATE())) as varchar(12))
 
-			     +' ('+QORT_ARM_SUPPORT.dbo.fIntToDateVarchar (@date)
+			     +' ('+QORT_ARM_SUPPORT_TEST.dbo.fIntToDateVarchar (@date)
 
-			     +'-'+QORT_ARM_SUPPORT.dbo.fIntToDateVarchar(convert(varchar, GETDATE(), 112)-1)+') for sales: Viktor Dolzhenko'
+			     +'-'+QORT_ARM_SUPPORT_TEST.dbo.fIntToDateVarchar(convert(varchar, GETDATE(), 112)-1)+') for sales: Viktor Dolzhenko'
 
 
 
@@ -325,7 +324,7 @@ where fr.Sales_ID = 618 -- ID Viktor Dolzhenko
 
 		EXEC msdb.dbo.sp_send_dbmail
 
-			@profile_name =  'qort-sql-mail'--'qort-test-sql'
+			@profile_name = 'qort-test-sql' --'qort-sql-mail'
 
 			, @recipients = @NotifyEmail
 
@@ -353,7 +352,7 @@ end try
 
 		set @Message = 'ERROR: ' + ERROR_MESSAGE(); 
 
-		insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
+		insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
 
 		print @Message
 

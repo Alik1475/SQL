@@ -1,214 +1,264 @@
 ﻿
--- exec QORT_ARM_SUPPORT.dbo.AssetsRedemptionEmail @SendMail = 1
+
+
+
+
+
+
+
+
+
+-- exec QORT_ARM_SUPPORT_test.dbo.AssetsRedemptionEmail
 
 CREATE PROCEDURE [dbo].[AssetsRedemptionEmail]
-    @SendMail bit
+
+
+
+
+
 AS
+
+
+
 BEGIN
-    BEGIN TRY
-        DECLARE @todayDate DATE = GETDATE()
-        DECLARE @todayInt INT = CAST(CONVERT(VARCHAR, @t
-odayDate, 112) AS INT)
 
-        DECLARE @Message VARCHAR(1024)
 
-        -- DECLARE @FileName VARCHAR(128) = '\\192.168.14.22\Exchange\QORT_Files\TEST\Firms_ARM\Clients_from_register_apgrade.xlsx';
-        -- DECLARE @FileName VARCHAR(128) = '\\192.168.14.
-22\Exchange\QORT_Files\TEST\test\Copy of Clients_from_register_apgrade.xlsx';
-        -- DECLARE @FileName VARCHAR(128) = '\\192.168.14.22\Exchange\QORT_Files\PRODUCTION\Clients\Copy of Clients_from_register_apgrade.xlsx';
-        -- DECLARE @Sheet1 VARCH
-AR(64) = 'Sheet1';
 
-        DECLARE @Result VARCHAR(128)
-        DECLARE @NotifyEmail VARCHAR(1024) = 'milena.ghayfajyan@armbrok.am;maxim.biryukov@armbrok.am;tigran.gevorgyan@armbrok.am;backoffice@armbrok.am;aleksey.yudin@armbrok.am;QORT@armbrok.am'
+	begin try
 
-    
-    IF OBJECT_ID('tempdb..#t', 'U') IS NOT NULL DROP TABLE #t
 
-        SELECT 'Coupon' AS EventType
-             , cp.EndDate AS RedemtionDate
-             , ass.ISIN
-             , ass.ViewName AS Insrument
-             , f1.Name AS curency
-             
-, f.Name AS EmitentAsset
-             , ass.Country AS Country
-        INTO #t
-        FROM QORT_BACK_DB.dbo.Coupons CP
-        INNER JOIN QORT_BACK_DB.dbo.Assets ass ON ass.id = CP.Asset_ID
-        INNER JOIN QORT_BACK_DB.dbo.Firms f ON f.id = ass.Emiten
-tFirm_ID
-        LEFT OUTER JOIN QORT_BACK_DB.dbo.Assets f1 ON f1.id = ass.BaseCurrencyAsset_ID
-        WHERE CP.EndDate = @todayInt
-        
-        SELECT * FROM #t 
 
-        -- Блок формирования части уведомления о сделках в процессе
-        IF OBJECT_
-ID('tempdb..#t1', 'U') IS NOT NULL DROP TABLE #t1
+		declare @todayDate date = getdate()
 
-        SELECT tr.id
-             , Tr.RepoTrade_ID AS RepoTrade_ID
-             , fcp.Name AS CpName
-             , ass.ViewName AS Insrument
-             , f.Name AS EmitentAsset
-             , ass.ISIN
+		declare @todayInt int = cast(convert(varchar, @todayDate, 112) as int)
 
-             , CASE 
-                   WHEN (tr.RepoTrade_ID > 0 AND Tr.BuySell = 1 AND tr.IsRepo2 = 'n') 
-                        OR (tr.IsRepo2 = 'y' AND Tr.BuySell = 2) THEN 'Reverse'
-                   WHEN (tr.RepoTrade_ID > 0 AND Tr.BuySell = 2 AN
-D tr.IsRepo2 = 'n') 
-                        OR (tr.IsRepo2 = 'y' AND Tr.BuySell = 1) THEN 'Direct'
-                   WHEN (tr.RepoTrade_ID < 0 AND Tr.BuySell = 1 AND tr.IsRepo2 = 'n') 
-                        OR (tr.IsRepo2 = 'y' AND Tr.BuySell = 2) THE
-N 'Buy'
-                   WHEN (tr.RepoTrade_ID < 0 AND Tr.BuySell = 2 AND tr.IsRepo2 = 'n') 
-                        OR (tr.IsRepo2 = 'y' AND Tr.BuySell = 1) THEN 'Sell'
-                   ELSE 'unknown'
-               END AS TradeType
-             , Tr
-.Qty
-             , Tr.Volume1
-             , AssCur.Name AS Cname
-             , Tr.RepoRate
-             , cp.EndDate AS RedemtionDate
-             , 'Coupon' AS EventType
-             , cp.Volume * Tr.Qty AS PayAmountCoupon
-             , f1.Name AS Cu
-rCoupon
-        INTO #t1
-        FROM QORT_BACK_DB.dbo.Coupons CP
-        INNER JOIN QORT_BACK_DB.dbo.Assets ass ON ass.id = CP.Asset_ID
-        LEFT OUTER JOIN QORT_BACK_DB.dbo.Firms f ON f.id = ass.EmitentFirm_ID
-        LEFT OUTER JOIN QORT_BACK_DB.dbo
-.Assets f1 ON f1.id = ass.BaseCurrencyAsset_ID
-        LEFT OUTER JOIN QORT_BACK_DB.dbo.Securities sec ON sec.Asset_ID = CP.Asset_ID
-        LEFT OUTER JOIN QORT_BACK_DB.dbo.Trades Tr ON Tr.Security_ID = sec.id
-        LEFT OUTER JOIN QORT_BACK_DB.dbo.Fir
-ms fcp ON fcp.ID = Tr.CpFirm_ID
-        LEFT OUTER JOIN QORT_BACK_DB.dbo.Assets AssCur ON AssCur.id = Tr.CurrPayAsset_ID
-        WHERE CP.EndDate = @todayInt 
-          AND Tr.VT_Const NOT IN (12, 10) -- сделка не расторгнута
-          AND tr.NullStatus =
- 'n'
-          AND tr.Enabled = 0
-          AND tr.IsDraft = 'n'
-          AND tr.IsProcessed = 'y'
-          -- AND Tr.TT_Const IN (6,3) -- OTC repo (6); Exchange repo (3)
-         AND Tr.PutDate = 0 -- не закрытые по бумагам сделки
-      
-        
-     
-   SELECT * FROM #t1 
 
-        -- Начало блока отправки сообщений
-        IF EXISTS (SELECT RedemtionDate FROM #t) AND @SendMail = 1 
-        BEGIN
-            DECLARE @NotifyMessage VARCHAR(MAX)
-            DECLARE @NotifyTitle VARCHAR(1024) = NULL
 
-    
-        SET @NotifyMessage = CAST((
-                SELECT '//1\\' + ISNULL(t.EventType, 'NULL')
-                     + '//2\\' + QORT_ARM_SUPPORT.dbo.fIntToDateVarchar(CAST(TRY_CONVERT(INT, t.RedemtionDate, 105) AS VARCHAR))
-                     + '//2\\
-' + ISNULL(t.ISIN, 'NULL')
-                     + '//2\\' + ISNULL(t.Insrument, 'NULL')
-                     + '//2\\' + ISNULL(t.curency, 'NULL')
-                     + '//2\\' + ISNULL(t.EmitentAsset, 'NULL')
-                     + '//2\\' + ISNULL(t.Co
-untry, 'NULL')
-                FROM #t t
-                FOR XML PATH('')
-            ) AS VARCHAR(MAX))
+		declare @Message varchar(1024)
 
-            SET @NotifyMessage = REPLACE(@NotifyMessage, '//1\\', '<tr><td>')
-            SET @NotifyMessage = REPLACE(@NotifyMessage, '//2\\', '</td
-><td>')
-            SET @NotifyMessage = REPLACE(@NotifyMessage, '//3\\', '</td></tr>')
-            SET @NotifyMessage = REPLACE(@NotifyMessage, '//4\\', '</td><td ')
-            SET @NotifyMessage = REPLACE(@NotifyMessage, '//5\\', '>')
 
-            SET 
-@NotifyMessage = 'is an automatically generated message.<br/><br/><b>'
-                + '<br><br><table border="1"><tr BGColor="#CCCCCC"><font color="black"/>'
-                + '<td>EventType</td><td>RecordDate</td><td>ISIN</td><td>Instrument</td><td>Cu
-rrency if available</td><td>EmitentAsset</td><td>Country</td></tr>'
-                + @NotifyMessage + '</table>'
 
-            IF EXISTS (SELECT id FROM #t1)
-            BEGIN
-                DECLARE @NotifyMessage1 VARCHAR(MAX)
-                DECLARE @N
-otifyTitle1 VARCHAR(1024) = NULL
+		--declare @FileName varchar(128) = '\\192.168.14.22\Exchange\QORT_Files\TEST\Firms_ARM\Clients_from_register_apgrade.xlsx';
 
-                SET @NotifyMessage1 = CAST((
-                    SELECT '//1\\' + CAST(t1.id AS VARCHAR(16)) + IIF(t1.RepoTrade_ID > 0, '/' + CAST(t1.RepoTrade_ID AS VARCHAR(16)), '')
-                         + '//2\\' + 
-ISNULL(t1.CpName, 'NULL')
-                         + '//2\\' + ISNULL(t1.Insrument, 'NULL')
-                         + '//2\\' + ISNULL(t1.EmitentAsset, 'NULL')
-                         + '//2\\' + ISNULL(t1.ISIN, 'NULL')
-                         + '//2\\
-' + ISNULL(t1.TradeType, 'NULL')
-                         + '//2\\' + CAST(QORT_ARM_SUPPORT.dbo.fFloatToCurrency(t1.Qty) AS VARCHAR(16))
-                         + '//2\\' + CAST(QORT_ARM_SUPPORT.dbo.fFloatToCurrency(t1.Volume1) AS VARCHAR(16)) + CAST(t1.
-Cname AS VARCHAR(16))
-                         + '//2\\' + IIF(t1.RepoTrade_ID > 0, CAST(t1.RepoRate AS VARCHAR(16)) + '%', '-')
-                         + '//2\\' + QORT_ARM_SUPPORT.dbo.fIntToDateVarchar(CAST(TRY_CONVERT(INT, t1.RedemtionDate, 105) AS VA
-RCHAR))
-                         + '//2\\' + ISNULL(t1.EventType, 'NULL')
-                         + '//2\\' + CAST(t1.PayAmountCoupon AS VARCHAR(16)) + CAST(t1.CurCoupon AS VARCHAR(16))
-                    FROM #t1 t1
-                    FOR XML PATH('')
+		--declare @FileName varchar(128) = '\\192.168.14.22\Exchange\QORT_Files\TEST\test\Copy of Clients_from_register_apgrade.xlsx';
 
-                ) AS VARCHAR(MAX))
+		--declare @FileName varchar(128) = '\\192.168.14.22\Exchange\QORT_Files\PRODUCTION\Clients\Copy of Clients_from_register_apgrade.xlsx'
 
-                SET @NotifyMessage1 = REPLACE(@NotifyMessage1, '//1\\', '<tr><td>')
-                SET @NotifyMessage1 = REPLACE(@NotifyMessage1, '//2\\', '</td><td>')
-                SET @NotifyMessage1 = REPLACE(@No
-tifyMessage1, '//3\\', '</td></tr>')
-                SET @NotifyMessage1 = REPLACE(@NotifyMessage1, '//4\\', '</td><td ')
-                SET @NotifyMessage1 = REPLACE(@NotifyMessage1, '//5\\', '>')
+	   -- declare @Sheet1 varchar(64) = 'Sheet1' 
 
-                SET @NotifyMessage1 = '<br/><br/><b>'
- 
-                   + '<br><br>Trade in process now: '
-                    + '<table border="1"><tr BGColor="#CCCCCC"><font color="black"/>'
-                    + '<td>Trade_ID</td><td>Counterparty</td><td>Instrument</td><td>EmitentAsset</td><td>ISIN</td><
-td>TradeType</td><td>Qty</td><td>Volume</td><td>RepoRate</td><td>RecordDate</td><td>EventType</td><td>Payment amount</td></tr>'
-                    + @NotifyMessage1 + '</table>'
-            END
-            ELSE 
-                SET @NotifyMessage1 = '<br
-/><br/><b>'
-                    + '<br><br>Trade in process now: '
-                    + '<table border="1"><tr BGColor="#CCCCCC"><font color="black"/>'
-                    + 'NO TRADES IN PROGRESS'
 
-            SET @NotifyMessage = @NotifyMessage + @Noti
-fyMessage1
-            SET @NotifyTitle = 'Alert!!! Assets with redemtion today'
 
-            EXEC msdb.dbo.sp_send_dbmail
-                @profile_name = 'qort-sql-mail'
-              , @recipients = @NotifyEmail
-              , @subject = @NotifyTitle
- 
-             , @BODY_FORMAT = 'HTML'
-              , @body = @NotifyMessage
+		declare @SendMail bit = 0
 
-            PRINT @NotifyTitle
-            -- PRINT @NotifyMessage
-        END -- Конец блока отправки сообщения
-    END TRY
-    BEGIN CATCH
-        WHILE @@TRANCOUNT > 0 ROLLBAC
-K TRAN
-        SET @Message = 'ERROR: ' + ERROR_MESSAGE()
-        INSERT INTO QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) VALUES (@Message, 1001)
-        PRINT @Message
-        SELECT @Message AS Result, 'red' AS ResultColor
-    END CATCH
+		declare @Result varchar(128) 
+
+		declare @NotifyEmail varchar(1024) = 'aleksandr.mironov@armbrok.am;'--sona.nalbandyan@armbrok.am;armine.khachatryan@armbrok.am;armine.khachatryan@armbrok.am;dianna.petrosyan@armbrok.am;anahit.titanyan@armbrok.am'
+
+
+
+
+
+		if OBJECT_ID('tempdb..#t', 'U') is not null drop table #t
+
+
+
+		select 'Coupon' as EventType, cp.EndDate RedemtionDate, ass.ISIN,ass.ViewName Insrument, f.Name EmitentAsset, ass.Country Country
+
+	
+
+		into #t
+
+		from QORT_BACK_DB_UAT.dbo.Coupons CP
+
+		inner join QORT_BACK_DB_UAT.dbo.Assets ass on ass.id = CP.Asset_ID
+
+		inner join QORT_BACK_DB_UAT.dbo.Firms f on f.id = ass.EmitentFirm_ID
+
+		where CP.EndDate = @todayInt
+
+		select * from #t 
+
+
+
+	-- начало блока отпраки сообщений
+
+	--declare @SendMail bit = 0
+
+	set @SendMail = 0 
+
+	if exists (select redemtionDate from #t) begin
+
+	set @SendMail = 1
+
+	end
+
+	print @sendmail
+
+
+
+	if @SendMail = 1 begin
+
+
+
+		declare @NotifyMessage varchar(max)
+
+		declare @NotifyTitle varchar(1024) = null
+
+	set @NotifyMessage = cast(
+
+		(
+
+			select '//1\\' + isnull(t.EventType,'NULL')
+
+			--iif(tt.Issue_date is NULL, 'NULL', cast(convert(tt.Issue_date,105 ) as varchar))
+
+				+ '//2\\' + cast(try_convert(int,t.RedemtionDate,105) as varchar)
+
+				--+ '//4\\' + 'BGColor="'+QORT_ARM_SUPPORT.dbo.fColorGradient(DelayPercent, 50 - 100 / @MaxDaysPercent, 4) +'"//5\\'+ cast(DaysDelayed as varchar)
+
+				--+ '//2\\' + isnull(a.ConstitutorCode,t.CustomerCode)
+
+				+ '//2\\' + t.ISIN
+
+				+ '//2\\' + t.Insrument 
+
+				+ '//2\\' + t.EmitentAsset
+
+				+ '//2\\' + t.Country 
+
+			--	+ '//2\\' + t.EngName
+
+			--	+ '//2\\' + tt.Result
+
+			--	+ '//2\\' + tt.ResultColor
+
+			--	+ '//2\\' + tt.ResultColor
+
+			--	+ '//2\\' + tt.ResultColor
+
+			--	+ '//2\\' + tt.ResultColor
+
+			--	+ '//2\\' + tt.ResultColor
+
+			--	+ '//2\\' + tt.ResultColor
+
+				--+ '//2\\' + QORT_ARM_SUPPORT.dbo.fColorGradient(DelayPercent, 50, 4) BGColor
+
+			--	+ '//3\\'
+
+		
+
+			from #t t
+
+				
+
+			for xml path('')
+
+		) as varchar(max))
+
+		
+
+	--set @fileReport = @FilePath + @fileReport*/
+
+	set @NotifyMessage = replace(@NotifyMessage, '//1\\', '<tr><td>')
+
+		set @NotifyMessage = replace(@NotifyMessage, '//2\\', '</td><td>')
+
+		set @NotifyMessage = replace(@NotifyMessage, '//3\\', '</td></tr>')
+
+		set @NotifyMessage = replace(@NotifyMessage, '//4\\', '</td><td ')
+
+		set @NotifyMessage = replace(@NotifyMessage, '//5\\', '>')
+
+
+
+		set @NotifyMessage = 'is an automatically generated message.<br/><br/><b>'--Below is the result of reconciliation Register.xlsx VS Qort.<br/><br/><b> http://192.168.14.20/reports/report/QORT_PROD/Reconciliation/Reconciliatio_Clients_Statics'
+
+		+ '<br><br><table border="1"><tr BGColor="#CCCCCC"><font color="black"/>'
+
+			+ '<td>EventType'
+
+			+ '</td><td>RedemtionDate'
+
+			+ '</td><td>ISIN'
+
+			+ '</td><td>Instrument'
+
+			+ '</td><td>EmitentAsset'
+
+			+ '</td><td>Country'
+
+		--	+ '</td><td>Nominal(Bloomberg)'
+
+		--	+ '</td><td>Nominal(Qort)'
+
+		--	+ '</td><td>MaturityDate(Bloomberg)'
+
+		--	+ '</td><td>MaturityDate(Qort)'
+
+		--	+ '</td><td>Issuer(Bloomberg)'
+
+		--	+ '</td><td>Issuer(Qort)'
+
+		--	+ '</td><td>Sanction'
+
+		--	+ '</td><td>SanctionQ'
+
+		--	+ '</td><td>Result' 
+
+			+ '</tr>' + @NotifyMessage + '</table>'
+
+
+
+	--		set @fileReport = @FilePath + @fileReport
+
+	set @NotifyTitle = 'Alert!!! Assets with redemtion today'
+
+		EXEC msdb.dbo.sp_send_dbmail
+
+			@profile_name = 'qort-test-sql' --'qort-sql-mail'
+
+			, @recipients = @NotifyEmail
+
+			, @subject = @NotifyTitle
+
+			, @BODY_FORMAT = 'HTML'
+
+			, @body = @NotifyMessage --*/
+
+			--, @file_attachments = @fileReport
+
+
+
+		--set @cmd = 'del "' + @FilePath + 'Asset_Check_Bloomberg_*.*"'
+
+		--exec master.dbo.xp_cmdshell @cmd, no_output
+
+
+
+		print @NotifyTitle
+
+		--print @NotifyMessage
+
+			end -- конец блока отправки сообщения
+
+	end try
+
+	begin catch
+
+		while @@TRANCOUNT > 0 ROLLBACK TRAN
+
+		set @Message = 'ERROR: ' + ERROR_MESSAGE(); 
+
+		insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
+
+		print @Message
+
+		select @Message Result, 'red' ResultColor
+
+	end catch
+
+
+
 END
+

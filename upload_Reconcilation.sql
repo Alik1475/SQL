@@ -1,8 +1,6 @@
 ﻿
 
-
-
--- exec QORT_ARM_SUPPORT.dbo.upload_Reconcilation
+-- exec QORT_ARM_SUPPORT_TEST.dbo.upload_Reconcilation
 
 
 
@@ -54,7 +52,7 @@ BEGIN
 
 		declare @rowsError int
 
-		declare @CheckDate as varchar(16)
+		declare @CheckDate as VARCHAR(16)
 
 		declare @CheckDateInt int 
 
@@ -92,7 +90,7 @@ BEGIN
 
 		from @files f
 
-		where not filename like '%Y.xls%'*/
+		where not filename like '%h.xls%'*/
 
 		SELECT * FROM @FILES 
 
@@ -144,7 +142,7 @@ BEGIN
 
 		  if OBJECT_ID('tempdb..##comms', 'U') is not null drop table ##comms
 
-			IF OBJECT_ID('tempdb..#comms', 'U') IS NOT NULL DROP TABLE #comms;
+			IF OBJECT_ID('tempdb..#cs', 'U') IS NOT NULL DROP TABLE #cs;
 
 	
 
@@ -166,11 +164,7 @@ BEGIN
 
 			set @CheckDate  = REPLACE((select top 1 [F3] from ##comms),'.','')
 
-		
-
 			set @CheckDateInt = cast( RIGHT(@CheckDate,4)+left(RIGHT(@CheckDate,6),2)+left(@CheckDate,2) as int)
-
-			
 
 			delete from ##comms where left([F8],1) <> '4' or [F8] is null  
 
@@ -204,23 +198,11 @@ BEGIN
 
 					WHEN 'Freedom Finance' THEN 'ARMBR_DEPO_FDF'
 
-					WHEN 'Astana International Exchange' THEN 'ARMBR_DEPO_AIX'
-
-					WHEN 'GTN Technologies (Private) Limited' THEN 'ARMBR_DEPO_GTN'
-
-					WHEN 'MADA CAPITAL' THEN 'ARMBR_DEPO_MAD'
-
-					WHEN 'MAREX PRIME SERVICES LIMITED' THEN 'ARMBR_DEPO_MAREX'
-
-					ELSE 
-
-					iif(left([F8],14) = '42000116594323', 'GX2IN_ARMBR_DEPO_'+cast(right([F8],4) as varchar(128)),
-
-					'ARMBR_DEPO') END Depository
+					ELSE 'ARMBR_DEPO' END Depository
 
 					
 
-				, isnull(da.Code,isnull(cast([F8]+'_'+isnull(Cl.NAME_Translate,'ClientNameNotFound') as varchar),'ClientNameNotFound')) code
+				, isnull(da.Code,isnull(cast([F8]+'_'+Cl.NAME_Translate as varchar),'ClientNameNotFound')) code
 
 				, isnull(a.ShortName,'AssetNoQort'+[F11]) Asset_ShortName
 
@@ -228,27 +210,19 @@ BEGIN
 
 
 
-			into #comms 
+			into #cs
 
 			from ##comms t
 
-			left join QORT_BACK_DB..FirmDEPOAccs  da on  da.DEPODivisionCode = [F8]
+			full join QORT_BACK_DB_UAT..FirmDEPOAccs  da on  da.DEPODivisionCode = [F8]
 
-			left outer join QORT_BACK_DB..Assets a on a.isin = [F11] and a.IsTrading = 'y'
+			left outer join QORT_BACK_DB_UAT..Assets a on a.isin = [F11]
 
-			left outer join QORT_ARM_SUPPORT..ClientNameTranslate cl on cl.account = [F8]
+			left outer join QORT_ARM_SUPPORT_TEST..ClientNameTranslate cl on cl.account = [F8]
 
-			--where da.code = 'AS1105'
+			where da.code = 'AS1105'
 
-			select * from #comms
-
-
-
-			DELETE from QORT_BACK_TDB..CheckPositions -- удаляем значения перед загрузкой новых.
-
-			where CheckDate = @CheckDateInt and InfoSource = 'DEPOLITE' 
-
-			or (Date = @TodayDateInt and InfoSource = 'DEPOLITE')
+			select * from #cs
 
 
 
@@ -258,27 +232,21 @@ BEGIN
 
 
 
-			INSERT INTO QORT_BACK_TDB..CheckPositions ( Subacc_Code, Account_ExportCode, Asset_ShortName, VolFree, Date, InfoSource, CheckDate, IsAnalytic, PosDate)
+			/*INSERT INTO QORT_BACK_TDB_UAT..CheckPositions ( Subacc_Code, Account_ExportCode, Asset_ShortName, VolFree, Date, InfoSource, CheckDate, IsAnalytic, PosDate)
 
 			SELECT CODE, Depository, Asset_ShortName, Qty, Date, 'DEPOLITE' AS INFOSOURCE, CHECKDATE, 'n' as IsAnalytic, CHECKDATE as PosDate
 
-			FROM #comms
+			FROM #cs*/
 
-		
+			------------------------------------------переносим файл в hist---------------------------------------------------------------
 
-				-- весь файл обработан, надо переложить в history
+			select @NewFileName = convert(varchar, getdate(), 112) + '_' + replace(convert(varchar, getdate(), 108), ':','-') + '_' + @FileName
 
-				select @NewFileName = convert(varchar, getdate(), 112) + '_' + replace(convert(varchar, getdate(), 108), ':','-') + '_' + @FileName
+			set @cmd = 'move "' + @FilePath + @FileName + '" "' + @HistPath + @NewFileName + '"'
 
-				set @cmd = 'move "' + @FilePath + @FileName + '" "' + @HistPath + @NewFileName + '"'
+			exec master.dbo.xp_cmdshell @cmd, no_output
 
-				exec master.dbo.xp_cmdshell @cmd, no_output
-
-				--select @NewFileName, @cmd
-
-
-
-			
+			------------------------------------------------------------------------------------------------------------------------------
 
 		end
 
@@ -302,9 +270,7 @@ BEGIN
 
 		  IF OBJECT_ID('tempdb..#comm', 'U') IS NOT NULL DROP TABLE #comm;
 
-		  -- IF OBJECT_ID('tempdb..#t', 'U') IS NOT NULL DROP TABLE #t;
-
-
+	
 
 			SET @sql = 'SELECT * INTO ##comms
 
@@ -338,93 +304,49 @@ BEGIN
 
 				, [A/c Ref] Depocount
 
-				, iif(left([Sec ISIN],4) = 'NONE', left([Sec ISIN],8),[Sec ISIN]) ISIN
+				, [Sec ISIN] ISIN
 
 				, [Bal Free] Qty
 
-				, [Bal Qty] Volume
-
-				, [Lstc Stat] LstcStat
-
 				, 'CLIENT_CDA_Own' Depository
 
-				, isnull(da.Code,isnull(cast(cast([A/c Ref] as nvarchar(32))+'_'+iif(Cl.NAME_Translate = '',Cl.NAME_TranslateU, Cl.NAME_Translate)  as nvarchar(32)),CAST('ClientNameNotFound'+cast([A/c Ref] as nvarchar(32)) as nvarchar(32)))) code 
+				, isnull(da.Code,isnull(cast([A/c Ref]+'_'+Cl.NAME_Translate as varchar),'ClientNameNotFound')) code
 
 				, isnull(a.ShortName,'AssetNoQort'+[Sec ISIN]) Asset_ShortName
 
 				 , @TodayDateInt date -- дата всегда текущая, иначе сверка в Корт не отработает. Сверяет только с данными, где текущая дата.
 
-				 , cast([A/c Own List] as nvarchar(50)) OwnName
+
 
 			into #comm 
 
 			from ##comms t
 
-			left outer join QORT_BACK_DB..FirmDEPOAccs  da on  da.DEPOCode = [A/c Ref] and da.DEPOCode <> ''
+			left outer join QORT_BACK_DB_UAT..FirmDEPOAccs  da on  da.DEPOCode = [A/c Ref] and da.DEPOCode <> ''
 
-			left outer join QORT_BACK_DB..Assets a on a.isin = iif(left([Sec ISIN],4) = 'NONE', left([Sec ISIN],8),[Sec ISIN]) and a.Enabled <> a.id and a.IsTrading = 'y'
+			left outer join QORT_BACK_DB_UAT..Assets a on a.isin = [Sec ISIN] and a.Enabled <> a.id
 
-			left outer join QORT_ARM_SUPPORT..ClientNameTranslate cl on cl.account = [A/c Ref]
+			left outer join QORT_ARM_SUPPORT_TEST..ClientNameTranslate cl on cl.account = [A/c Ref]
 
 			where LEFT([A/c Ref],1) = '7' 
 
-			select * from #comm-- where ISIN = 'AMGB1029A250'
+			select * from #comm
 
 
 
 			if OBJECT_ID('tempdb..##comms', 'U') is not null drop table ##comms
 
-			
-
-
-
-			INSERT INTO QORT_BACK_TDB..CheckPositions (Subacc_Code, Account_ExportCode, Asset_ShortName, VolFree, Volume, Date, InfoSource, CheckDate, IsAnalytic, PosDate)
-
-			SELECT CODE, Depository, Asset_ShortName
-
-			, IIF(LstcStat = 'Not Current', CONVERT(Float,Volume), CONVERT(Float,Qty)) Qty--свободный остаток
-
-			, (CONVERT(Float,Volume) - IIF(LstcStat = 'Not Current', CONVERT(Float,Volume), CONVERT(Float,Qty))) as Volume -- блокировано
-
-			, Date, 'DEPEND' AS INFOSOURCE, CHECKDATE as CheckDate, 'n' as IsAnalytic, CHECKDATE as PosDate
-
-			--, OwnName
-
-			--into #t
-
-			FROM #comm 
-
-			
-
-			--select * from #t
 
 
 
 
+			/*INSERT INTO QORT_BACK_TDB_UAT..CheckPositions ( Subacc_Code, Account_ExportCode, Asset_ShortName, VolFree, Date, InfoSource, CheckDate, IsAnalytic, PosDate)
 
-			INSERT INTO QORT_ARM_SUPPORT..ClientNameTranslate (Account, NAME_TranslateU, NAME_Translate)
+			SELECT CODE, Depository, Asset_ShortName, CONVERT(Float,Qty), Date, 'DEPEND' AS INFOSOURCE, CHECKDATE, 'n' as IsAnalytic, CHECKDATE as PosDate
 
-		    select distinct Depocount, OwnName as TranslateU, cast(dbo.fArmenianCharsToENG(OwnName) as varchar(50)) as NAME_Translate
+			FROM #comm*/
 
-			from #comm com
-
-			 where LEFT(code,18) = 'ClientNameNotFound'
-
-
-
-
-
-
-
-			-- весь файл обработан, надо переложить в history
-
-				select @NewFileName = convert(varchar, getdate(), 112) + '_' + replace(convert(varchar, getdate(), 108), ':','-') + '_' + @FileName
-
-				set @cmd = 'move "' + @FilePath + @FileName + '" "' + @HistPath + @NewFileName + '"'
-
-				exec master.dbo.xp_cmdshell @cmd, no_output
-
-				--select @NewFileName, @cmd
+		
 
 		end
 
@@ -644,19 +566,17 @@ BEGIN
 
 
 
-		  INSERT INTO QORT_BACK_TDB..CheckPositions ( Subacc_Code, Account_ExportCode, Asset_ShortName, VolFree, Date, InfoSource, CheckDate, IsAnalytic, PosDate)
+		  INSERT INTO QORT_BACK_TDB_UAT..CheckPositions ( Subacc_Code, Account_ExportCode, Asset_ShortName, VolFree, Date, InfoSource, CheckDate, IsAnalytic, PosDate)
 
-			SELECT Depocount, Depository, currency, ROUND(VOL,2), Date, 'REGISTER' AS INFOSOURCE, CHECKDATE, 'n' as IsAnalytic, CHECKDATE as PosDate
+			SELECT Depocount, Depository, currency, ROUND(VOL,2), Date, 'DEPEND' AS INFOSOURCE, CHECKDATE, 'n' as IsAnalytic, CHECKDATE as PosDate
 
 			FROM @cc
 
 			--WHERE Depocount = 'AS1105'
 
-
-
 		end
 
-		--------------------------------------------------------------------------------------------------------------------------------------------------------
+	--------------------------------------------------------------------------------------------------------------------------------------------------------
 
 			if @filename = 'SyntheticAccountsRemains_cash.xlsx'	
 
@@ -752,9 +672,9 @@ BEGIN
 
 			from ##comms t
 
-			left outer join QORT_BACK_DB..Subaccs sa on sa.Comment = [f4]
+			left outer join QORT_BACK_DB_UAT..Subaccs sa on sa.Comment = [f4]
 
-			left outer join QORT_ARM_SUPPORT..ClientNameTranslate cl on cl.account = [F4]
+			left outer join QORT_ARM_SUPPORT_TEST..ClientNameTranslate cl on cl.account = [F4]
 
 			select * from #cos
 
@@ -766,7 +686,7 @@ BEGIN
 
 
 
-			INSERT INTO QORT_BACK_TDB..CheckPositions (Subacc_Code, Account_ExportCode, Asset_ShortName, VolFree, VolPlan, Date, InfoSource, CheckDate, IsAnalytic, PosDate)
+			INSERT INTO QORT_BACK_TDB_UAT..CheckPositions (Subacc_Code, Account_ExportCode, Asset_ShortName, VolFree, VolPlan, Date, InfoSource, CheckDate, IsAnalytic, PosDate)
 
 			SELECT CODE, Depository, Asset_ShortName, Qty, QtyPlan, Date, 'ARMSOFT' AS INFOSOURCE, CHECKDATE, 'n' as IsAnalytic, CHECKDATE as PosDate
 
@@ -794,7 +714,15 @@ BEGIN
 
 
 
-			-- exec QORT_ARM_SUPPORT.dbo.upload_Reconcilation
+
+
+
+
+
+
+		
+
+			-- exec QORT_ARM_SUPPORT_TEST.dbo.upload_Reconcilation
 
 				/*INSERT INTO QORT_BACK_TDB_UAT..CheckPositions ( Subacc_Code, Account_ExportCode, Asset_ShortName, VolFree, Date, InfoSource, CheckDate, IsAnalytic, PosDate)
 
@@ -966,8 +894,8 @@ BEGIN
 
 					insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel, logRecords)
 
-					select 'File uploaded: ' + @FileName + ', lines: ' + cast(@rowsInFile as varchar) +', new Commissions: ' + cast((@rowsNew - @rowsError) as varchar) + ' / ' + cast((@rowsNew) as varchar) logMessage, iif(@rowsError > 0, 1001, 2001) errorLevel, (@rowsNe
-w - @rowsError) logRecords
+					select 'File uploaded: ' + @FileName + ', lines: ' + cast(@rowsInFile as varchar) +', new Commissions: ' + cast((@rowsNew - @rowsError) as varchar) + ' / ' + cast((@rowsNew) as varchar) logMessage, iif(@rowsError > 0, 1001, 2001) errorLevel, (@rowsN
+ew - @rowsError) logRecords
 
 				end
 
@@ -1025,7 +953,7 @@ w - @rowsError) logRecords
 
 		set @Message = 'ERROR: ' + ERROR_MESSAGE() + ISNULL(', ' + @FileName, '');  
 
-		if @message not like '%12345 Cannot initialize the data source%' insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
+		if @message not like '%12345 Cannot initialize the data source%' insert into QORT_ARM_SUPPORT_TEST.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
 
 		print @Message
 

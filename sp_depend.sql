@@ -1,4 +1,6 @@
-﻿create PROCEDURE [dbo].[sp_depend]
+﻿
+
+create PROCEDURE [dbo].[sp_depend]
 
 @searchString varchar(128)
 
@@ -14,7 +16,7 @@ SET NOCOUNT ON;
 
 if (len(@searchString) < 2)or(@searchString is null) return
 
-if @searchDB is null set @searchDB = 'QORT_ARM_SUPPORT'
+if @searchDB is null set @searchDB = 'QORT_ARM_SUPPORT_TEST'
 
 
 
@@ -28,15 +30,15 @@ declare @res table (uniqId int identity primary key, objectId int, colid int, co
 
 
 
-if @searchDB = 'QORT_ARM_SUPPORT' begin
+if @searchDB = 'QORT_ARM_SUPPORT_TEST' begin
 
 insert into @res (objectId, colid, comment)
 
 select sc1.Id, sc1.colid, cast(sc1.text as varchar(max)) + isnull(sc2.text, '')
 
-from QORT_ARM_SUPPORT.sys.syscomments sc1
+from QORT_ARM_SUPPORT_TEST.sys.syscomments sc1
 
-left outer join QORT_ARM_SUPPORT.sys.syscomments sc2 on sc2.id = sc1.id and sc2.colid = sc1.colid + 1
+left outer join QORT_ARM_SUPPORT_TEST.sys.syscomments sc2 on sc2.id = sc1.id and sc2.colid = sc1.colid + 1
 
 where (sc1.text + isnull(sc2.text, '')) like @searchString
 
@@ -142,19 +144,19 @@ update r set r.comment =ltrim(rtrim(replace(r.comment, char(9), ''))) from @res 
 
 
 
-if @searchDB = 'QORT_ARM_SUPPORT' begin
+if @searchDB = 'QORT_ARM_SUPPORT_TEST' begin
 
 select o.name, r.comment, o.type--, o.object_id
 
 from @res r
 
-inner join QORT_ARM_SUPPORT.sys.objects o on o.object_id = r.objectId
+inner join QORT_ARM_SUPPORT_TEST.sys.objects o on o.object_id = r.objectId
 
 union
 
 select o.name, '', o.type--, o.object_id
 
-from QORT_ARM_SUPPORT.sys.objects o
+from QORT_ARM_SUPPORT_TEST.sys.objects o
 
 left join @res r on o.object_id = r.objectId
 
