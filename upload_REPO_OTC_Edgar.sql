@@ -18,13 +18,12 @@ BEGIN
 
     BEGIN TRY
 
-	EXEC xp_cmdshell 'powershell.exe -Command "Invoke-Command -ComputerName 192.168.14.22 -ScriptBlock { schtasks /run /tn ''StartExcelUpgrade'' } -Credential (Import-Clixml -Path D:\Secure\MyCredentials.xml)"';
-
-	WAITFOR DELAY '00:01:00' 
+			EXEC xp_cmdshell 'powershell.exe -File "C:\scripts\StartTask.ps1"';
+			WAITFOR DELAY '00:01:00';
 
         -- Объявление переменных
 
-        
+       -- return
 
         DECLARE @todayDate DATE = GETDATE()
 
@@ -436,7 +435,7 @@ SELECT
 
     , [F4] AS Volume
 
- , CAST([F7] AS VARCHAR(16)) AS Dataleg1
+    , CAST([F7] AS VARCHAR(16)) AS Dataleg1
 
     , CAST([F8] AS VARCHAR(16)) AS Dataleg2
 
@@ -1239,7 +1238,6 @@ Insert into QORT_BACK_TDB.dbo.ImportTrades (
             FROM QORT_BACK_DB..Trades trad1 
 
 			left outer join QORT_BACK_DB..Securities sec on sec.id = trad1.Security_ID
-
 			left outer join QORT_BACK_DB..Assets ass on ass.id = sec.Asset_ID
 
 			WHERE 
