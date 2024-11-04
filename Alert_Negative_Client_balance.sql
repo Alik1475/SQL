@@ -1,202 +1,206 @@
 ﻿
+
 -- exec QORT_ARM_SUPPORT.dbo.Alert_Negative_Client_balance @SendMail = 0
 
-CREATE PROCEDURE [dbo].[Alert_Negative_Client_balance]
-  	@SelectData bit = 0
+CREATE PROCEDURE [dbo].[Alert_Negative_Client_balance] @SelectData BIT = 0
 
-	, @SendMail bit = 1 -- включена отправка
+	,@SendMail BIT = 1 -- включена отправка
 
-	, @NotifyEmail varchar(1024) = 'qort@armbrok.am;samvel.sahakyan@armbrok.am;lida.tadeosyan@armbrok.am'
+	,@NotifyEmail VARCHAR(1024) = 'qort@armbrok.am;samvel.sahakyan@armbrok.am;lida.tadeosyan@armbrok.am'
 
-	, @IsClient bit = null
-
-
+	,@IsClient BIT = NULL
 
 AS
 
 BEGIN
 
+	BEGIN TRY
 
+		IF nullif(@NotifyEmail, '') IS NULL
 
-begin try
+			SET @NotifyEmail = 'aleksandr.mironov@armbrok.am' --;qortsupport@armbrok.am;
 
 
 
-		if nullif(@NotifyEmail, '') is null set @NotifyEmail = 'aleksandr.mironov@armbrok.am'--;qortsupport@armbrok.am;
+		DECLARE @Message VARCHAR(max)
 
+		DECLARE @ReportDate DATE = getdate()
 
+		DECLARE @ReportDateInt INT = cast(convert(VARCHAR, @ReportDate, 112) AS INT)
 
-	
+		DECLARE @NotifyMessage VARCHAR(max)
 
-	declare @Message varchar (max)
+		DECLARE @NotifyTitle VARCHAR(1024) = NULL
 
-	declare @ReportDate date = getdate()
+		DECLARE @sql VARCHAR(1024)
 
-	declare @ReportDateInt int = cast(convert(varchar, @ReportDate, 112) as int)
+		DECLARE @date AS INT = cast(convert(VARCHAR, dateadd(DAY, - 8, GETDATE()), 112) AS INT)
 
-	
 
-	declare @NotifyMessage varchar(max) 
 
+		IF OBJECT_ID('tempdb..#t', 'U') IS NOT NULL
 
+			DROP TABLE #t
 
-	declare @NotifyTitle varchar(1024) = null
 
 
+		SELECT sa.SubAccCode
 
-	
+			,fr.name ClientName
 
+			,pos.VolFree
 
+			,ass.Name
 
-	declare @sql varchar(1024)
+			,acc.name accname
 
+			,crs.Bid * pos.VolFree VolumeUSD
 
+			,isnull(frs.Name, '-') Sales
 
+			,cast(0 AS FLOAT) TotalVolumeUSD
 
+			,'' AS Position
 
-declare @date as int = cast(convert(varchar, dateadd(DAY, -8, GETDATE()), 112) as int)
+		INTO #t
 
+		FROM QORT_BACK_DB..Position pos
 
+		LEFT OUTER JOIN QORT_BACK_DB..Subaccs sa ON sa.id = pos.SubAcc_ID
 
-if OBJECT_ID('tempdb..#t', 'U') is not null drop table #t
+		LEFT OUTER JOIN QORT_BACK_DB..Firms fr ON fr.id = sa.OwnerFirm_ID
 
+		LEFT OUTER JOIN QORT_BACK_DB..Firms frs ON frs.id = fr.Sales_ID
 
+		LEFT OUTER JOIN QORT_BACK_DB..Assets ass ON ass.id = pos.Asset_ID
 
-select sa.SubAccCode, fr.name ClientName, pos.VolFree,  ass.Name, acc.name accname, crs.Bid*pos.VolFree VolumeUSD, isnull(frs.Name,'-') Sales, cast(0 as float) TotalVolumeUSD, '' as Position
+		LEFT OUTER JOIN QORT_BACK_DB..CrossRates crs ON crs.TradeAsset_ID = pos.Asset_ID
 
+			AND InfoSource = 'MainCurBank'
 
+		LEFT OUTER JOIN QORT_BACK_DB..Accounts acc ON acc.id = pos.Account_ID
 
-into #t
+		WHERE ass.AssetType_Const IN (3) -- 	Cash market
 
-from QORT_BACK_DB..Position pos
+			AND pos.VolFree NOT IN (0)
 
+			AND LEFT(sa.SubAccCode, 2) <> 'AB'
 
+			AND acc.name NOT IN ('ARMBR_MONEY_BLOCK')
 
-left outer join QORT_BACK_DB..Subaccs sa on sa.id = pos.SubAcc_ID
 
-left outer join QORT_BACK_DB..Firms fr on fr.id = sa.OwnerFirm_ID
 
-left outer join QORT_BACK_DB..Firms frs on frs.id = fr.Sales_ID
+		SELECT *
 
-left outer join QORT_BACK_DB..Assets ass on ass.id = pos.Asset_ID
+		FROM #t
 
-left outer join QORT_BACK_DB..CrossRates crs on crs.TradeAsset_ID = pos.Asset_ID and InfoSource = 'MainCurBank'
 
-left outer join QORT_BACK_DB..Accounts acc on acc.id = pos.Account_ID
 
-	where ass.AssetType_Const in(3)-- 	Cash market
+		SELECT SubAccCode
 
-		and pos.VolFree not in (0)
+			,ClientName
 
-		and LEFT(sa.SubAccCode,2) <> 'AB'
+			,SUM(VolumeUSD) AS TotalVolumeUSD
 
-		and acc.name not in('ARMBR_MONEY_BLOCK')
+			,STRING_AGG(CAST(dbo.fFloatToMoney2Varchar(VolFree) AS VARCHAR(50)) + Name, '; ') AS AllCurrencyPosition
 
-	select * from #t
+			,Sales Sales
 
+		INTO #t2
 
+		FROM #t
 
-	SELECT 
-  SubAccCode, ClientName, 
-    SUM(VolumeUSD) AS TotalVolumeUSD, 
-    STRING_AGG(CAST(dbo.fFloatToMoney2Varchar(VolFree) AS VARCHAR(50)) + Name, '; ') AS AllCurrencyPosition,
-	Sales Sales
-into #t2
-     FROM #t
-	-- where TotalVolumeUSD < 0
-GROUP B
-Y 
-    SubAccCode, ClientName, Sales;
+		-- where TotalVolumeUSD < 0
 
-	select * from #t2 --return
+		GROUP BY SubAccCode
 
+			,ClientName
 
+			,Sales;
 
-				set @NotifyMessage = cast(
 
-		(
 
-			select --'//1\\' + cast(@ReportDate as varchar) --ReportDate
+		SELECT *
 
-				--+ '//1\\' + isnull(fCP.FirmShortName, '') collate Cyrillic_General_CI_AS --CounterParty
+		FROM #t2 --return
 
-				--+ '//2\\' + iif(tt.IsClient = 0, 'no', 'yes')-- isClientDeal
 
-				+ '//1\\' + tt.ClientName collate Cyrillic_General_CI_AS
 
-				--+ '//1\\' + isnull(tp.ExternalNum,'') collate Cyrillic_General_CI_AS
+		SET @NotifyMessage = cast((
 
-				--+ '//2\\' + tt.Sales collate Cyrillic_General_CI_AS
+					SELECT --'//1\\' + cast(@ReportDate as varchar) --ReportDate
 
-				--+ '//2\\' + tt.OrderNum collate Cyrillic_General_CI_AS
+						--+ '//1\\' + isnull(fCP.FirmShortName, '') collate Cyrillic_General_CI_AS --CounterParty
 
-				+ '//2\\' + cast(tt.SubAccCode as varchar)
+						--+ '//2\\' + iif(tt.IsClient = 0, 'no', 'yes')-- isClientDeal
 
-				--+ '//2\\' + isnull(nullif(cast(t.CpTrade_ID as varchar), '-1'), '')
+						+ '//1\\' + tt.ClientName collate Cyrillic_General_CI_AS
 
-				--+ '//4\\' + 'BGColor="'+QORT_ARM_SUPPORT.dbo.fColorGradient(DelayPercent, 50 - 100 / @MaxDaysPercent, 4) +'"//5\\'+ cast(DaysDelayed as varchar)
+						--+ '//1\\' + isnull(tp.ExternalNum,'') collate Cyrillic_General_CI_AS
 
-				--+ '//2\\' + tt.Client collate Cyrillic_General_CI_AS
+						--+ '//2\\' + tt.Sales collate Cyrillic_General_CI_AS
 
-				+ '//2\\' + cast(dbo.fFloatToMoney2Varchar(tt.TotalVolumeUSD) as varchar) collate Cyrillic_General_CI_AS
+						--+ '//2\\' + tt.OrderNum collate Cyrillic_General_CI_AS
 
-				--+ '//2\\' + tt.Operation collate Cyrillic_General_CI_AS
+						+ '//2\\' + cast(tt.SubAccCode AS VARCHAR)
 
-				--+ '//2\\' + tt.ISIN collate Cyrillic_General_CI_AS
+						--+ '//2\\' + isnull(nullif(cast(t.CpTrade_ID as varchar), '-1'), '')
 
-				--+ '//2\\' + tt.Asset collate Cyrillic_General_CI_AS
+						--+ '//4\\' + 'BGColor="'+QORT_ARM_SUPPORT.dbo.fColorGradient(DelayPercent, 50 - 100 / @MaxDaysPercent, 4) +'"//5\\'+ cast(DaysDelayed as varchar)
 
-				+ '//2\\' + cast(tt.AllCurrencyPosition as varchar) collate Cyrillic_General_CI_AS
+						--+ '//2\\' + tt.Client collate Cyrillic_General_CI_AS
 
-				+ '//2\\' + tt.Sales collate Cyrillic_General_CI_AS
+						+ '//2\\' + cast(dbo.fFloatToMoney2Varchar(tt.TotalVolumeUSD) AS VARCHAR) collate Cyrillic_General_CI_AS
 
-				--+ '//2\\' + cast(cast(t.Volume1 as decimal(32,2)) as varchar)
+						--+ '//2\\' + tt.Operation collate Cyrillic_General_CI_AS
 
-				--+ '//2\\' + tt.PriceCurrency collate Cyrillic_General_CI_AS
+						--+ '//2\\' + tt.ISIN collate Cyrillic_General_CI_AS
 
-				--+ '//2\\' + cast(tt.Volume as varchar) collate Cyrillic_General_CI_AS
+						--+ '//2\\' + tt.Asset collate Cyrillic_General_CI_AS
 
-				--+ '//2\\' + tt.Counterparty collate Cyrillic_General_CI_AS
+						+ '//2\\' + cast(tt.AllCurrencyPosition AS VARCHAR) collate Cyrillic_General_CI_AS + '//2\\' + tt.Sales collate Cyrillic_General_CI_AS
 
-				--+ '//2\\' + cast(tt.Trade_ID as varchar)
+						--+ '//2\\' + cast(cast(t.Volume1 as decimal(32,2)) as varchar)
 
-				--+ '//2\\' + tt.AgreeNum collate Cyrillic_General_CI_AS
+						--+ '//2\\' + tt.PriceCurrency collate Cyrillic_General_CI_AS
 
-				+ '//3\\'
+						--+ '//2\\' + cast(tt.Volume as varchar) collate Cyrillic_General_CI_AS
 
-				--, iif(fo.BOCode = '00001', 0, 1) isClientDeal
+						--+ '//2\\' + tt.Counterparty collate Cyrillic_General_CI_AS
 
-				--, t.CpTrade_ID
+						--+ '//2\\' + cast(tt.Trade_ID as varchar)
 
-			from #t2 tt
+						--+ '//2\\' + tt.AgreeNum collate Cyrillic_General_CI_AS
 
-			where tt.TotalVolumeUSD < 0
+						+ '//3\\'
 
-			
+					--, iif(fo.BOCode = '00001', 0, 1) isClientDeal
 
-			order by SubAccCode desc
+					--, t.CpTrade_ID
 
-			for xml path('')
+					FROM #t2 tt
 
-		) as varchar(max))
+					WHERE tt.TotalVolumeUSD < 0
 
+					ORDER BY SubAccCode DESC
 
+					FOR XML path('')
 
-		set @NotifyMessage = replace(@NotifyMessage, '//1\\', '<tr><td>')
+					) AS VARCHAR(max))
 
-		set @NotifyMessage = replace(@NotifyMessage, '//2\\', '</td><td>')
+		SET @NotifyMessage = replace(@NotifyMessage, '//1\\', '<tr><td>')
 
-		set @NotifyMessage = replace(@NotifyMessage, '//3\\', '</td></tr>')
+		SET @NotifyMessage = replace(@NotifyMessage, '//2\\', '</td><td>')
 
-		set @NotifyMessage = replace(@NotifyMessage, '//4\\', '</td><td ')
+		SET @NotifyMessage = replace(@NotifyMessage, '//3\\', '</td></tr>')
 
-		set @NotifyMessage = replace(@NotifyMessage, '//5\\', '>')
+		SET @NotifyMessage = replace(@NotifyMessage, '//4\\', '</td><td ')
 
-
+		SET @NotifyMessage = replace(@NotifyMessage, '//5\\', '>')
 
 		-- заголовки HTML-таблицы
 
-		set @NotifyMessage = 'This is an automatically generated message.</td><td>
+		SET @NotifyMessage = 'This is an automatically generated message.</td><td>
 
 		<br><br><table border="1"><tr BGColor="#CCCCCC"><font color="black"/>'
 
@@ -214,86 +218,97 @@ Y
 
 			+ '</td><td>Sub-account'
 
-		--	+ '</td><td>OrderNum'
+			--	+ '</td><td>OrderNum'
 
-		--	+ '</td><td>ClientCode'
+			--	+ '</td><td>ClientCode'
 
-		--	+ '</td><td>Client'
+			--	+ '</td><td>Client'
 
-		--	+ '</td><td>TradeDate'
+			--	+ '</td><td>TradeDate'
 
-		--	+ '</td><td>Operation'
+			--	+ '</td><td>Operation'
 
-		--	+ '</td><td>Operation'
+			--	+ '</td><td>Operation'
 
-		--	+ '</td><td>ISIN'
+			--	+ '</td><td>ISIN'
 
-		--	+ '</td><td>Asset'
+			--	+ '</td><td>Asset'
 
-			+ '</td><td>Estimate position(USD)'
+			+ '</td><td>Estimate position(USD)' + '</td><td>AllCurrencyPosition' + '</td><td>Sales'
 
-			+ '</td><td>AllCurrencyPosition'
+			--	+ '</td><td>Volume'
 
-			+ '</td><td>Sales'
+			--	+ '</td><td>Counterparty'
 
-		--	+ '</td><td>Volume'
+			--	+ '</td><td>Trade_ID'
 
-		--	+ '</td><td>Counterparty'
+			--	+ '</td><td>AgreeNum'
 
-		--	+ '</td><td>Trade_ID'
-
-		--	+ '</td><td>AgreeNum'
-
-		--	+ '</td><td>Sales'
+			--	+ '</td><td>Sales'
 
 			+ '</td></tr>' + @NotifyMessage + '</table>'
 
 		--	set @fileReport = @FilePath + @fileReport
 
-			set @NotifyTitle = 'Alert – Current Negative Balance – Client Positions'
+		SET @NotifyTitle = 'Alert – Current Negative Balance – Client Positions'
 
 
 
-		
+		EXEC msdb.dbo.sp_send_dbmail @profile_name = 'qort-sql-mail' --'qort-test-sql'
 
-		EXEC msdb.dbo.sp_send_dbmail
+			,@recipients = @NotifyEmail
 
-			@profile_name =  'qort-sql-mail'--'qort-test-sql'
+			,@subject = @NotifyTitle
 
-			, @recipients = @NotifyEmail
+			,@BODY_FORMAT = 'HTML'
 
-			, @subject = @NotifyTitle
-
-			, @BODY_FORMAT = 'HTML'
-
-			, @body =  @NotifyMessage
+			,@body = @NotifyMessage
 
 			--, @file_attachments = @fileReport
 
+	END TRY
 
 
 
+	BEGIN CATCH
 
-	
+		WHILE @@TRANCOUNT > 0
 
-
-
-end try
-
-	begin catch
-
-		while @@TRANCOUNT > 0 ROLLBACK TRAN
-
-		set @Message = 'ERROR: ' + ERROR_MESSAGE(); 
-
-		insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) values (@message, 1001);
-
-		print @Message
-
-		select @Message Result, 'red' ResultColor
-
-	end catch
+			ROLLBACK TRAN
 
 
+
+		SET @Message = 'ERROR: ' + ERROR_MESSAGE();
+
+
+
+		INSERT INTO QORT_ARM_SUPPORT.dbo.uploadLogs (
+
+			logMessage
+
+			,errorLevel
+
+			)
+
+		VALUES (
+
+			@message
+
+			,1001
+
+			);
+
+
+
+		PRINT @Message
+
+
+
+		SELECT @Message Result
+
+			,'red' ResultColor
+
+	END CATCH
 
 END
+

@@ -27,6 +27,8 @@ BEGIN
 
 		DECLARE @n INT = 0;
 
+		declare @WaitCount int
+
 		WHILE dbo.fIsBusinessDay(DATEADD(DAY, -1-@n, @todayDate)) = 0 
 
         BEGIN    
@@ -63,11 +65,23 @@ BEGIN
 
 			exec QORT_ARM_SUPPORT.dbo.upload_MarketInfo @IP, @IsinCode = 'US0378331005 EQUITY'
 
-			
+					set @WaitCount = 1200 -------------------- задержка, не продолжаем пока не подгрузили котировку----------------------
+
+					while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB.dbo.ImportMarketInfo q with (nolock) where q.IsProcessed in (1,2)))
+
+					begin
+
+						waitfor delay '00:00:03'
+
+						set @WaitCount = @WaitCount - 1
+
+					end
 
 			if (isnull((select top 1 LastPrice from QORT_BACK_DB..MarketInfoHist where modified_date = @todayInt and Asset_ID = 217 and TSSection_ID = 154 and OldDate = @ytdDateint),0) > 0) begin
 
-				 exec QORT_ARM_SUPPORT.dbo.upload_MarketInfo @IP, @IsinCode = NULL -- загрузка котировок из Блумберга в Qort
+				exec QORT_ARM_SUPPORT.dbo.upload_MarketInfo @IP, @IsinCode = NULL -- загрузка котировок из Блумберга в Qort
+
+				 print 'connect server:' + @IP
 
 				 end
 

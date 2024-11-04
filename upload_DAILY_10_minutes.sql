@@ -24,7 +24,7 @@ BEGIN
 
 
 
-		--exec QORT_ARM_SUPPORT.dbo.upload_Deals
+		exec QORT_ARM_SUPPORT.dbo.uploadGTN -- загрузка файла со сделками из GTN
 
 		exec QORT_ARM_SUPPORT.dbo.upload_NTTs -- загрузка non-trade transaction
 

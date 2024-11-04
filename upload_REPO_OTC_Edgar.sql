@@ -2,66 +2,89 @@
 
 -- exec QORT_ARM_SUPPORT.dbo.upload_REPO_OTC_Edgar
 
-
-
 CREATE PROCEDURE [dbo].[upload_REPO_OTC_Edgar]
 
-   -- @Nom varchar(12)
+	-- @Nom varchar(12)
 
 AS
 
 BEGIN
 
-    SET NOCOUNT ON;
+	SET NOCOUNT ON;
 
 
 
-    BEGIN TRY
+	BEGIN TRY
 
-			EXEC xp_cmdshell 'powershell.exe -File "C:\scripts\StartTask.ps1"';
-			WAITFOR DELAY '00:01:00';
+		EXEC xp_cmdshell 'powershell.exe -File "C:\scripts\StartTask.ps1"';
 
-        -- Объявление переменных
 
-       -- return
 
-        DECLARE @todayDate DATE = GETDATE()
+		WAITFOR DELAY '00:01:00';
 
-        DECLARE @todayInt INT = CAST(CONVERT(VARCHAR, @todayDate, 112) AS INT)
 
-        DECLARE @WaitCount INT
+
+		-- Объявление переменных
+
+		-- return
+
+		DECLARE @todayDate DATE = GETDATE()
+
+		DECLARE @todayInt INT = CAST(CONVERT(VARCHAR, @todayDate, 112) AS INT)
+
+		DECLARE @WaitCount INT
 
 		DECLARE @n INT
 
 		DECLARE @MaxRow INT
 
-        DECLARE @Message VARCHAR(1024)
+		DECLARE @Message VARCHAR(1024)
 
-        DECLARE @Result VARCHAR(128) 
+		DECLARE @Result VARCHAR(128)
 
-        DECLARE @FileName VARCHAR(128) = '\\192.168.14.22\Exchange\QORT_Files\PRODUCTION\DealsRepo\DealsR.xlsx'
+		DECLARE @FileName VARCHAR(128) = '\\192.168.14.22\Exchange\QORT_Files\PRODUCTION\DealsRepo\DealsR.xlsx'
 
-        DECLARE @NotifyEmail VARCHAR(1024) = 'aleksandr.mironov@armbrok.am'
+		DECLARE @NotifyEmail VARCHAR(1024) = 'aleksandr.mironov@armbrok.am'
 
-        DECLARE @Sheet1 VARCHAR(64) = 'Sheet1' 
+		DECLARE @Sheet1 VARCHAR(64) = 'Sheet1'
 
-        DECLARE @sql VARCHAR(1024)
+		DECLARE @sql VARCHAR(1024)
 
 
 
-        -- Удаляем временные таблицы, если они существуют
+		-- Удаляем временные таблицы, если они существуют
 
-		IF OBJECT_ID('tempdb..#t10', 'U') IS NOT NULL DROP TABLE #t10
+		IF OBJECT_ID('tempdb..#t10', 'U') IS NOT NULL
 
-		IF OBJECT_ID('tempdb..#t9', 'U') IS NOT NULL DROP TABLE #t9
+			DROP TABLE #t10
 
-		IF OBJECT_ID('tempdb..#t8', 'U') IS NOT NULL DROP TABLE #t8
 
-        IF OBJECT_ID('tempdb..##f', 'U') IS NOT NULL DROP TABLE ##f
 
-        IF OBJECT_ID('tempdb..#t', 'U') IS NOT NULL DROP TABLE #t
+		IF OBJECT_ID('tempdb..#t9', 'U') IS NOT NULL
 
-        /*IF OBJECT_ID('tempdb..##lt1223', 'U') IS NOT NULL DROP TABLE ##lt1223
+			DROP TABLE #t9
+
+
+
+		IF OBJECT_ID('tempdb..#t8', 'U') IS NOT NULL
+
+			DROP TABLE #t8
+
+
+
+		IF OBJECT_ID('tempdb..##f', 'U') IS NOT NULL
+
+			DROP TABLE ##f
+
+
+
+		IF OBJECT_ID('tempdb..#t', 'U') IS NOT NULL
+
+			DROP TABLE #t
+
+
+
+		/*IF OBJECT_ID('tempdb..##lt1223', 'U') IS NOT NULL DROP TABLE ##lt1223
 
 		IF OBJECT_ID('tempdb..##lt09', 'U') IS NOT NULL DROP TABLE ##lt09
 
@@ -83,21 +106,25 @@ BEGIN
 
 		*/
 
-        -- Подготовка запроса для импорта данных из Excel-файла в временную таблицу ##f
+		-- Подготовка запроса для импорта данных из Excel-файла в временную таблицу ##f
 
-        SET @sql = 'SELECT * INTO ##f
+		SET @sql = 'SELECT * INTO ##f
 
         FROM OPENROWSET (
 
             ''Microsoft.ACE.OLEDB.12.0'',
 
-            ''Excel 12.0; Database='+ @FileName + '; HDR=NO;IMEX=1'',
+            ''Excel 12.0; Database=' + @FileName + '; HDR=NO;IMEX=1'',
 
             ''SELECT * FROM [' + @Sheet1 + '$A1:Q1000]'')'
 
-        EXEC(@sql)
 
-/*
+
+		EXEC (@sql)
+
+
+
+		/*
 
 		SET @sql = 'SELECT * INTO ##lt09
 
@@ -187,7 +214,7 @@ BEGIN
 
             ''Microsoft.ACE.OLEDB.12.0'',
 
-  ''Excel 12.0; Database='+ @FileName + '; HDR=NO;IMEX=1'',
+            ''Excel 12.0; Database='+ @FileName + '; HDR=NO;IMEX=1'',
 
             ''SELECT * FROM [' + '04' + '$A1:Q500]'')'
 
@@ -233,13 +260,19 @@ BEGIN
 
 		*/
 
+		-- Проверка данных из Excel-файла
+
+		DELETE
+
+		FROM ##f
+
+		WHERE [F1] = ''
+
+			OR [F1] = 0
 
 
-        -- Проверка данных из Excel-файла
 
-       delete FROM ##f where [F1] = '' or  [F1] = 0
-
-	  /* delete FROM ##lt1223 where [F1] = ''
+		/* delete FROM ##lt1223 where [F1] = ''
 
 		   delete FROM ##lt09 where [F1] = ''
 
@@ -263,101 +296,101 @@ BEGIN
 
 		--select * from ##lt order by [F14]--return
 
-        -- Забираем значения из файла Excel, в который подгружаются данные из Bloomberg
+		-- Забираем значения из файла Excel, в который подгружаются данные из Bloomberg
 
 		CREATE TABLE #t (
 
-    ISIN VARCHAR(50), 
+			ISIN VARCHAR(50)
 
-	Qty float-- Укажите подходящий размер для поля ISIN
+			,Qty FLOAT -- Укажите подходящий размер для поля ISIN
 
-    , Volume FLOAT              -- Тип данных для объёма
+			,Volume FLOAT -- Тип данных для объёма
 
-    , Dataleg1 VARCHAR(16),
+			,Dataleg1 VARCHAR(16)
 
-    Dataleg2 VARCHAR(16),
+			,Dataleg2 VARCHAR(16)
 
-    Repoday INT,               -- Например, тип данных для дней
+			,Repoday INT
 
-    DataFirst VARCHAR(16),
+			,-- Например, тип данных для дней
 
-    Rate FLOAT                -- Процентная ставка, используйте FLOAT или другой подходящий тип
+			DataFirst VARCHAR(16)
 
-    , VolPercent FLOAT          -- Тип данных для процента объёма
+			,Rate FLOAT -- Процентная ставка, используйте FLOAT или другой подходящий тип
 
-    , CP VARCHAR(50),            -- Укажите размер для поля CP
+			,VolPercent FLOAT -- Тип данных для процента объёма
 
-    Agrement VARCHAR(16),
+			,CP VARCHAR(50)
 
-    Currency VARCHAR(3)        -- Размер для валютного кода (например, "USD", "EUR")
+			,-- Укажите размер для поля CP
 
-);
+			Agrement VARCHAR(16)
+
+			,Currency VARCHAR(3) -- Размер для валютного кода (например, "USD", "EUR")
+
+			);
 
 
 
+		INSERT INTO #t (
+
+			ISIN
+
+			,Qty
+
+			,Volume
+
+			,Dataleg1
+
+			,Dataleg2
+
+			,Repoday
+
+			,DataFirst
+
+			,Rate
+
+			,VolPercent
+
+			,CP
+
+			,Agrement
+
+			,Currency
+
+			)
+
+		SELECT [F2] AS ISIN
+
+			,[F3] AS Qty
+
+			,[F4] AS Volume
+
+			,CAST([F7] AS VARCHAR(16)) AS Dataleg1
+
+			,CAST([F8] AS VARCHAR(16)) AS Dataleg2
+
+			,[F9] AS Repoday
+
+			,CAST([F10] AS VARCHAR(16)) AS DataFirst
+
+			,[F11] AS Rate
+
+			,[F12] AS VolPercent
+
+			,[F13] AS CP
+
+			,CAST([F14] AS VARCHAR(16)) AS Agrement
+
+			,[F17] AS Currency
+
+		FROM ##f f
+
+		WHERE ISNULL(f.[F14], '0') <> '0'
 
 
 
-
-     INSERT INTO #t (
-
-      ISIN
-
-	, Qty
-
-    , Volume
-
-    , Dataleg1
-
-    , Dataleg2
-
-    , Repoday
-
-    , DataFirst
-
-    , Rate
-
-    , VolPercent
-
-    , CP
-
-    , Agrement
-
-    , Currency
-
-)
-
-SELECT 
-
-      [F2] AS ISIN
-
-	, [F3] AS Qty
-
-    , [F4] AS Volume
-
-    , CAST([F7] AS VARCHAR(16)) AS Dataleg1
-
-    , CAST([F8] AS VARCHAR(16)) AS Dataleg2
-
-    , [F9] AS Repoday
-
-    , CAST([F10] AS VARCHAR(16)) AS DataFirst
-
-    , [F11] AS Rate
-
-    , [F12] AS VolPercent
-
-    , [F13] AS CP
-
-    , CAST([F14] AS VARCHAR(16)) AS Agrement
-
-    , [F17] AS Currency
-
-FROM ##f f
-
-WHERE ISNULL(f.[F14], '0') <> '0'
-
-/*
+		/*
 
 union
 
@@ -683,415 +716,623 @@ WHERE ISNULL(lt01.[F14], '0') <> '0';
 
 */
 
-        -- Проверка и вывод данных из временной таблицы #t
+		-- Проверка и вывод данных из временной таблицы #t
 
-       -- SELECT * FROM #t order by Agrement
+		-- SELECT * FROM #t order by Agrement
 
 		--where left(Agrement,3) = @Nom 
 
 		--where right(DataFirst,7) = '10/2024' 
 
-	--	ORDER BY Dataleg1
+		--	ORDER BY Dataleg1
 
-	--return
+		--return
 
+		DECLARE @ISIN VARCHAR(16) = 'US0378331005' --'US87238U2033'--USY77108AA93
 
-
-		DECLARE @ISIN VARCHAR(16) = 'US0378331005'--'US87238U2033'--USY77108AA93
-
-		DECLARE @BuySell int = 1 --2
+		DECLARE @BuySell INT = 1 --2
 
 		DECLARE @TSSEC VARCHAR(16) = 'ОТС_REPO'
 
-		DECLARE @TradeDate int = 20240917
+		DECLARE @TradeDate INT = 20240917
 
-		DECLARE @Qty float = 5 -1-0
+		DECLARE @Qty FLOAT = 5 - 1 - 0
 
-		DECLARE @FirmID int = 6 -- BCS Cyprus
+		DECLARE @FirmID INT = 6 -- BCS Cyprus
 
-		DECLARE @payCur varchar(16) = 'EUR' -- MXN
+		DECLARE @payCur VARCHAR(16) = 'EUR' -- MXN
 
-		DECLARE @payCurID int = (select top 1 id from QORT_BACK_DB..Assets where Name = 'EUR')
+		DECLARE @payCurID INT = (
+
+				SELECT TOP 1 id
+
+				FROM QORT_BACK_DB..Assets
+
+				WHERE Name = 'EUR'
+
+				)
 
 
 
 		----------------------добавление инструмента НА ПЛОЩАДКУ ОТС РЕПО ЕСЛИ НЕТ--------------------------
 
-			--/*
+		--/*
 
-			insert into QORT_BACK_TDB.dbo.Securities (
-
-			IsProcessed, ET_Const, ShortName
-
-			, Name, TSSection_Name, SecCode
-
-			, Asset_ShortName, QuoteList, IsProcent
-
-			, LotSize, IsTrading, Lot_multiplicity
-
-			, Scale
-
-			, CurrPriceAsset_ShortName
-
-		) 
-
-		--*/
-
-		SELECT DISTINCT
-
-		1 as IsProcessed, 2 as ET_Const
-
-			, s.shortname
-
-			, s.ISIN Name
-
-			, 'ОТС_REPO' as TSSection_Name
-
-			, s.ISIN  secCode
-
-			, s.ShortName Asset_ShortName
-
-			, 1 QuoteList
-
-			, iif(s.AssetSort_Const in (6,3), 'y', NULL) IsProcent
-
-			, 1 LotSize
-
-			, 'y' IsTrading
-
-			, 1 lot_multiplicity
-
-			, 8 Scale
-
-			, B.ShortName CurrPriceAsset_ShortName
-
-		--into #t10 
-
-		FROM #t ttt 
-
-		left outer join QORT_BACK_DB.dbo.Assets s on ttt.isin = s.ISIN
-
-		left join QORT_BACK_DB.dbo.Assets b on B.ID = s.BaseCurrencyAsset_ID and b.Enabled = 0 
-
-
-
-		where s.Enabled = 0 
-
-				and s.id is not null
-
-		 and NOT EXISTS (
-
-				select TOP 1 *
-
-				from QORT_BACK_DB.dbo.Securities a
-
-				where a.Asset_ID = s.id and a.Enabled = 0 
-
-				and a.TSSection_ID = 160 -- OTC_REPO
-
-			)
-
-			--select * from #t10-- return
-
-			
-
-		set @WaitCount = 1200 -------------------- задержка, не продолжаем пока не подгрузили бумаги----------------------
-
-		while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB.dbo.Securities q with (nolock) where q.IsProcessed in (1,2)))
-
-		begin
-
-			waitfor delay '00:00:03'
-
-			set @WaitCount = @WaitCount - 1
-
-		end
-
-
-
-
-
-
-
---/*
-
-Insert into QORT_BACK_TDB.dbo.ImportTrades (
+		INSERT INTO QORT_BACK_TDB.dbo.Securities (
 
 			IsProcessed
 
-			, ET_Const
+			,ET_Const
 
-			, IsDraft
+			,ShortName
 
-			, TradeDate
+			,Name
 
-			, TSSection_Name
+			,TSSection_Name
 
-			, BuySell
+			,SecCode
 
-			, Security_Code
+			,Asset_ShortName
 
-			, Qty
+			,QuoteList
 
-			, Price
+			,IsProcent
 
-			, BackPrice
+			,LotSize
 
-			, Volume1
+			,IsTrading
 
-			, Volume2
+			,Lot_multiplicity
 
-			, CurrPriceAsset_ShortName, PutPlannedDate, PayPlannedDate
+			,Scale
 
-			, RepoDate2
+			,CurrPriceAsset_ShortName
 
-			, BackDate
+			)
 
-			, PutAccount_ExportCode, PayAccount_ExportCode, SubAcc_Code
+		--*/
 
-			, AgreeNum, TT_Const, CpFirm_ShortName
+		SELECT DISTINCT 1 AS IsProcessed
 
-			, Comment
+			,2 AS ET_Const
 
-			, AgreePlannedDate, Accruedint
+			,s.shortname
+
+			,s.ISIN Name
+
+			,'ОТС_REPO' AS TSSection_Name
+
+			,s.ISIN secCode
+
+			,s.ShortName Asset_ShortName
+
+			,1 QuoteList
+
+			,iif(s.AssetSort_Const IN (
+
+					6
+
+					,3
+
+					), 'y', NULL) IsProcent
+
+			,1 LotSize
+
+			,'y' IsTrading
+
+			,1 lot_multiplicity
+
+			,8 Scale
+
+			,B.ShortName CurrPriceAsset_ShortName
+
+		--into #t10 
+
+		FROM #t ttt
+
+		LEFT OUTER JOIN QORT_BACK_DB.dbo.Assets s ON ttt.isin = s.ISIN
+
+		LEFT JOIN QORT_BACK_DB.dbo.Assets b ON B.ID = s.BaseCurrencyAsset_ID
+
+			AND b.Enabled = 0
+
+		WHERE s.Enabled = 0
+
+			AND s.id IS NOT NULL
+
+			AND NOT EXISTS (
+
+				SELECT TOP 1 *
+
+				FROM QORT_BACK_DB.dbo.Securities a
+
+				WHERE a.Asset_ID = s.id
+
+					AND a.Enabled = 0
+
+					AND a.TSSection_ID = 160 -- OTC_REPO
+
+				)
+
+
+
+		--select * from #t10-- return
+
+		SET @WaitCount = 1200 -------------------- задержка, не продолжаем пока не подгрузили бумаги----------------------
+
+
+
+		WHILE (
+
+				@WaitCount > 0
+
+				AND EXISTS (
+
+					SELECT TOP 1 1
+
+					FROM QORT_BACK_TDB.dbo.Securities q WITH (NOLOCK)
+
+					WHERE q.IsProcessed IN (
+
+							1
+
+							,2
+
+							)
+
+					)
+
+				)
+
+		BEGIN
+
+			WAITFOR DELAY '00:00:03'
+
+
+
+			SET @WaitCount = @WaitCount - 1
+
+		END
+
+
+
+		--/*
+
+		INSERT INTO QORT_BACK_TDB.dbo.ImportTrades (
+
+			IsProcessed
+
+			,ET_Const
+
+			,IsDraft
+
+			,TradeDate
+
+			,TSSection_Name
+
+			,BuySell
+
+			,Security_Code
+
+			,Qty
+
+			,Price
+
+			,BackPrice
+
+			,Volume1
+
+			,Volume2
+
+			,CurrPriceAsset_ShortName
+
+			,PutPlannedDate
+
+			,PayPlannedDate
+
+			,RepoDate2
+
+			,BackDate
+
+			,PutAccount_ExportCode
+
+			,PayAccount_ExportCode
+
+			,SubAcc_Code
+
+			,AgreeNum
+
+			,TT_Const
+
+			,CpFirm_ShortName
+
+			,Comment
+
+			,AgreePlannedDate
+
+			,Accruedint
 
 			--, TraderUser_ID, SalesManager_ID
 
-			, PT_Const, TSCommission, IsAccrued
+			,PT_Const
 
-			, IsSynchronize--, CpSubacc_Code
+			,TSCommission
 
-			, SS_Const
+			,IsAccrued
 
-			, FunctionType
+			,IsSynchronize --, CpSubacc_Code
 
-			, CurrPayAsset_ShortName
+			,SS_Const
 
-			, CrossRate
+			,FunctionType
+
+			,CurrPayAsset_ShortName
+
+			,CrossRate
 
 			--, ExternalNum
 
 			--, TradeNum
 
-			, Discount
+			,Discount
 
-			, RepoRate
+			,RepoRate
 
 			--, QFlags
 
 			--, PriceEx
 
-			, RepoBasis 
+			,RepoBasis
 
-			, CRT_Const
+			,CRT_Const
 
-			, CrossRateDate
+			,CrossRateDate
 
-		) --*/
+			) --*/
 
+		SELECT 1 AS IsProcessed
 
+			,2 AS ET_Const
 
-		
+			,'n' AS IsDraft
 
-		SELECT 1 as IsProcessed
+			,CONVERT(INT, SUBSTRING(t.DataFirst, 7, 4) + RIGHT('0' + SUBSTRING(t.DataFirst, 4, 2), 2) + RIGHT('0' + SUBSTRING(t.DataFirst, 1, 2), 2)) TradeDate
 
-			, 2 as ET_Const
+			,'ОТС_REPO' TSSection_Name
 
-			, 'n' as IsDraft 
+			,IIF(t.agrement NOT LIKE '%HR%', 2, 1) BuySell
 
-			, CONVERT(INT, SUBSTRING(t.DataFirst, 7, 4) +  RIGHT('0' + SUBSTRING(t.DataFirst, 4, 2), 2) +  RIGHT('0' + SUBSTRING(t.DataFirst, 1, 2), 2)) TradeDate
+			,isnull(sec.SecCode, 'unknow' + t.ISIN) Security_Code
 
-			, 'ОТС_REPO'  TSSection_Name
+			,t.Qty / ISNULL(ASS.basevalue, 1) Qty
 
-			, IIF(t.agrement NOT LIKE '%HR%', 2, 1) BuySell 
+			,t.Volume / isnull(t.Qty, 1) * 100 * iif(assBC.name = t.Currency, 1, IIF(assBC.BaseCurrencyAsset_ID = 17, 1, crsTr.Bid) / isnull(IIF(ass.BaseCurrencyAsset_ID = 17, 1, crsAS.Bid), 1)) Price
 
-			, isnull(sec.SecCode, 'unknow' + t.ISIN) Security_Code
+			,(t.Volume + t.VolPercent) / isnull(t.Qty, 1) * 100 * iif(assBC.name = t.Currency, 1, IIF(assBC.BaseCurrencyAsset_ID = 17, 1, crsTr.Bid) / isnull(IIF(ass.BaseCurrencyAsset_ID = 17, 1, crsAS.Bid), 1)) BackPrice
 
-			, t.Qty / ISNULL(ASS.basevalue, 1) Qty
+			,ROUND(t.Volume, 2) Volume1
 
-			, t.Volume / isnull(t.Qty,1) * 100 * iif(assBC.name = t.Currency, 1 ,  IIF(assBC.BaseCurrencyAsset_ID = 17, 1, crsTr.Bid) / isnull(IIF(ass.BaseCurrencyAsset_ID = 17, 1, crsAS.Bid),1)) Price
+			,ROUND(t.Volume + t.VolPercent, 2) Volume2
 
-			, (t.Volume + t.VolPercent) / isnull(t.Qty,1) * 100 * iif(assBC.name = t.Currency, 1 ,  IIF(assBC.BaseCurrencyAsset_ID = 17, 1, crsTr.Bid) / isnull(IIF(ass.BaseCurrencyAsset_ID = 17, 1, crsAS.Bid),1)) BackPrice
+			,assbc.Name CurrPriceAsset_ShortName
 
-			, ROUND (t.Volume,2) Volume1
+			,CONVERT(INT, SUBSTRING(t.DataFirst, 7, 4) + RIGHT('0' + SUBSTRING(t.DataFirst, 4, 2), 2) + RIGHT('0' + SUBSTRING(t.DataFirst, 1, 2), 2)) PutPlannedDate
 
-			, ROUND(t.Volume + t.VolPercent,2) Volume2
+			,CONVERT(INT, SUBSTRING(t.DataFirst, 7, 4) + RIGHT('0' + SUBSTRING(t.DataFirst, 4, 2), 2) + RIGHT('0' + SUBSTRING(t.DataFirst, 1, 2), 2)) PayPlannedDate
 
-			, assbc.Name CurrPriceAsset_ShortName
+			,CONVERT(INT, SUBSTRING(t.Dataleg2, 7, 4) + RIGHT('0' + SUBSTRING(t.Dataleg2, 4, 2), 2) + RIGHT('0' + SUBSTRING(t.Dataleg2, 1, 2), 2)) RepoDate2
 
-			, CONVERT(INT, SUBSTRING(t.DataFirst, 7, 4) +  RIGHT('0' + SUBSTRING(t.DataFirst, 4, 2), 2) +  RIGHT('0' + SUBSTRING(t.DataFirst, 1, 2), 2)) PutPlannedDate
+			,CONVERT(INT, SUBSTRING(t.Dataleg2, 7, 4) + RIGHT('0' + SUBSTRING(t.Dataleg2, 4, 2), 2) + RIGHT('0' + SUBSTRING(t.Dataleg2, 1, 2), 2)) BackDate
 
-			, CONVERT(INT, SUBSTRING(t.DataFirst, 7, 4) +  RIGHT('0' + SUBSTRING(t.DataFirst, 4, 2), 2) +  RIGHT('0' + SUBSTRING(t.DataFirst, 1, 2), 2)) PayPlannedDate
+			,iif((
 
-			, CONVERT(INT, SUBSTRING(t.Dataleg2, 7, 4) +  RIGHT('0' + SUBSTRING(t.Dataleg2, 4, 2), 2) +  RIGHT('0' + SUBSTRING(t.Dataleg2, 1, 2), 2)) RepoDate2
+					t.isin IN (
 
-			, CONVERT(INT, SUBSTRING(t.Dataleg2, 7, 4) +  RIGHT('0' + SUBSTRING(t.Dataleg2, 4, 2), 2) +  RIGHT('0' + SUBSTRING(t.Dataleg2, 1, 2), 2)) BackDate
+						'XS2010043904'
 
-			, iif((t.isin in ('XS2010043904', 'XS2080321198', 'XS2010028939') or t.CP in ('Trinfiko')), 'CLIENT_CDA_Own', 'CB_RA_FOR_REPO') PutAccount_ExportCode
+						,'XS2080321198'
 
-			, 'Armbrok_Mn_OWN' PayAccount_ExportCode
+						,'XS2010028939'
 
-			, 'ARMBR_Subacc' as SubAcc_Code
+						)
 
-			, t.Agrement AgreeNum
+					OR t.CP IN ('Trinfiko')
 
-			, 6 TT_Const --OTC repo
+					), 'CLIENT_CDA_Own', 'CB_RA_FOR_REPO') PutAccount_ExportCode
 
-			, case
+			,'Armbrok_Mn_OWN' PayAccount_ExportCode
 
-					when t.CP = 'HSBC' then (Select FirmShortName from QORT_BACK_DB..Firms where BOCode = '00885')
+			,'ARMBR_Subacc' AS SubAcc_Code
 
-			        when t.CP = 'Trinfiko' then (Select FirmShortName from QORT_BACK_DB..Firms where BOCode = '00804') 
+			,t.Agrement AgreeNum
 
-					when t.CP = 'Armswissbank' then (Select FirmShortName from QORT_BACK_DB..Firms where BOCode = '00035')
+			,6 TT_Const --OTC repo
 
-					when t.CP = 'Artsakhbank' then (Select FirmShortName from QORT_BACK_DB..Firms where BOCode = '01146')
+			,CASE 
 
-					when t.CP = 'Acba' then (Select FirmShortName from QORT_BACK_DB..Firms where BOCode = '00018')
+				WHEN t.CP = 'HSBC'
 
-					when t.CP = 'ArmEconombank' then (Select FirmShortName from QORT_BACK_DB..Firms where BOCode = '00033')
+					THEN (
 
-					when t.CP = 'ABB' then (Select FirmShortName from QORT_BACK_DB..Firms where BOCode = '00032') --amio bank
+							SELECT FirmShortName
 
-					when t.CP = 'Anelik' then (Select FirmShortName from QORT_BACK_DB..Firms where BOCode = '00347')
+							FROM QORT_BACK_DB..Firms
 
-					when t.CP = 'Ardshininvestbank' then (Select FirmShortName from QORT_BACK_DB..Firms where BOCode = '00029')
+							WHERE BOCode = '00885'
 
-					when t.CP = 'Ameriabank' then (Select FirmShortName from QORT_BACK_DB..Firms where BOCode = '00025')
+							)
 
-					when t.CP = 'Prometeybank' then (Select FirmShortName from QORT_BACK_DB..Firms where BOCode = '00059') --evoca bank
+				WHEN t.CP = 'Trinfiko'
 
-					when t.CP = 'Araratbank' then (Select FirmShortName from QORT_BACK_DB..Firms where BOCode = '00028') 
+					THEN (
 
-					when t.CP = 'Fastbank' then (Select FirmShortName from QORT_BACK_DB..Firms where BOCode = '00064') 
+							SELECT FirmShortName
 
-						  else 'unknow_' + t.CP 
+							FROM QORT_BACK_DB..Firms
 
-						  end
+							WHERE BOCode = '00804'
 
-							  CpFirm_ShortName		
+							)
 
-			, 'autoload' Comment
+				WHEN t.CP = 'Armswissbank'
 
-			, CONVERT(INT, SUBSTRING(t.DataFirst, 7, 4) +  RIGHT('0' + SUBSTRING(t.DataFirst, 4, 2), 2) +  RIGHT('0' + SUBSTRING(t.DataFirst, 1, 2), 2)) AgreePlannedDate
+					THEN (
 
-			, 0 Accruedint
+							SELECT FirmShortName
+
+							FROM QORT_BACK_DB..Firms
+
+							WHERE BOCode = '00035'
+
+							)
+
+				WHEN t.CP = 'Artsakhbank'
+
+					THEN (
+
+							SELECT FirmShortName
+
+							FROM QORT_BACK_DB..Firms
+
+							WHERE BOCode = '01146'
+
+							)
+
+				WHEN t.CP = 'Acba'
+
+					THEN (
+
+							SELECT FirmShortName
+
+							FROM QORT_BACK_DB..Firms
+
+							WHERE BOCode = '00018'
+
+							)
+
+				WHEN t.CP = 'ArmEconombank'
+
+					THEN (
+
+							SELECT FirmShortName
+
+							FROM QORT_BACK_DB..Firms
+
+							WHERE BOCode = '00033'
+
+							)
+
+				WHEN t.CP = 'ABB'
+
+					THEN (
+
+							SELECT FirmShortName
+
+							FROM QORT_BACK_DB..Firms
+
+							WHERE BOCode = '00032'
+
+							) --amio bank
+
+				WHEN t.CP = 'Anelik'
+
+					THEN (
+
+							SELECT FirmShortName
+
+							FROM QORT_BACK_DB..Firms
+
+							WHERE BOCode = '00347'
+
+							)
+
+				WHEN t.CP = 'Ardshininvestbank'
+
+					THEN (
+
+							SELECT FirmShortName
+
+							FROM QORT_BACK_DB..Firms
+
+							WHERE BOCode = '00029'
+
+							)
+
+				WHEN t.CP = 'Ameriabank'
+
+					THEN (
+
+							SELECT FirmShortName
+
+							FROM QORT_BACK_DB..Firms
+
+							WHERE BOCode = '00025'
+
+							)
+
+				WHEN t.CP = 'Prometeybank'
+
+					THEN (
+
+							SELECT FirmShortName
+
+							FROM QORT_BACK_DB..Firms
+
+							WHERE BOCode = '00059'
+
+							) --evoca bank
+
+				WHEN t.CP = 'Araratbank'
+
+					THEN (
+
+							SELECT FirmShortName
+
+							FROM QORT_BACK_DB..Firms
+
+							WHERE BOCode = '00028'
+
+							)
+
+				WHEN t.CP = 'Fastbank'
+
+					THEN (
+
+							SELECT FirmShortName
+
+							FROM QORT_BACK_DB..Firms
+
+							WHERE BOCode = '00064'
+
+							)
+
+				ELSE 'unknow_' + t.CP
+
+				END CpFirm_ShortName
+
+			,'autoload' Comment
+
+			,CONVERT(INT, SUBSTRING(t.DataFirst, 7, 4) + RIGHT('0' + SUBSTRING(t.DataFirst, 4, 2), 2) + RIGHT('0' + SUBSTRING(t.DataFirst, 1, 2), 2)) AgreePlannedDate
+
+			,0 Accruedint
 
 			--, uTrader.id TraderUser_ID
 
 			--, uSales.id SalesManager_ID
 
-			, IIF(sec.IsProcent = 'y',1,2) PT_Const
+			,IIF(sec.IsProcent = 'y', 1, 2) PT_Const
 
-			, 0 TSCommission
+			,0 TSCommission
 
-			, 'n' IsAccrued
+			,'n' IsAccrued
 
-			, 'n' IsSynchronize
+			,'n' IsSynchronize
 
 			--, d.[Counterparty Subaccount] CpSubacc_Code
 
-			, 1 SS_Const -- вид оасчетов
+			,1 SS_Const -- вид оасчетов
 
-			, 0 FunctionType -- функциональный тип
+			,0 FunctionType -- функциональный тип
 
-			, t.Currency CurrPayAsset_ShortName
+			,t.Currency CurrPayAsset_ShortName
 
-			, isnull(IIF(ass.BaseCurrencyAsset_ID = 17, 1, crsAS.Bid),1) / isnull(IIF(assBC.BaseCurrencyAsset_ID = 17, 1, crsTr.Bid),1) CrossRate
+			,isnull(IIF(ass.BaseCurrencyAsset_ID = 17, 1, crsAS.Bid), 1) / isnull(IIF(assBC.BaseCurrencyAsset_ID = 17, 1, crsTr.Bid), 1) CrossRate
 
 			--, isnull(cast(d.AgreeMent as varchar), 'N/A') ExternalNum
 
 			--, @TradeDate + ass.id
 
-			, 0 Discount
+			,0 Discount
 
-			, t.Rate RepoRate
+			,t.Rate RepoRate
 
 			--, 562949953421312 qflags
 
 			--, 123 PriceEx-- Open REPO trade
 
-			, iif(right(t.agrement,3) = '24R' , 7 , 3) RepoBasis -- 7-TBT_ACT_366/ 3-TBT_ACT_365 
+			,iif(right(t.agrement, 3) = '24R', 7, 3) RepoBasis -- 7-TBT_ACT_366/ 3-TBT_ACT_365 
 
-			, iif(assbc.Name = t.currency, 1, 1) CRT_Const
+			,iif(assbc.Name = t.currency, 1, 1) CRT_Const
 
-			, iif(assbc.Name = t.currency, 0,CONVERT(INT, SUBSTRING(t.DataFirst, 7, 4) +  RIGHT('0' + SUBSTRING(t.DataFirst, 4, 2), 2) +  RIGHT('0' + SUBSTRING(t.DataFirst, 1, 2), 2))) CrossRateDate
+			,iif(assbc.Name = t.currency, 0, CONVERT(INT, SUBSTRING(t.DataFirst, 7, 4) + RIGHT('0' + SUBSTRING(t.DataFirst, 4, 2), 2) + RIGHT('0' + SUBSTRING(t.DataFirst, 1, 2), 2))) CrossRateDate
 
 		FROM #t t
 
+		OUTER APPLY (
 
+			SELECT TOP 1 *
 
-		      OUTER APPLY (
+			FROM QORT_BACK_DB.dbo.Assets ass
 
-            SELECT TOP 1 *
+			WHERE ass.ISIN = t.ISIN
 
-            FROM QORT_BACK_DB.dbo.Assets ass
+				AND ass.Enabled = 0
 
-            WHERE ass.ISIN = t.ISIN
+			) AS ass
 
-            AND ass.Enabled = 0 		
+		OUTER APPLY (
 
-        ) AS ass
+			SELECT TOP 1 *
 
-		      OUTER APPLY (
+			FROM QORT_BACK_DB.dbo.Securities sec
 
-            SELECT TOP 1 *
+			WHERE sec.Asset_ID = ass.id
 
-            FROM QORT_BACK_DB.dbo.Securities  sec
+				AND sec.Enabled = 0
 
-            WHERE sec.Asset_ID =  ass.id
+				AND sec.TSSection_ID = (
 
-            AND sec.Enabled = 0 	
+					SELECT TOP 1 ID
 
-			and sec.TSSection_ID = (Select top 1 ID from QORT_BACK_DB..TSSections where name = 'ОТС_REPO')
+					FROM QORT_BACK_DB..TSSections
 
-        ) AS sec
+					WHERE name = 'ОТС_REPO'
 
-		        OUTER APPLY (
+					)
 
-            SELECT TOP 1 *
+			) AS sec
 
-            FROM QORT_BACK_DB..CrossRatesHist crs 
+		OUTER APPLY (
 
-            WHERE 
+			SELECT TOP 1 *
 
-                crs.TradeAsset_ID = ass.BaseCurrencyAsset_ID
+			FROM QORT_BACK_DB..CrossRatesHist crs
 
-                AND crs.Date = CONVERT(INT, SUBSTRING(t.DataFirst, 7, 4) +  RIGHT('0' + SUBSTRING(t.DataFirst, 4, 2), 2) +  RIGHT('0' + SUBSTRING(t.DataFirst, 1, 2), 2))
+			WHERE crs.TradeAsset_ID = ass.BaseCurrencyAsset_ID
 
-                AND crs.PriceAsset_ID = 17
+				AND crs.DATE = CONVERT(INT, SUBSTRING(t.DataFirst, 7, 4) + RIGHT('0' + SUBSTRING(t.DataFirst, 4, 2), 2) + RIGHT('0' + SUBSTRING(t.DataFirst, 1, 2), 2))
 
-                AND InfoSource = 'CBA'
+				AND crs.PriceAsset_ID = 17
 
-        ) crsAS
+				AND InfoSource = 'CBA'
 
-				        OUTER APPLY (
+			) crsAS
 
-            SELECT TOP 1 crs.Bid
+		OUTER APPLY (
 
-            FROM QORT_BACK_DB..CrossRatesHist crs 
+			SELECT TOP 1 crs.Bid
 
-			left outer join QORT_BACK_DB..Assets aaa on aaa.Name = t.Currency and aaa.Enabled = 0
+			FROM QORT_BACK_DB..CrossRatesHist crs
 
-            WHERE 
+			LEFT OUTER JOIN QORT_BACK_DB..Assets aaa ON aaa.Name = t.Currency
 
-      crs.TradeAsset_ID = aaa.id
+				AND aaa.Enabled = 0
 
-                AND crs.Date = CONVERT(INT, SUBSTRING(t.DataFirst, 7, 4) +  RIGHT('0' + SUBSTRING(t.DataFirst, 4, 2), 2) +  RIGHT('0' + SUBSTRING(t.DataFirst, 1, 2), 2))
+			WHERE crs.TradeAsset_ID = aaa.id
 
-                AND crs.PriceAsset_ID = 17
+				AND crs.DATE = CONVERT(INT, SUBSTRING(t.DataFirst, 7, 4) + RIGHT('0' + SUBSTRING(t.DataFirst, 4, 2), 2) + RIGHT('0' + SUBSTRING(t.DataFirst, 1, 2), 2))
 
-                AND InfoSource = 'CBA'
+				AND crs.PriceAsset_ID = 17
 
-        ) crsTr
+				AND InfoSource = 'CBA'
+
+			) crsTr
 
 		--left join QORT_BACK_DB.dbo.Securities sec with (nolock) on sec.Asset_ID =  ass.id and sec.TSSection_ID = (Select top 1 ID from QORT_BACK_DB..TSSections where name = 'ОТС_REPO')-- @TSSEC)
 
 		--left join QORT_BACK_DB.dbo.MarketInfoHist mrk with (nolock) on mrk.Asset_ID = ass.id and mrk.OldDate = @TradeDate
 
-		left join QORT_BACK_DB.dbo.Assets assBC with (nolock) on assBC.ID = ass.BaseCurrencyAsset_ID
-
-		
+		LEFT JOIN QORT_BACK_DB.dbo.Assets assBC WITH (NOLOCK) ON assBC.ID = ass.BaseCurrencyAsset_ID
 
 		--left join QORT_BACK_DB_TEST.dbo.Assets a with (nolock) on a.id = sec.Asset_ID
 
@@ -1101,57 +1342,99 @@ Insert into QORT_BACK_TDB.dbo.ImportTrades (
 
 		WHERE t.Agrement NOT LIKE '%/%'
 
-		and sec.SecCode is not null
+			AND sec.SecCode IS NOT NULL
 
-		and right(t.agrement,1) = 'R'
+			AND right(t.agrement, 1) = 'R'
 
-		--and CONVERT(INT, SUBSTRING(t.Dataleg1, 7, 4) +  RIGHT('0' + SUBSTRING(t.Dataleg1, 4, 2), 2) +  RIGHT('0' + SUBSTRING(t.Dataleg1, 1, 2), 2)) > 20231231
+			--and CONVERT(INT, SUBSTRING(t.Dataleg1, 7, 4) +  RIGHT('0' + SUBSTRING(t.Dataleg1, 4, 2), 2) +  RIGHT('0' + SUBSTRING(t.Dataleg1, 1, 2), 2)) > 20231231
 
-		and NOT EXISTS (
+			AND NOT EXISTS (
 
-				select TOP 1 *
+				SELECT TOP 1 *
 
-				from QORT_BACK_DB.dbo.Trades tr
+				FROM QORT_BACK_DB.dbo.Trades tr
 
-				where tr.AgreeNum like t.Agrement collate Cyrillic_General_CS_AS
+				WHERE tr.AgreeNum LIKE t.Agrement collate Cyrillic_General_CS_AS
 
-			      AND Tr.VT_Const NOT IN (12, 10) -- сделка не расторгнута
+					AND Tr.VT_Const NOT IN (
 
-          AND tr.NullStatus = 'n'
+						12
 
-         AND tr.Enabled = 0
+						,10
 
-          AND tr.IsDraft = 'n'
+						) -- сделка не расторгнута
 
-          AND tr.IsProcessed = 'y'
+					AND tr.NullStatus = 'n'
 
-		  
+					AND tr.Enabled = 0
 
-			)
+					AND tr.IsDraft = 'n'
 
-			
+					AND tr.IsProcessed = 'y'
 
-			order by AgreeNum --return
+				)
 
-
-
-			select * from QORT_BACK_TDB.dbo.ImportTrades where ImportInsertDate = @todayInt and IsProcessed in (1,2) order by AgreeNum
+		ORDER BY AgreeNum --return
 
 
 
-			set @WaitCount = 1200 -------------------- задержка, не продолжаем пока не подгрузили сделки----------------------
+		SELECT *
 
-		while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB.dbo.ImportTrades q with (nolock) where q.IsProcessed in (1,2)))
+		FROM QORT_BACK_TDB.dbo.ImportTrades
 
-		begin
+		WHERE ImportInsertDate = @todayInt
 
-			waitfor delay '00:00:03'
+			AND IsProcessed IN (
 
-			set @WaitCount = @WaitCount - 1
+				1
 
-		end
+				,2
 
-	/*	--------------------------------загружаем фазы прологации по поставкам активов-------------------
+				)
+
+		ORDER BY AgreeNum
+
+
+
+		SET @WaitCount = 1200 -------------------- задержка, не продолжаем пока не подгрузили сделки----------------------
+
+
+
+		WHILE (
+
+				@WaitCount > 0
+
+				AND EXISTS (
+
+					SELECT TOP 1 1
+
+					FROM QORT_BACK_TDB.dbo.ImportTrades q WITH (NOLOCK)
+
+					WHERE q.IsProcessed IN (
+
+							1
+
+							,2
+
+							)
+
+					)
+
+				)
+
+		BEGIN
+
+			WAITFOR DELAY '00:00:03'
+
+
+
+			SET @WaitCount = @WaitCount - 1
+
+		END
+
+
+
+		/*	--------------------------------загружаем фазы прологации по поставкам активов-------------------
 
 		Insert into QORT_BACK_TDB.dbo.phases (
 
@@ -1189,223 +1472,257 @@ Insert into QORT_BACK_TDB.dbo.ImportTrades (
 
 --*/
 
-			select cast(SUBSTRING(tt.Agrement, CHARINDEX('/', tt.Agrement) + 1, LEN(tt.Agrement)) as int) AS RowNum
+		SELECT cast(SUBSTRING(tt.Agrement, CHARINDEX('/', tt.Agrement) + 1, LEN(tt.Agrement)) AS INT) AS RowNum
 
-			,  1 as IsProcessed
+			,1 AS IsProcessed
 
-			, 2 as ET_Const
+			,2 AS ET_Const
 
-			, tt.agrement 
+			,tt.agrement
 
-			, 14 PC_Const
+			,14 PC_Const
 
-			, CONVERT(INT, SUBSTRING(tt.Dataleg1, 7, 4) +  RIGHT('0' + SUBSTRING(tt.Dataleg1, 4, 2), 2) +  RIGHT('0' + SUBSTRING(tt.Dataleg1, 1, 2), 2)) date
+			,CONVERT(INT, SUBSTRING(tt.Dataleg1, 7, 4) + RIGHT('0' + SUBSTRING(tt.Dataleg1, 4, 2), 2) + RIGHT('0' + SUBSTRING(tt.Dataleg1, 1, 2), 2)) DATE
 
-			, (-1) as SystemID
+			,(- 1) AS SystemID
 
-			, tt.agrement +'_' + CAST(isnull(trad.id,'') as varchar(16)) as BackID
+			,tt.agrement + '_' + CAST(isnull(trad.id, '') AS VARCHAR(16)) AS BackID
 
-			, null as InfoSource
+			,NULL AS InfoSource
 
-			, trad.id Trade_SID
+			,trad.id Trade_SID
 
-			, 0 as QtyBefore
+			,0 AS QtyBefore
 
-			, Sub.SubAccCode as SubAcc_Code
+			,Sub.SubAccCode AS SubAcc_Code
 
-			, CONVERT(INT, SUBSTRING(tt.Dataleg2, 7, 4) +  RIGHT('0' + SUBSTRING(tt.Dataleg2, 4, 2), 2) +  RIGHT('0' + SUBSTRING(tt.Dataleg2, 1, 2), 2)) DateAfter
+			,CONVERT(INT, SUBSTRING(tt.Dataleg2, 7, 4) + RIGHT('0' + SUBSTRING(tt.Dataleg2, 4, 2), 2) + RIGHT('0' + SUBSTRING(tt.Dataleg2, 1, 2), 2)) DateAfter
 
 			--, CONVERT(INT, SUBSTRING(tt.Dataleg1, 7, 4) +  RIGHT('0' + SUBSTRING(tt.Dataleg1, 4, 2), 2) +  RIGHT('0' + SUBSTRING(tt.Dataleg1, 1, 2), 2)) DateBefore
 
-			, CONVERT(INT, SUBSTRING(tt.Dataleg1, 7, 4) +  RIGHT('0' + SUBSTRING(tt.Dataleg1, 4, 2), 2) +  RIGHT('0' + SUBSTRING(tt.Dataleg1, 1, 2), 2)) NewRepoRateDate
+			,CONVERT(INT, SUBSTRING(tt.Dataleg1, 7, 4) + RIGHT('0' + SUBSTRING(tt.Dataleg1, 4, 2), 2) + RIGHT('0' + SUBSTRING(tt.Dataleg1, 1, 2), 2)) NewRepoRateDate
 
-			,  tt.Rate QtyAfter
+			,tt.Rate QtyAfter
 
-			, trad.shortname
+			,trad.shortname
 
-			into #t9
+		INTO #t9
 
-			from #t tt
+		FROM #t tt
 
-			--left join QORT_BACK_DB.dbo.Trades trad with (nolock) on trad.AgreeNum = tt.agrement 
+		--left join QORT_BACK_DB.dbo.Trades trad with (nolock) on trad.AgreeNum = tt.agrement 
 
-			
+		OUTER APPLY (
 
-			        OUTER APPLY (
+			SELECT TOP 1 ass.ShortName
 
-            SELECT top 1  ass.ShortName, trad1.id, trad1.SubAcc_ID
+				,trad1.id
 
-            FROM QORT_BACK_DB..Trades trad1 
+				,trad1.SubAcc_ID
 
-			left outer join QORT_BACK_DB..Securities sec on sec.id = trad1.Security_ID
+			FROM QORT_BACK_DB..Trades trad1
 
-			left outer join QORT_BACK_DB..Assets ass on ass.id = sec.Asset_ID
+			LEFT OUTER JOIN QORT_BACK_DB..Securities sec ON sec.id = trad1.Security_ID
 
-			WHERE 
+			LEFT OUTER JOIN QORT_BACK_DB..Assets ass ON ass.id = sec.Asset_ID
 
-                trad1.AgreeNum = LEFT(tt.agrement, CHARINDEX('/', tt.agrement) - 1) collate Cyrillic_General_CS_AS
+			WHERE trad1.AgreeNum = LEFT(tt.agrement, CHARINDEX('/', tt.agrement) - 1) collate Cyrillic_General_CS_AS
 
-                  AND Trad1.VT_Const NOT IN (12, 10) -- сделка не расторгнута
+				AND Trad1.VT_Const NOT IN (
 
-          AND trad1.NullStatus = 'n'
+					12
 
-         AND trad1.Enabled = 0
+					,10
 
-          AND trad1.IsDraft = 'n'
+					) -- сделка не расторгнута
 
-          AND trad1.IsProcessed = 'y'
+				AND trad1.NullStatus = 'n'
 
-		  and trad1.IsRepo2 = 'y'
+				AND trad1.Enabled = 0
 
-		  and ass.ISIN = tt.ISIN collate Cyrillic_General_CS_AS
+				AND trad1.IsDraft = 'n'
 
-        ) trad
+				AND trad1.IsProcessed = 'y'
 
-		left outer join QORT_BACK_DB..Subaccs sub on sub.id = trad.SubAcc_ID
+				AND trad1.IsRepo2 = 'y'
 
-		
+				AND ass.ISIN = tt.ISIN collate Cyrillic_General_CS_AS
+
+			) trad
+
+		LEFT OUTER JOIN QORT_BACK_DB..Subaccs sub ON sub.id = trad.SubAcc_ID
 
 		WHERE tt.Agrement LIKE '%R/%'
 
-		--and left(Agrement,3) = @Nom --+ '-24R/1'
+			--and left(Agrement,3) = @Nom --+ '-24R/1'
 
-		--and right(tt.DataFirst,7) = '09/2024' 
+			--and right(tt.DataFirst,7) = '09/2024' 
 
-		--and LEFT(tt.agrement,3) = '518'
+			--and LEFT(tt.agrement,3) = '518'
 
-		 and NOT EXISTS (
+			AND NOT EXISTS (
 
-				select TOP 1 *
+				SELECT TOP 1 *
 
-				from QORT_BACK_DB.dbo.Phases a
+				FROM QORT_BACK_DB.dbo.Phases a
 
-				where (tt.Agrement + '_' + cast(isnull(trad.id,'') as varchar(16)) = a.BackID  or a.BackID = tt.Agrement)
+				WHERE (
 
-				and a.Enabled = 0 and a.IsCanceled = 'n' 
+						tt.Agrement + '_' + cast(isnull(trad.id, '') AS VARCHAR(16)) = a.BackID
 
-				and a.PC_Const = 14
+						OR a.BackID = tt.Agrement
 
-			)
+						)
 
-			order by tt.Agrement asc
+					AND a.Enabled = 0
 
+					AND a.IsCanceled = 'n'
 
+					AND a.PC_Const = 14
 
-select * from #t9 --return
+				)
 
+		ORDER BY tt.Agrement ASC
 
 
-			set @MaxRow = (select MAX(rownum) from #t9)	
 
-			set @n = 1
+		SELECT *
 
-			while @n <= @MaxRow
+		FROM #t9 --return
 
-begin
 
 
+		SET @MaxRow = (
 
+				SELECT MAX(rownum)
 
+				FROM #t9
 
+				)
 
+		SET @n = 1
 
---/*	--------------------------------загружаем фазы прологации по поставкам активов через цикл-------------------
 
-		Insert into QORT_BACK_TDB.dbo.phases (
 
-			IsProcessed
+		WHILE @n <= @MaxRow
 
-			, ET_Const
+		BEGIN
 
-			, AgreeNum
+			--/*	--------------------------------загружаем фазы прологации по поставкам активов через цикл-------------------
 
-			, PC_Const
+			INSERT INTO QORT_BACK_TDB.dbo.phases (
 
-			, date
+				IsProcessed
 
-			, SystemID
+				,ET_Const
 
-			, BackID
+				,AgreeNum
 
-			, InfoSource
+				,PC_Const
 
-			, Trade_SID
+				,DATE
 
-			, QtyBefore
+				,SystemID
 
-			, SubAcc_Code
+				,BackID
 
-			, DateAfter
+				,InfoSource
 
-			--, DateBefore
+				,Trade_SID
 
-			, NewRepoRateDate
+				,QtyBefore
 
-			, QtyAfter
+				,SubAcc_Code
 
-			)
+				,DateAfter
 
---*/
+				--, DateBefore
 
-		select IsProcessed
+				,NewRepoRateDate
 
-			, ET_Const
+				,QtyAfter
 
-			, agrement AgreeNum
+				)
 
-			, PC_Const
+			--*/
 
-			, date
+			SELECT IsProcessed
 
-			, SystemID
+				,ET_Const
 
-			, BackID
+				,agrement AgreeNum
 
-			, InfoSource
+				,PC_Const
 
-			, Trade_SID
+				,DATE
 
-			, QtyBefore
+				,SystemID
 
-			, SubAcc_Code
+				,BackID
 
-			, DateAfter
+				,InfoSource
 
-			--, DateBefore
+				,Trade_SID
 
-			, NewRepoRateDate
+				,QtyBefore
 
-			, QtyAfter
+				,SubAcc_Code
 
-		
+				,DateAfter
 
-		from #t9
+				--, DateBefore
 
-		where RowNum = @n
+				,NewRepoRateDate
 
+				,QtyAfter
 
+			FROM #t9
 
-		set @WaitCount = 1200 -------------------- задержка, не продолжаем пока не подгрузили фазы по пролонгации по активам----------------------
+			WHERE RowNum = @n
 
-		while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB.dbo.Phases q with (nolock) where q.IsProcessed in (1,2)))
 
-		begin
 
-			waitfor delay '00:00:03'
+			SET @WaitCount = 1200 -------------------- задержка, не продолжаем пока не подгрузили фазы по пролонгации по активам----------------------
 
-			set @WaitCount = @WaitCount - 1
 
-		end
 
+			WHILE (
 
+					@WaitCount > 0
 
-		set @n = @n + 1
+					AND EXISTS (
 
+						SELECT TOP 1 1
 
+						FROM QORT_BACK_TDB.dbo.Phases q WITH (NOLOCK)
 
-	end
+						WHERE q.IsProcessed IN (
 
-	
+								1
+
+								,2
+
+								)
+
+						)
+
+					)
+
+			BEGIN
+
+				WAITFOR DELAY '00:00:03'
+
+
+
+				SET @WaitCount = @WaitCount - 1
+
+			END
+
+
+
+			SET @n = @n + 1
+
+		END
 
 
 
@@ -1447,239 +1764,283 @@ begin
 
 --*/
 
-			select cast(SUBSTRING(tt.Agrement, CHARINDEX('/', tt.Agrement) + 1, LEN(tt.Agrement)) as int) AS RowNum
+		SELECT cast(SUBSTRING(tt.Agrement, CHARINDEX('/', tt.Agrement) + 1, LEN(tt.Agrement)) AS INT) AS RowNum
 
-			,  1 as IsProcessed
+			,1 AS IsProcessed
 
-			, 2 as ET_Const
+			,2 AS ET_Const
 
-			, tt.agrement 
+			,tt.agrement
 
-			, 13 PC_Const
+			,13 PC_Const
 
-			, CONVERT(INT, SUBSTRING(tt.Dataleg1, 7, 4) +  RIGHT('0' + SUBSTRING(tt.Dataleg1, 4, 2), 2) +  RIGHT('0' + SUBSTRING(tt.Dataleg1, 1, 2), 2)) date
+			,CONVERT(INT, SUBSTRING(tt.Dataleg1, 7, 4) + RIGHT('0' + SUBSTRING(tt.Dataleg1, 4, 2), 2) + RIGHT('0' + SUBSTRING(tt.Dataleg1, 1, 2), 2)) DATE
 
-			, (-1) as SystemID
+			,(- 1) AS SystemID
 
-			, tt.agrement +'_' + CAST(isnull(trad.id,'') as varchar(16)) as BackID
+			,tt.agrement + '_' + CAST(isnull(trad.id, '') AS VARCHAR(16)) AS BackID
 
-			, null as InfoSource
+			,NULL AS InfoSource
 
-			, trad.id Trade_SID
+			,trad.id Trade_SID
 
-			, 0 as QtyBefore
+			,0 AS QtyBefore
 
-			, Sub.SubAccCode as SubAcc_Code
+			,Sub.SubAccCode AS SubAcc_Code
 
-			, CONVERT(INT, SUBSTRING(tt.Dataleg2, 7, 4) +  RIGHT('0' + SUBSTRING(tt.Dataleg2, 4, 2), 2) +  RIGHT('0' + SUBSTRING(tt.Dataleg2, 1, 2), 2)) DateAfter
+			,CONVERT(INT, SUBSTRING(tt.Dataleg2, 7, 4) + RIGHT('0' + SUBSTRING(tt.Dataleg2, 4, 2), 2) + RIGHT('0' + SUBSTRING(tt.Dataleg2, 1, 2), 2)) DateAfter
 
 			--, CONVERT(INT, SUBSTRING(tt.Dataleg1, 7, 4) +  RIGHT('0' + SUBSTRING(tt.Dataleg1, 4, 2), 2) +  RIGHT('0' + SUBSTRING(tt.Dataleg1, 1, 2), 2)) DateBefore
 
-			, CONVERT(INT, SUBSTRING(tt.Dataleg1, 7, 4) +  RIGHT('0' + SUBSTRING(tt.Dataleg1, 4, 2), 2) +  RIGHT('0' + SUBSTRING(tt.Dataleg1, 1, 2), 2)) NewRepoRateDate
+			,CONVERT(INT, SUBSTRING(tt.Dataleg1, 7, 4) + RIGHT('0' + SUBSTRING(tt.Dataleg1, 4, 2), 2) + RIGHT('0' + SUBSTRING(tt.Dataleg1, 1, 2), 2)) NewRepoRateDate
 
-			,  tt.Rate QtyAfter
+			,tt.Rate QtyAfter
 
-			INTO #t8
+		INTO #t8
 
-			from #t tt
+		FROM #t tt
 
-			--left join QORT_BACK_DB.dbo.Trades trad with (nolock) on trad.AgreeNum = tt.agrement 
+		--left join QORT_BACK_DB.dbo.Trades trad with (nolock) on trad.AgreeNum = tt.agrement 
 
-						        OUTER APPLY (
+		OUTER APPLY (
 
-            SELECT top 1  ass.ShortName, trad1.id, trad1.SubAcc_ID
+			SELECT TOP 1 ass.ShortName
 
-            FROM QORT_BACK_DB..Trades trad1 
+				,trad1.id
 
-			left outer join QORT_BACK_DB..Securities sec on sec.id = trad1.Security_ID
+				,trad1.SubAcc_ID
 
-			left outer join QORT_BACK_DB..Assets ass on ass.id = sec.Asset_ID
+			FROM QORT_BACK_DB..Trades trad1
 
-			WHERE 
+			LEFT OUTER JOIN QORT_BACK_DB..Securities sec ON sec.id = trad1.Security_ID
 
-                trad1.AgreeNum = LEFT(tt.agrement, CHARINDEX('/', tt.agrement) - 1) collate Cyrillic_General_CS_AS
+			LEFT OUTER JOIN QORT_BACK_DB..Assets ass ON ass.id = sec.Asset_ID
 
-                  AND Trad1.VT_Const NOT IN (12, 10) -- сделка не расторгнута
+			WHERE trad1.AgreeNum = LEFT(tt.agrement, CHARINDEX('/', tt.agrement) - 1) collate Cyrillic_General_CS_AS
 
-          AND trad1.NullStatus = 'n'
+				AND Trad1.VT_Const NOT IN (
 
-         AND trad1.Enabled = 0
+					12
 
-          AND trad1.IsDraft = 'n'
+					,10
 
-          AND trad1.IsProcessed = 'y'
+					) -- сделка не расторгнута
 
-		  and trad1.IsRepo2 = 'y'
+				AND trad1.NullStatus = 'n'
 
-		  and ass.ISIN = tt.ISIN collate Cyrillic_General_CS_AS
+				AND trad1.Enabled = 0
 
-        ) trad
+				AND trad1.IsDraft = 'n'
 
-		left outer join QORT_BACK_DB..Subaccs sub on sub.id = trad.SubAcc_ID
+				AND trad1.IsProcessed = 'y'
 
-		
+				AND trad1.IsRepo2 = 'y'
+
+				AND ass.ISIN = tt.ISIN collate Cyrillic_General_CS_AS
+
+			) trad
+
+		LEFT OUTER JOIN QORT_BACK_DB..Subaccs sub ON sub.id = trad.SubAcc_ID
 
 		WHERE tt.Agrement LIKE '%R/%'
 
-		--and left(Agrement,3) = @Nom --+ '-24R/1'
+			--and left(Agrement,3) = @Nom --+ '-24R/1'
 
-		--and right(tt.DataFirst,7) = '09/2024' 
+			--and right(tt.DataFirst,7) = '09/2024' 
 
-		--and LEFT(tt.agrement,3) = '518'
+			--and LEFT(tt.agrement,3) = '518'
 
-		 and NOT EXISTS (
+			AND NOT EXISTS (
 
-				select TOP 1 *
+				SELECT TOP 1 *
 
-				from QORT_BACK_DB.dbo.Phases a
+				FROM QORT_BACK_DB.dbo.Phases a
 
-				where ( tt.Agrement + '_' + cast(isnull(trad.id,'') as varchar(16)) = a.BackID or a.BackID = tt.Agrement)
+				WHERE (
 
-				and a.Enabled = 0 and a.IsCanceled = 'n' 
+						tt.Agrement + '_' + cast(isnull(trad.id, '') AS VARCHAR(16)) = a.BackID
 
-				and a.PC_Const = 13
+						OR a.BackID = tt.Agrement
 
-			)
+						)
 
-			order by tt.Agrement asc
+					AND a.Enabled = 0
 
-			select * from #t8 
+					AND a.IsCanceled = 'n'
 
-			set @MaxRow = (select MAX(rownum) from #t8)	
+					AND a.PC_Const = 13
 
-			set @n = 1
+				)
 
-			while @n <= @MaxRow
+		ORDER BY tt.Agrement ASC
 
 
 
-begin
+		SELECT *
 
---/*
+		FROM #t8
 
-Insert into QORT_BACK_TDB.dbo.phases (
 
-			IsProcessed
 
-			, ET_Const
+		SET @MaxRow = (
 
-			, AgreeNum
+				SELECT MAX(rownum)
 
-			, PC_Const
+				FROM #t8
 
-			, date
+				)
 
-			, SystemID
+		SET @n = 1
 
-			, BackID
 
-			, InfoSource
 
-			, Trade_SID
+		WHILE @n <= @MaxRow
 
-			, QtyBefore
+		BEGIN
 
-			, SubAcc_Code
+			--/*
 
-			, DateAfter
+			INSERT INTO QORT_BACK_TDB.dbo.phases (
 
-			--, DateBefore
+				IsProcessed
 
-			, NewRepoRateDate
+				,ET_Const
 
-			, QtyAfter
+				,AgreeNum
 
-			)
+				,PC_Const
+
+				,DATE
+
+				,SystemID
+
+				,BackID
+
+				,InfoSource
+
+				,Trade_SID
+
+				,QtyBefore
+
+				,SubAcc_Code
+
+				,DateAfter
+
+				--, DateBefore
+
+				,NewRepoRateDate
+
+				,QtyAfter
+
+				)
 
 			--*/
 
-			select 
+			SELECT IsProcessed
 
-			IsProcessed
+				,ET_Const
 
-			, ET_Const
+				,Agrement AgreeNum
 
-			, Agrement AgreeNum
+				,PC_Const
 
-			, PC_Const
+				,DATE
 
-			, date
+				,SystemID
 
-			, SystemID
+				,BackID
 
-			, BackID
+				,InfoSource
 
-			, InfoSource
+				,Trade_SID
 
-			, Trade_SID
+				,QtyBefore
 
-			, QtyBefore
+				,SubAcc_Code
 
-			, SubAcc_Code
+				,DateAfter
 
-			, DateAfter
+				--, DateBefore
 
-			--, DateBefore
+				,NewRepoRateDate
 
-			, NewRepoRateDate
+				,QtyAfter
 
-			, QtyAfter
+			FROM #t8
 
-			from #t8
-
-			where RowNum = @n
+			WHERE RowNum = @n
 
 
 
-				set @WaitCount = 1200 -------------------- задержка, не продолжаем пока не подгрузили----------------------
-
-		while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB.dbo.Phases q with (nolock) where q.IsProcessed in (1,2)))
-
-		begin
-
-			waitfor delay '00:00:03'
-
-			set @WaitCount = @WaitCount - 1
-
-		end
+			SET @WaitCount = 1200 -------------------- задержка, не продолжаем пока не подгрузили----------------------
 
 
 
-		set @n = @n + 1
+			WHILE (
+
+					@WaitCount > 0
+
+					AND EXISTS (
+
+						SELECT TOP 1 1
+
+						FROM QORT_BACK_TDB.dbo.Phases q WITH (NOLOCK)
+
+						WHERE q.IsProcessed IN (
+
+								1
+
+								,2
+
+								)
+
+						)
+
+					)
+
+			BEGIN
+
+				WAITFOR DELAY '00:00:03'
 
 
 
-	end
+				SET @WaitCount = @WaitCount - 1
 
-	
+			END
 
-	
+
+
+			SET @n = @n + 1
+
+		END
+
+
 
 		--/*	--------------------------------загружаем фазы промежуточных выплат процентов-------------------
 
-		Insert into QORT_BACK_TDB.dbo.phases (
+		INSERT INTO QORT_BACK_TDB.dbo.phases (
 
 			IsProcessed
 
-			, ET_Const
+			,ET_Const
 
-			, AgreeNum
+			,AgreeNum
 
-			, PC_Const
+			,PC_Const
 
-			, date
+			,DATE
 
-			, SystemID
+			,SystemID
 
-			, BackID
+			,BackID
 
-			, InfoSource
+			,InfoSource
 
-			, Trade_SID
+			,Trade_SID
 
-			, QtyBefore
+			,QtyBefore
 
-			, SubAcc_Code
+			,SubAcc_Code
 
 			--, DateAfter
 
@@ -1687,35 +2048,33 @@ Insert into QORT_BACK_TDB.dbo.phases (
 
 			--, NewRepoRateDate
 
-			, QtyAfter
+			,QtyAfter
 
 			)
 
---*/
+		--*/
 
-			select 
+		SELECT 1 AS IsProcessed
 
-			 1 as IsProcessed
+			,2 AS ET_Const
 
-			, 2 as ET_Const
+			,tt.agrement
 
-			, tt.agrement 
+			,5 PC_Const
 
-			, 5 PC_Const
+			,CONVERT(INT, SUBSTRING(tt.Dataleg1, 7, 4) + RIGHT('0' + SUBSTRING(tt.Dataleg1, 4, 2), 2) + RIGHT('0' + SUBSTRING(tt.Dataleg1, 1, 2), 2)) DATE
 
-			, CONVERT(INT, SUBSTRING(tt.Dataleg1, 7, 4) +  RIGHT('0' + SUBSTRING(tt.Dataleg1, 4, 2), 2) +  RIGHT('0' + SUBSTRING(tt.Dataleg1, 1, 2), 2)) date
+			,(- 1) AS SystemID
 
-			, (-1) as SystemID
+			,tt.agrement + '_' + CAST(isnull(trad.id, '') AS VARCHAR(16)) AS BackID
 
-			, tt.agrement +'_' + CAST(isnull(trad.id,'') as varchar(16)) as BackID
+			,NULL AS InfoSource
 
-			, null as InfoSource
+			,trad.id Trade_SID
 
-			, trad.id Trade_SID
+			,round(tt1.VolPercent, 2) AS QtyBefore
 
-			, round(tt1.VolPercent, 2) as QtyBefore
-
-			, Sub.SubAccCode as SubAcc_Code
+			,Sub.SubAccCode AS SubAcc_Code
 
 			--, CONVERT(INT, SUBSTRING(tt.Dataleg2, 7, 4) +  RIGHT('0' + SUBSTRING(tt.Dataleg2, 4, 2), 2) +  RIGHT('0' + SUBSTRING(tt.Dataleg2, 1, 2), 2)) DateAfter
 
@@ -1723,113 +2082,121 @@ Insert into QORT_BACK_TDB.dbo.phases (
 
 			--, CONVERT(INT, SUBSTRING(tt.Dataleg2, 7, 4) +  RIGHT('0' + SUBSTRING(tt.Dataleg2, 4, 2), 2) +  RIGHT('0' + SUBSTRING(tt.Dataleg2, 1, 2), 2)) NewRepoRateDate
 
-			,  (-1) QtyAfter
+			,(- 1) QtyAfter
 
-			from #t tt
+		FROM #t tt
 
-			--left join QORT_BACK_DB.dbo.Trades trad with (nolock) on trad.AgreeNum = tt.agrement 
+		--left join QORT_BACK_DB.dbo.Trades trad with (nolock) on trad.AgreeNum = tt.agrement 
 
-			
+		OUTER APPLY (
 
- OUTER APPLY (
+			SELECT TOP 1 ass.ShortName
 
-            SELECT top 1  ass.ShortName, trad1.id, trad1.SubAcc_ID
+				,trad1.id
 
-            FROM QORT_BACK_DB..Trades trad1 
+				,trad1.SubAcc_ID
 
-			left outer join QORT_BACK_DB..Securities sec on sec.id = trad1.Security_ID
+			FROM QORT_BACK_DB..Trades trad1
 
-			left outer join QORT_BACK_DB..Assets ass on ass.id = sec.Asset_ID
+			LEFT OUTER JOIN QORT_BACK_DB..Securities sec ON sec.id = trad1.Security_ID
 
-			WHERE 
+			LEFT OUTER JOIN QORT_BACK_DB..Assets ass ON ass.id = sec.Asset_ID
 
-                trad1.AgreeNum = LEFT(tt.agrement, CHARINDEX('/', tt.agrement) - 1) collate Cyrillic_General_CS_AS
+			WHERE trad1.AgreeNum = LEFT(tt.agrement, CHARINDEX('/', tt.agrement) - 1) collate Cyrillic_General_CS_AS
 
-                  AND Trad1.VT_Const NOT IN (12, 10) -- сделка не расторгнута
+				AND Trad1.VT_Const NOT IN (
 
-          AND trad1.NullStatus = 'n'
+					12
 
-         AND trad1.Enabled = 0
+					,10
 
-          AND trad1.IsDraft = 'n'
+					) -- сделка не расторгнута
 
-          AND trad1.IsProcessed = 'y'
+				AND trad1.NullStatus = 'n'
 
-		  and trad1.IsRepo2 = 'y'
+				AND trad1.Enabled = 0
 
-		  and ass.ISIN = tt.ISIN collate Cyrillic_General_CS_AS
+				AND trad1.IsDraft = 'n'
 
-        ) trad
+				AND trad1.IsProcessed = 'y'
 
-			        OUTER APPLY (
+				AND trad1.IsRepo2 = 'y'
 
-            SELECT top 1 *
+				AND ass.ISIN = tt.ISIN collate Cyrillic_General_CS_AS
 
-            FROM #t tt1	
+			) trad
 
-            WHERE 
+		OUTER APPLY (
 
-                tt1.Dataleg2 = tt.Dataleg1
+			SELECT TOP 1 *
 
-				and left(tt1.Agrement,6) = left(tt.Agrement,6)
+			FROM #t tt1
 
-        ) tt1
+			WHERE tt1.Dataleg2 = tt.Dataleg1
 
-		left outer join QORT_BACK_DB..Subaccs sub on sub.id = trad.SubAcc_ID
+				AND left(tt1.Agrement, 6) = left(tt.Agrement, 6)
 
+			) tt1
 
+		LEFT OUTER JOIN QORT_BACK_DB..Subaccs sub ON sub.id = trad.SubAcc_ID
 
 		WHERE tt.Agrement LIKE '%R/%'
 
-		--and left(tt.Agrement,3) = @Nom 
+			--and left(tt.Agrement,3) = @Nom 
 
-		--and right(tt.DataFirst,7) = '09/2024' 
+			--and right(tt.DataFirst,7) = '09/2024' 
 
-		--and LEFT(tt.agrement,3) = '518'
+			--and LEFT(tt.agrement,3) = '518'
 
-			 and NOT EXISTS (
+			AND NOT EXISTS (
 
-				select TOP 1 *
+				SELECT TOP 1 *
 
-				from QORT_BACK_DB.dbo.Phases a
+				FROM QORT_BACK_DB.dbo.Phases a
 
-				where (tt.Agrement + '_' + cast(isnull(trad.id,'') as varchar(16)) = a.BackID or a.BackID = tt.Agrement)
+				WHERE (
 
-				and a.Enabled = 0 and a.IsCanceled = 'n' 
+						tt.Agrement + '_' + cast(isnull(trad.id, '') AS VARCHAR(16)) = a.BackID
 
-				and a.PC_Const = 5
+						OR a.BackID = tt.Agrement
 
-			)
+						)
+
+					AND a.Enabled = 0
+
+					AND a.IsCanceled = 'n'
+
+					AND a.PC_Const = 5
+
+				)
 
 
 
 		--/*	---------------------------------формируем full delivery/payment под вторые ноги у которых дата исполнения вчера, а пролонгации не было.
 
-			
-
-			Insert into QORT_BACK_TDB.dbo.phases (
+		INSERT INTO QORT_BACK_TDB.dbo.phases (
 
 			IsProcessed
 
-			, ET_Const
+			,ET_Const
 
-			, AgreeNum
+			,AgreeNum
 
-			, PC_Const
+			,PC_Const
 
-			, date
+			,DATE
 
-			, SystemID
+			,SystemID
 
-			, BackID
+			,BackID
 
-			, InfoSource
+			,InfoSource
 
-			, Trade_SID
+			,Trade_SID
 
-			, QtyBefore
+			,QtyBefore
 
-			, SubAcc_Code
+			,SubAcc_Code
 
 			--, DateAfter
 
@@ -1837,117 +2204,177 @@ Insert into QORT_BACK_TDB.dbo.phases (
 
 			--, NewRepoRateDate
 
-			, QtyAfter)
-
-			--*/
-
-			select 
-
-			 1 as IsProcessed
-
-			, 2 as ET_Const
-
-			, AgreeNum as AgreeNum
-
-			, 4 as PC_Const
-
-			, PutPlannedDate as date
-
-			, (-1) as SystemID
-
-			, trad.AgreeNum +'_' + CAST(isnull(trad.id,'') as varchar(16)) as backID
-
-			, Null as InfoSource
-
-			, id as Trade_SID
-
-			, Qty as QtyBefore
-
-			, 'ARMBR_Subacc' as SubAcc_Code
-
-			, (-1) as QtyAfter
-
-			from QORT_BACK_DB..Trades trad 
-
-			where Trad.VT_Const NOT IN (12, 10) -- сделка не расторгнута
-
-          AND trad.NullStatus = 'n'
-
-          AND trad.Enabled = 0
-
-          AND trad.IsDraft = 'n'
-
-          AND trad.IsProcessed = 'y'
-
-          AND Trad.TT_Const IN (6) -- OTC repo (6); Exchange repo (3)
-
-          AND (Trad.PutDate = 0 or Trad.PayDate = 0)
-
-		  and trad.PutPlannedDate < @todayInt
-
-		  and trad.IsRepo2 = 'y'
-
-		  and PayAccount_ID = 175 -- CB_RA_FOR_REPO
-
-		  	 and NOT EXISTS (
-
-				select TOP 1 *
-
-				from QORT_BACK_DB.dbo.Phases a
-
-				where (a.BackID = trad.AgreeNum collate Cyrillic_General_CI_AS or a.BackID = trad.AgreeNum +'_' + cast(trad.id as varchar(16)) collate Cyrillic_General_CI_AS)
-
-				and a.Enabled = 0 and a.IsCanceled = 'n' 
-
-				and a.PC_Const = 4
+			,QtyAfter
 
 			)
 
-			--and trad.id = 17556
+		--*/
+
+		SELECT 1 AS IsProcessed
+
+			,2 AS ET_Const
+
+			,AgreeNum AS AgreeNum
+
+			,4 AS PC_Const
+
+			,PutPlannedDate AS DATE
+
+			,(- 1) AS SystemID
+
+			,trad.AgreeNum + '_' + CAST(isnull(trad.id, '') AS VARCHAR(16)) AS backID
+
+			,NULL AS InfoSource
+
+			,id AS Trade_SID
+
+			,Qty AS QtyBefore
+
+			,'ARMBR_Subacc' AS SubAcc_Code
+
+			,(- 1) AS QtyAfter
+
+		FROM QORT_BACK_DB..Trades trad
+
+		WHERE Trad.VT_Const NOT IN (
+
+				12
+
+				,10
+
+				) -- сделка не расторгнута
+
+			AND trad.NullStatus = 'n'
+
+			AND trad.Enabled = 0
+
+			AND trad.IsDraft = 'n'
+
+			AND trad.IsProcessed = 'y'
+
+			AND Trad.TT_Const IN (6) -- OTC repo (6); Exchange repo (3)
+
+			AND (
+
+				Trad.PutDate = 0
+
+				OR Trad.PayDate = 0
+
+				)
+
+			AND trad.PutPlannedDate < @todayInt
+
+			AND trad.IsRepo2 = 'y'
+
+			AND PayAccount_ID = 175 -- CB_RA_FOR_REPO
+
+			AND NOT EXISTS (
+
+				SELECT TOP 1 *
+
+				FROM QORT_BACK_DB.dbo.Phases a
+
+				WHERE (
+
+						a.BackID = trad.AgreeNum collate Cyrillic_General_CI_AS
+
+						OR a.BackID = trad.AgreeNum + '_' + cast(trad.id AS VARCHAR(16)) collate Cyrillic_General_CI_AS
+
+						)
+
+					AND a.Enabled = 0
+
+					AND a.IsCanceled = 'n'
+
+					AND a.PC_Const = 4
+
+				)
 
 
 
-			select * from QORT_BACK_TDB.dbo.Phases where ModifiedDate = @todayInt and IsProcessed in (1,2) and PC_Const = 4
+		--and trad.id = 17556
+
+		SELECT *
+
+		FROM QORT_BACK_TDB.dbo.Phases
+
+		WHERE ModifiedDate = @todayInt
+
+			AND IsProcessed IN (
+
+				1
+
+				,2
+
+				)
+
+			AND PC_Const = 4
 
 
 
-							set @WaitCount = 1200 -------------------- задержка, не продолжаем пока не подгрузили----------------------
+		SET @WaitCount = 1200 -------------------- задержка, не продолжаем пока не подгрузили----------------------
 
-		while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB.dbo.Phases q with (nolock) where q.IsProcessed in (1,2)))
 
-		begin
 
-			waitfor delay '00:00:03'
+		WHILE (
 
-			set @WaitCount = @WaitCount - 1
+				@WaitCount > 0
 
-		end
+				AND EXISTS (
 
-			--/*
+					SELECT TOP 1 1
 
-			Insert into QORT_BACK_TDB.dbo.phases (
+					FROM QORT_BACK_TDB.dbo.Phases q WITH (NOLOCK)
+
+					WHERE q.IsProcessed IN (
+
+							1
+
+							,2
+
+							)
+
+					)
+
+				)
+
+		BEGIN
+
+			WAITFOR DELAY '00:00:03'
+
+
+
+			SET @WaitCount = @WaitCount - 1
+
+		END
+
+
+
+		--/*
+
+		INSERT INTO QORT_BACK_TDB.dbo.phases (
 
 			IsProcessed
 
-			, ET_Const
+			,ET_Const
 
-			, AgreeNum
+			,AgreeNum
 
-			, PC_Const
+			,PC_Const
 
-			, date
+			,DATE
 
-			, SystemID
+			,SystemID
 
-			, BackID
+			,BackID
 
-			, InfoSource
+			,InfoSource
 
-			, Trade_SID
+			,Trade_SID
 
-			, QtyBefore
+			,QtyBefore
 
-			, SubAcc_Code
+			,SubAcc_Code
 
 			--, DateAfter
 
@@ -1955,116 +2382,177 @@ Insert into QORT_BACK_TDB.dbo.phases (
 
 			--, NewRepoRateDate
 
-			, QtyAfter)
-
-			--*/
-
-			select 
-
-			 1 as IsProcessed
-
-			, 2 as ET_Const
-
-			, AgreeNum as AgreeNum
-
-			, 7 as PC_Const
-
-			, PayPlannedDate as date
-
-			, (-1) as SystemID
-
-			, trad.AgreeNum +'_' + CAST(isnull(trad.id,'') as varchar(16))  as backID
-
-			, Null as InfoSource
-
-			, id as Trade_SID
-
-			, Volume1 - isnull(pha.SumQty,0) as QtyBefore
-
-			, 'ARMBR_Subacc' as SubAcc_Code
-
-			, (-1) as QtyAfter
-
-			--, isnull(pha.SumQty,0)
-
-			from QORT_BACK_DB..Trades trad 
-
-			OUTER APPLY (
-
-						SELECT SUM(pha.QtyBefore) AS SumQty
-
-						FROM QORT_BACK_DB..Phases pha
-
-						WHERE 
-
-							trad.id = pha.Trade_ID
-
-							and pha.IsCanceled = 'n'
-
-							and pha.PC_Const in (5)
-
-					) pha
-
-			where Trad.VT_Const NOT IN (12, 10) -- сделка не расторгнута
-
-          AND trad.NullStatus = 'n'
-
-          AND trad.Enabled = 0
-
-          AND trad.IsDraft = 'n'
-
-          AND trad.IsProcessed = 'y'
-
-          AND Trad.TT_Const IN (6) -- OTC repo (6); Exchange repo (3)
-
-          AND (Trad.PutDate = 0 or Trad.PayDate = 0)
-
-		  and trad.PutPlannedDate < @todayInt
-
-		  and trad.IsRepo2 = 'y'
-
-		  and PayAccount_ID = 175 -- CB_RA_FOR_REPO
-
-		  	 and NOT EXISTS (
-
-				select TOP 1 *
-
-				from QORT_BACK_DB.dbo.Phases a
-
-				where (a.BackID = trad.AgreeNum collate Cyrillic_General_CI_AS or a.BackID = trad.AgreeNum +'_' + cast(trad.id as varchar(16)) collate Cyrillic_General_CI_AS)
-
-				and a.Enabled = 0 and a.IsCanceled = 'n' 
-
-				and a.PC_Const = 7
+			,QtyAfter
 
 			)
 
-			--and trad.id = 17556
+		--*/
 
-			order by backID
+		SELECT 1 AS IsProcessed
 
-			select * from QORT_BACK_TDB.dbo.Phases where ModifiedDate = @todayInt and IsProcessed in (1,2) and PC_Const = 7
+			,2 AS ET_Const
 
-    END TRY
+			,AgreeNum AS AgreeNum
 
-    BEGIN CATCH
+			,7 AS PC_Const
 
-        -- Обработка исключений
+			,PayPlannedDate AS DATE
 
-        WHILE @@TRANCOUNT > 0 ROLLBACK TRAN
+			,(- 1) AS SystemID
 
-        SET @Message = 'ERROR: ' + ERROR_MESSAGE(); 
+			,trad.AgreeNum + '_' + CAST(isnull(trad.id, '') AS VARCHAR(16)) AS backID
 
-        -- Вставка сообщения об ошибке в таблицу uploadLogs
+			,NULL AS InfoSource
 
-        INSERT INTO QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) VALUES (@Message, 1001);
+			,id AS Trade_SID
 
-        -- Возвращаем сообщение об ошибке
+			,Volume1 - isnull(pha.SumQty, 0) AS QtyBefore
 
-        SELECT @Message AS result, 'STATUS' AS defaultTask, 'red' AS color;
+			,'ARMBR_Subacc' AS SubAcc_Code
 
-    END CATCH
+			,(- 1) AS QtyAfter
+
+		--, isnull(pha.SumQty,0)
+
+		FROM QORT_BACK_DB..Trades trad
+
+		OUTER APPLY (
+
+			SELECT SUM(pha.QtyBefore) AS SumQty
+
+			FROM QORT_BACK_DB..Phases pha
+
+			WHERE trad.id = pha.Trade_ID
+
+				AND pha.IsCanceled = 'n'
+
+				AND pha.PC_Const IN (5)
+
+			) pha
+
+		WHERE Trad.VT_Const NOT IN (
+
+				12
+
+				,10
+
+				) -- сделка не расторгнута
+
+			AND trad.NullStatus = 'n'
+
+			AND trad.Enabled = 0
+
+			AND trad.IsDraft = 'n'
+
+			AND trad.IsProcessed = 'y'
+
+			AND Trad.TT_Const IN (6) -- OTC repo (6); Exchange repo (3)
+
+			AND (
+
+				Trad.PutDate = 0
+
+				OR Trad.PayDate = 0
+
+				)
+
+			AND trad.PutPlannedDate < @todayInt
+
+			AND trad.IsRepo2 = 'y'
+
+			AND PayAccount_ID = 175 -- CB_RA_FOR_REPO
+
+			AND NOT EXISTS (
+
+				SELECT TOP 1 *
+
+				FROM QORT_BACK_DB.dbo.Phases a
+
+				WHERE (
+
+						a.BackID = trad.AgreeNum collate Cyrillic_General_CI_AS
+
+						OR a.BackID = trad.AgreeNum + '_' + cast(trad.id AS VARCHAR(16)) collate Cyrillic_General_CI_AS
+
+						)
+
+					AND a.Enabled = 0
+
+					AND a.IsCanceled = 'n'
+
+					AND a.PC_Const = 7
+
+				)
+
+		--and trad.id = 17556
+
+		ORDER BY backID
 
 
+
+		SELECT *
+
+		FROM QORT_BACK_TDB.dbo.Phases
+
+		WHERE ModifiedDate = @todayInt
+
+			AND IsProcessed IN (
+
+				1
+
+				,2
+
+				)
+
+			AND PC_Const = 7
+
+	END TRY
+
+
+
+	BEGIN CATCH
+
+		-- Обработка исключений
+
+		WHILE @@TRANCOUNT > 0
+
+			ROLLBACK TRAN
+
+
+
+		SET @Message = 'ERROR: ' + ERROR_MESSAGE();
+
+
+
+		-- Вставка сообщения об ошибке в таблицу uploadLogs
+
+		INSERT INTO QORT_ARM_SUPPORT.dbo.uploadLogs (
+
+			logMessage
+
+			,errorLevel
+
+			)
+
+		VALUES (
+
+			@Message
+
+			,1001
+
+			);
+
+
+
+		-- Возвращаем сообщение об ошибке
+
+		SELECT @Message AS result
+
+			,'STATUS' AS defaultTask
+
+			,'red' AS color;
+
+	END CATCH
 
 END
+

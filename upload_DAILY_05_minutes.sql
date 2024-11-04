@@ -4,7 +4,7 @@
 
 -- exec QORT_ARM_SUPPORT.dbo.upload_DAILY_05_minutes
 
-create PROCEDURE [dbo].[upload_DAILY_05_minutes]
+CREATE PROCEDURE [dbo].[upload_DAILY_05_minutes]
 
 
 
