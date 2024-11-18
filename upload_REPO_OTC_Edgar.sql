@@ -268,7 +268,7 @@ BEGIN
 
 		WHERE [F1] = ''
 
-			OR [F1] = 0
+			OR [F1] = '0'
 
 
 
@@ -1206,6 +1206,18 @@ WHERE ISNULL(lt01.[F14], '0') <> '0';
 
 							)
 
+				WHEN t.CP = 'Glocal'
+
+					THEN (
+
+							SELECT FirmShortName
+
+							FROM QORT_BACK_DB..Firms
+
+							WHERE BOCode = '00362'
+
+							)
+
 				ELSE 'unknow_' + t.CP
 
 				END CpFirm_ShortName
@@ -1505,7 +1517,6 @@ WHERE ISNULL(lt01.[F14], '0') <> '0';
 			,tt.Rate QtyAfter
 
 			,trad.shortname
-
 		INTO #t9
 
 		FROM #t tt

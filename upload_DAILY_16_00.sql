@@ -4,7 +4,7 @@
 
 -- exec QORT_ARM_SUPPORT.dbo.upload_DAILY_16_00
 
-create PROCEDURE [dbo].[upload_DAILY_16_00]
+CREATE PROCEDURE [dbo].[upload_DAILY_16_00]
 
 
 
@@ -28,7 +28,7 @@ BEGIN
 
 		exec QORT_ARM_SUPPORT.dbo.DepoReconcil @sendmail = 1 -- сверка клиентских позиций с отправкой уведомления
 
-
+		exec QORT_ARM_SUPPORT.dbo.BirthdayClients -- рассылка сейлзам информации про дни рождения
 
 	end try
 

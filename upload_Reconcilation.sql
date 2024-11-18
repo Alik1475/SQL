@@ -188,7 +188,7 @@ BEGIN
 
 				, [F11] ISIN
 
-				, [F13] Qty
+				, cast([F13] as float) Qty
 
 				, CASE  [F17]
 
@@ -240,7 +240,7 @@ BEGIN
 
 			--where da.code = 'AS1105'
 
-			select * from #comms
+			select * from #comms 
 
 
 
@@ -256,13 +256,41 @@ BEGIN
 
 			
 
+			--/*
 
+			INSERT INTO QORT_BACK_TDB..CheckPositions (
+							Subacc_Code, 
+							Account_ExportCode, 
+							Asset_ShortName, 
+							VolFree, 
+							Date, 
+							InfoSource, 
+							CheckDate, 
+							IsAnalytic, 
+							PosDate
+						)
+						--*/
+			SELECT 
 
-			INSERT INTO QORT_BACK_TDB..CheckPositions ( Subacc_Code, Account_ExportCode, Asset_ShortName, VolFree, Date, InfoSource, CheckDate, IsAnalytic, PosDate)
-
-			SELECT CODE, Depository, Asset_ShortName, Qty, Date, 'DEPOLITE' AS INFOSOURCE, CHECKDATE, 'n' as IsAnalytic, CHECKDATE as PosDate
-
-			FROM #comms
+							code, 
+							Depository, 
+							Asset_ShortName, 
+							SUM(Qty) AS Qty, -- Суммируем значения Qty
+							date, 
+							'DEPOLITE' AS INFOSOURCE, 
+							checkdate, 
+							'n' AS IsAnalytic, 
+							checkdate AS PosDate
+						FROM 
+							#com
+ms
+						GROUP BY 
+							checkdate, 
+							ISIN, 
+							Depository, 
+							code, 
+							Asset_ShortName, 
+							date;
 
 		
 
@@ -376,27 +404,79 @@ BEGIN
 
 			
 
+			--/*
+
+				INSERT INTO QORT_BACK_TDB..CheckPositions (
+
+								Subacc_Code, 
+
+								Account_ExportCode, 
+
+								Asset_ShortName, 
+
+								VolFree, 
+
+								Volume, 
+
+								Date, 
+
+								InfoSource, 
+
+								CheckDate, 
+
+								IsAnalytic, 
+
+								PosDate
+
+							)
+
+							--*/
+
+				SELECT 
+
+								code, 
+
+								Depository, 
+
+								Asset_ShortName,
+
+								SUM(IIF(LstcStat = 'Not Current', CONVERT(Float, Volume), CONVERT(Float, Qty))) AS Qty, -- Суммируем свободный остаток
+
+								SUM(CONVERT(Float, Volume) - IIF(LstcStat = 'Not Current', CONVERT(Float, Volume), CONVERT(Float, Qty))) AS Volume, -- Суммируем заблокированные средства
+
+								date, 
+
+								'DEPEND' AS INFOSOURCE, 
+
+								checkdate AS CheckDate, 
+
+								'n' AS IsAnalytic, 
+
+								checkdate AS PosDate
+
+							FROM 
+
+								#comm
+
+							GROUP BY 
+
+								checkdate, 
+
+								ISIN, 
+
+								Depository, 
+
+								code, 
+
+								Asset_ShortName, 
+
+								date;
 
 
-			INSERT INTO QORT_BACK_TDB..CheckPositions (Subacc_Code, Account_ExportCode, Asset_ShortName, VolFree, Volume, Date, InfoSource, CheckDate, IsAnalytic, PosDate)
 
-			SELECT CODE, Depository, Asset_ShortName
-
-			, IIF(LstcStat = 'Not Current', CONVERT(Float,Volume), CONVERT(Float,Qty)) Qty--свободный остаток
-
-			, (CONVERT(Float,Volume) - IIF(LstcStat = 'Not Current', CONVERT(Float,Volume), CONVERT(Float,Qty))) as Volume -- блокировано
-
-			, Date, 'DEPEND' AS INFOSOURCE, CHECKDATE as CheckDate, 'n' as IsAnalytic, CHECKDATE as PosDate
-
-			--, OwnName
-
-			--into #t
-
-			FROM #comm 
+			--return
 
 			
-
-			--select * from #t
 
 
 
@@ -966,8 +1046,8 @@ BEGIN
 
 					insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel, logRecords)
 
-					select 'File uploaded: ' + @FileName + ', lines: ' + cast(@rowsInFile as varchar) +', new Commissions: ' + cast((@rowsNew - @rowsError) as varchar) + ' / ' + cast((@rowsNew) as varchar) logMessage, iif(@rowsError > 0, 1001, 2001) errorLevel, (@rowsNe
-w - @rowsError) logRecords
+					select 'File uploaded: ' + @FileName + ', lines: ' + cast(@rowsInFile as varchar) +', new Commissions: ' + cast((@rowsNew - @rowsError) as varchar) + ' / ' + cast((@rowsNew) as varchar) logMessage, iif(@rowsError > 0, 1001, 2001) errorLevel, (@rowsN
+ew - @rowsError) logRecords
 
 				end
 

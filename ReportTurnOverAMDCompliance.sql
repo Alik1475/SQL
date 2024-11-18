@@ -4,19 +4,31 @@
 
 
 
+/*
+
+	declare @OutputParam1 float
+
+ exec QORT_ARM_SUPPORT.dbo.ReportTurnOverAMDCompliance @DataFrom = '2024-01-01', @DataTo = '2024-11-14', @SubAccCode = 'AS1105', @OutputParam = @OutputParam1 OUTPUT
+
+print @OutputParam1
 
 
 
 
--- exec QORT_ARM_SUPPORT.dbo.ReportTurnOverAMDCompliance
+
+*/
 
 CREATE PROCEDURE [dbo].[ReportTurnOverAMDCompliance]
 
 	  @DataFrom date, --= '2023-01-01',
 
-      @DataTo date -- = '2024-01-01'
+      @DataTo date,-- = '2024-01-01'
 
-	 --,@NotifyEmail varchar(1024) = 'aleksandr.mironov@armbrok.am'--;sona.nalbandyan@armbrok.am;Hayk.Manaselyan@armbrok.am;compliance@armbrok.am;armine.khachatryan@armbrok.am'
+	  @SubAccCode varchar(50),
+
+	  @OutputParam float output 
+
+
 
 AS
 
@@ -37,6 +49,8 @@ BEGIN
 	----------------набираем сделки в сумме по контрагенту
 
 					IF OBJECT_ID('tempdb..#t2', 'U') IS NOT NULL DROP TABLE #t2
+
+			
 
 				select 
 						tra.CpFirm_ID, 
@@ -196,8 +210,8 @@ CT TOP 1 *
                 crs.TradeAsset_ID = mar.PriceAsset_ID
                 AND crs.OldDate =  Cor.RegistrationDate
                 AND crs.PriceAsset_ID = 17
-          AND InfoSou
-rce = 'CBA'
+                AND I
+nfoSource = 'CBA'
         ) crsCrTra
         WHERE 
             mar.TSSection_ID = 154 -- 'OTC_Securities'
@@ -206,23 +220,23 @@ rce = 'CBA'
     ), 
     (
         SELECT TOP 1
-            isnull(mar.S
-ettlePrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0) AS Rate
+            isnull
+(mar.SettlePrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0) AS Rate
         FROM 
             QORT_BACK_DB..MarketInfoHist mar
         OUTER APPLY (
             SELECT TOP 1 *
             FROM QORT_BACK_DB..CrossRatesHist crs 
-            WHERE 
-   
-             crs.TradeAsset_ID = mar.PriceAsset_ID
+            WHER
+E 
+                crs.TradeAsset_ID = mar.PriceAsset_ID
                 AND crs.OldDate = Cor.RegistrationDate
                 AND crs.PriceAsset_ID = 17
                 AND InfoSource = 'CBA'
         ) crsCrTra
         WHERE 
-            mar.TSSection_ID = 16
-5 -- 'OTC_SWAP'
+            mar.TSSection_I
+D = 165 -- 'OTC_SWAP'
             AND mar.Asset_ID = cor.Asset_ID
             AND mar.OldDate = Cor.RegistrationDate
     )
@@ -230,8 +244,8 @@ ettlePrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0) AS Rate
     (
         -- Третье выражение (BaseValue)
         SELECT 
-            asse.BaseValue * IIF(asse.BaseCurrencyAsset_ID = 17, 1, crsC
-rA.Bid) AS Rate
+            asse.BaseValue * IIF(asse.BaseCurrencyAsset_ID = 17, 1
+, crsCrA.Bid) AS Rate
         FROM 
             QORT_BACK_DB..Assets asse
         OUTER APPLY (
@@ -239,8 +253,8 @@ rA.Bid) AS Rate
             FROM QORT_BACK_DB..CrossRatesHist crs 
             WHERE 
                 crs.TradeAsset_ID = asse.BaseCurrencyAsset_ID
-      
-          AND crs.OldDate = Cor.RegistrationDate
+
+                AND crs.OldDate = Cor.RegistrationDate
                 AND crs.PriceAsset_ID = 17
                 AND InfoSource = 'CBA'
         ) crsCrA
@@ -618,7 +632,7 @@ urrencyAsset_ID
 
 										-------------------------------------------------------------- основной запрос------------------------------
 
-					IF OBJECT_ID('tempdb..#t', 'U') IS NOT NULL DROP TABLE #t
+					IF OBJECT_ID('tempdb..##t', 'U') IS NOT NULL DROP TABLE ##t
 
 					select fir.Name BPName
 
@@ -692,7 +706,7 @@ urrencyAsset_ID
 
 
 
-					into #t
+					into ##t
 
 					FROM QORT_BACK_DB..Firms fir
 					OUTER APPLY (
@@ -743,9 +757,32 @@ pe_ID IN (68)
 
 
 
-					delete #t where (IsClient = 'no' and IsCParty = 'no') or (IsClient = 'YES' and DateSign is null) and Volume_AMD_CP is null
+					delete ##t where (IsClient = 'no' and IsCParty = 'no') or (IsClient = 'YES' and DateSign is null) and Volume_AMD_CP is null
 
-					select * from #t
+
+
+					if (isnull(@SubAccCode, '') <> '')
+
+					begin
+
+							SET @OutputParam = (
+								SELECT TOP 1 
+									(Volume_AMD_CP + Volume_AMD_Cl + Volume_AMD_NonTradeCl + Volume_AMD_NonTradeCl_Depo + Volume_AMD_NonTradeCl_Depo) * b.Bid
+								FROM ##t
+								OUTER APPLY (
+									SELECT TOP 1 bid 
+								
+	FROM QORT_BACK_DB.dbo.CrossRates 
+									WHERE InfoSource = 'MainCurBank' AND TradeAsset_ID = 2
+								) b
+								WHERE SubAccCode = @SubAccCode
+							);
+
+					end 
+
+
+
+					select * from ##t
 
 
 

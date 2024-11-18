@@ -52,7 +52,7 @@ BEGIN
 
 		declare @Result varchar(128) 
 
-		declare @NotifyEmail varchar(1024) = 'aleksandr.mironov@armbrok.am'--;aleksey.yudin@armbrok.am;QORT@armbrok.am'--;sona.nalbandyan@armbrok.am;armine.khachatryan@armbrok.am;'
+		declare @NotifyEmail varchar(1024) = 'aleksandr.mironov@armbrok.am;aleksey.yudin@armbrok.am;QORT@armbrok.am'--;sona.nalbandyan@armbrok.am;armine.khachatryan@armbrok.am;'
 
 
 
