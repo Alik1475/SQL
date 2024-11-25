@@ -30,7 +30,7 @@ BEGIN
 
 		DECLARE @NotifyEmail1 VARCHAR(128)
 
-		DECLARE @NotifyMessage VARCHAR(1024)
+		DECLARE @NotifyMessage VARCHAR(max)
 
 		DECLARE @NotifyTitle VARCHAR(64) = 'Upcoming Client Birthdays for Sales: '
 
@@ -214,6 +214,8 @@ BEGIN
 
 				AND Firms.Enabled = 0
 
+			--	and Firms.Sales_ID = 618 -- Victor
+
 				AND ISNULL(ty.FlagName, '') = 'FT_CLIENT'
 
 				AND Firms.STAT_Const NOT IN (
@@ -256,7 +258,7 @@ BEGIN
 
 				);
 
-
+	--select * from #tk return
 
 		DECLARE @SubAccCode VARCHAR(50);
 

@@ -8,7 +8,7 @@
 
 	declare @OutputParam1 float
 
- exec QORT_ARM_SUPPORT.dbo.ReportTurnOverAMDCompliance @DataFrom = '2024-01-01', @DataTo = '2024-11-14', @SubAccCode = 'AS1105', @OutputParam = @OutputParam1 OUTPUT
+ exec QORT_ARM_SUPPORT.dbo.ReportTurnOverAMDCompliance @DataFrom = '2024-01-01', @DataTo = '2024-11-18', @SubAccCode = 'AS1105', @OutputParam = @OutputParam1 OUTPUT
 
 print @OutputParam1
 
@@ -199,63 +199,64 @@ UP BY
 																	(SELECT COALESCE(
     (
         SELECT TOP 1
-            isnull(mar.LastPrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0) AS Rate
-        FROM 
+            IIF(isnull(mar.LastPrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0) = 0, NULL , isnull(mar.LastPrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0))  AS Rate
+   
+     FROM 
             QORT_BACK_DB..MarketInfoHist mar
         OUTER APPLY (
-            SELE
-CT TOP 1 *
+            SELECT TOP 1 *
             FROM QORT_BACK_DB..CrossRatesHist crs 
             WHERE 
-                crs.TradeAsset_ID = mar.PriceAsset_ID
-                AND crs.OldDate =  Cor.RegistrationDate
+          crs.TradeAsset_ID = mar.PriceAsset_ID
+                AND crs.OldDate 
+=  Cor.RegistrationDate
                 AND crs.PriceAsset_ID = 17
-                AND I
-nfoSource = 'CBA'
+                AND InfoSource = 'CBA'
         ) crsCrTra
         WHERE 
             mar.TSSection_ID = 154 -- 'OTC_Securities'
             AND mar.Asset_ID = cor.Asset_ID
-            AND mar.OldDate = Cor.RegistrationDate
+            AND 
+mar.OldDate = Cor.RegistrationDate
     ), 
     (
         SELECT TOP 1
-            isnull
-(mar.SettlePrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0) AS Rate
+            IIF(isnull(mar.SettlePrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0) = 0, NULL , isnull(mar.SettlePrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0)) 
+ AS Rate
         FROM 
             QORT_BACK_DB..MarketInfoHist mar
         OUTER APPLY (
             SELECT TOP 1 *
             FROM QORT_BACK_DB..CrossRatesHist crs 
-            WHER
-E 
+            WHERE 
                 crs.TradeAsset_ID = mar.PriceAsset_ID
-                AND crs.OldDate = Cor.RegistrationDate
+              
+  AND crs.OldDate = Cor.RegistrationDate
                 AND crs.PriceAsset_ID = 17
                 AND InfoSource = 'CBA'
         ) crsCrTra
         WHERE 
-            mar.TSSection_I
-D = 165 -- 'OTC_SWAP'
+            mar.TSSection_ID = 165 -- 'OTC_SWAP'
             AND mar.Asset_ID = cor.Asset_ID
-            AND mar.OldDate = Cor.RegistrationDate
+     
+       AND mar.OldDate = Cor.RegistrationDate
     )
 	, 
     (
         -- Третье выражение (BaseValue)
         SELECT 
-            asse.BaseValue * IIF(asse.BaseCurrencyAsset_ID = 17, 1
-, crsCrA.Bid) AS Rate
+            asse.BaseValue * IIF(asse.BaseCurrencyAsset_ID = 17, 1, crsCrA.Bid) AS Rate
         FROM 
-            QORT_BACK_DB..Assets asse
+            QORT_BACK_DB..Assets as
+se
         OUTER APPLY (
             SELECT TOP 1 *
             FROM QORT_BACK_DB..CrossRatesHist crs 
             WHERE 
                 crs.TradeAsset_ID = asse.BaseCurrencyAsset_ID
-
                 AND crs.OldDate = Cor.RegistrationDate
-                AND crs.PriceAsset_ID = 17
+                
+AND crs.PriceAsset_ID = 17
                 AND InfoSource = 'CBA'
         ) crsCrA
         WHERE 
@@ -459,7 +460,7 @@ D = 165 -- 'OTC_SWAP'
 
 															WHEN asse.AssetClass_Const IN (2, 6, 7, 9) THEN 
 
-																asse.BaseValue * IIF(asse.BaseCurrencyAsset_ID = 17, 1, crsCrA.Bid)*0
+																asse.BaseValue * IIF(asse.BaseCurrencyAsset_ID = 17, 1, crsCrA.Bid)
 
 															ELSE 
 
@@ -470,63 +471,64 @@ D = 165 -- 'OTC_SWAP'
 																	(SELECT COALESCE(
     (
         SELECT TOP 1
-            isnull(mar.LastPrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0) AS Rate
-        FROM 
+           IIF( isnull(mar.LastPrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0) = 0, NULL , isnull(mar.LastPrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0)) AS Rate
+    
+    FROM 
             QORT_BACK_DB..MarketInfoHist mar
         OUTER APPLY (
-            SELE
-CT TOP 1 *
+            SELECT TOP 1 *
             FROM QORT_BACK_DB..CrossRatesHist crs 
             WHERE 
-                crs.TradeAsset_ID = 8 -- mar.PriceAsset_ID
-                AND crs.OldDate = 20230816 -- Cor.RegistrationDate
+                crs.TradeAsset_ID = mar.PriceAsset_ID
+                AND crs.Old
+Date = Cor.RegistrationDate
                 AND crs.PriceAsset_ID = 17
-     
-           AND InfoSource = 'CBA'
+                AND InfoSource = 'CBA'
         ) crsCrTra
         WHERE 
             mar.TSSection_ID = 154 -- 'OTC_Securities'
             AND mar.Asset_ID = cor.Asset_ID
-            AND mar.OldDate = Cor.RegistrationDate
+            
+AND mar.OldDate = Cor.RegistrationDate
     ), 
     (
         SELECT TOP 1
-  
-          isnull(mar.SettlePrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0) AS Rate
+            IIF(isnull(mar.SettlePrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0) = 0, NULL , isnull(mar.SettlePrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 
+0)) AS Rate
         FROM 
             QORT_BACK_DB..MarketInfoHist mar
         OUTER APPLY (
             SELECT TOP 1 *
             FROM QORT_BACK_DB..CrossRatesHist crs 
-
             WHERE 
                 crs.TradeAsset_ID = mar.PriceAsset_ID
-                AND crs.OldDate = Cor.RegistrationDate
+           
+     AND crs.OldDate = Cor.RegistrationDate
                 AND crs.PriceAsset_ID = 17
                 AND InfoSource = 'CBA'
         ) crsCrTra
         WHERE 
-           
- mar.TSSection_ID = 165 -- 'OTC_SWAP'
+            mar.TSSection_ID = 165 -- 'OTC_SWAP'
             AND mar.Asset_ID = cor.Asset_ID
-            AND mar.OldDate = Cor.RegistrationDate
+  
+          AND mar.OldDate = Cor.RegistrationDate
     )
 	, 
     (
         -- Третье выражение (BaseValue)
         SELECT 
-            asse.BaseValue * IIF(asse.BaseCurrency
-Asset_ID = 17, 1, crsCrA.Bid) AS Rate
+            asse.BaseValue * IIF(asse.BaseCurrencyAsset_ID = 17, 1, crsCrA.Bid) AS Rate
         FROM 
-            QORT_BACK_DB..Assets asse
+            QORT_BACK_DB..Assets
+ asse
         OUTER APPLY (
             SELECT TOP 1 *
             FROM QORT_BACK_DB..CrossRatesHist crs 
             WHERE 
-                crs.TradeAsset_ID = asse.BaseC
-urrencyAsset_ID
+                crs.TradeAsset_ID = asse.BaseCurrencyAsset_ID
                 AND crs.OldDate = Cor.RegistrationDate
-                AND crs.PriceAsset_ID = 17
+             
+   AND crs.PriceAsset_ID = 17
                 AND InfoSource = 'CBA'
         ) crsCrA
         WHERE 
@@ -538,7 +540,7 @@ urrencyAsset_ID
 
 													ELSE 
 
-														0 --IIF(cor.Asset_ID = 17, 1, crsCrP.bid)
+														IIF(cor.Asset_ID = 17, 1, crsCrP.bid)
 
 												END, 0
 
@@ -626,9 +628,563 @@ urrencyAsset_ID
 
 										SubAccID;
 
+										---------------------------------набираем суммаы по остстакам  по клиентам c обнулением------------------
+
+								IF OBJECT_ID('tempdb..#t7', 'U') IS NOT NULL DROP TABLE #t7;
+
+							WITH VolumeCalculation1 AS (
+
+										SELECT 
+
+											pos.Subacc_ID AS SubAccID,
+
+											ISNULL(
+
+												CASE 
+
+													WHEN asse.AssetType_Const IN (1) THEN 
+
+														CASE 
+
+															WHEN asse.AssetClass_Const IN (2, 6, 7, 9) THEN 
+
+																asse.BaseValue * IIF(asse.BaseCurrencyAsset_ID = 17, 1, crsCrA.Bid)
+
+															ELSE 
+
+																
 
 
 
+																	(SELECT COALESCE(
+
+    (
+
+        SELECT TOP 1
+
+            IIF(isnull(mar.LastPrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0) = 0 , NULL, isnull(mar.LastPrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0))  AS Rate
+
+        FROM 
+
+            QORT_BACK_DB..MarketInfoHist mar
+
+        OUTER APPLY (
+
+            SELECT TOP 1 *
+
+            FROM QORT_BACK_DB..CrossRatesHist crs 
+
+            WHERE 
+
+                crs.TradeAsset_ID = mar.PriceAsset_ID
+
+                AND crs.OldDate = @DataToInt
+
+                AND crs.PriceAsset_ID = 17
+
+                AND InfoSource = 'CBA'
+
+        ) crsCrTra
+
+        WHERE 
+
+            mar.TSSection_ID = 154 -- 'OTC_Securities'
+
+            AND mar.Asset_ID = pos.Asset_ID
+
+            AND mar.OldDate = @DataToInt
+
+    ), 
+
+    (
+
+        SELECT TOP 1
+
+           IIF( isnull(mar.SettlePrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0) = 0 , NULL ,  isnull(mar.SettlePrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0)) AS Rate
+
+        FROM 
+
+            QORT_BACK_DB..MarketInfoHist mar
+
+        OUTER APPLY (
+
+            SELECT TOP 1 *
+
+            FROM QORT_BACK_DB..CrossRatesHist crs
+
+            WHERE 
+
+                crs.TradeAsset_ID = mar.PriceAsset_ID
+
+                AND crs.OldDate = @DataToInt
+
+                AND crs.PriceAsset_ID = 17
+
+                AND InfoSource = 'CBA'
+
+        ) crsCrTra
+
+        WHERE 
+
+            mar.TSSection_ID = 165 -- 'OTC_SWAP'
+
+            AND mar.Asset_ID = pos.Asset_ID
+
+            AND mar.OldDate = @DataToInt
+
+    )
+
+	, 
+
+    (
+
+        -- Третье выражение (BaseValue)
+
+        SELECT 
+
+            asse.BaseValue * IIF(asse.BaseCurrencyAsset_ID = 17, 1, crsCrA.Bid) AS Rate
+
+        FROM 
+
+            QORT_BACK_DB..Assets asse
+
+        OUTER APPLY (
+
+            SELECT TOP 1 *
+
+            FROM QORT_BACK_DB..CrossRatesHist crs 
+
+            WHERE 
+
+                crs.TradeAsset_ID = asse.BaseCurrencyAsset_ID
+
+                AND crs.OldDate = @DataToInt
+
+                AND crs.PriceAsset_ID = 17
+
+                AND InfoSource = 'CBA'
+
+        ) crsCrA
+
+        WHERE 
+
+            asse.ID = pos.Asset_ID
+
+    )
+
+	)
+
+							)							END
+
+													ELSE 
+
+														IIF(pos.Asset_ID = 17, 1, crsCrP.bid)
+
+												END, 0
+
+											)    * iif(pos.volfree < 0, 0, pos.VolFree )
+
+											AS VolumeAMD
+
+										FROM 
+
+											QORT_BACK_DB.dbo.PositionHist pos
+
+										LEFT OUTER JOIN 
+
+											QORT_BACK_DB.dbo.Assets asse ON asse.id = pos.Asset_ID
+
+										OUTER APPLY (
+											SELECT TOP 1 *
+
+											FROM QORT_BACK_DB..CrossRatesHist crs 
+
+											WHERE 
+
+												crs.TradeAsset_ID = pos.Asset_ID
+
+												AND crs.OldDate = @DataToInt
+
+												AND crs.PriceAsset_ID = 17
+
+										) crsCrP
+
+										OUTER APPLY (
+
+											SELECT TOP 1 *
+
+											FROM QORT_BACK_DB..CrossRatesHist crs 
+
+											WHERE 
+
+												crs.TradeAsset_ID = asse.BaseCurrencyAsset_ID
+
+												AND crs.OldDate = @DataToInt
+
+												AND crs.PriceAsset_ID = 17
+
+										) crsCrA
+
+										WHERE 
+
+											pos.Date = @DataToInt and pos.VolFree > 0
+
+									)
+
+
+
+									SELECT 
+
+										SubAccID,
+
+										SUM(VolumeAMD) AS TotalVolumeAMD
+
+
+
+									INTO #t7
+
+
+
+									FROM 
+
+										VolumeCalculation1
+
+									GROUP BY 
+
+										SubAccID;
+
+
+
+									--	select * from #t7 order by SubAccID desc return
+
+										---------------------------------набираем суммаы по остаткам в разбивке по местам хранения по клиентам ------------------
+
+								IF OBJECT_ID('tempdb..#t8', 'U') IS NOT NULL DROP TABLE #t8;
+
+							WITH VolumeCalculation1 AS (
+
+										SELECT 
+
+											pos.Subacc_ID AS SubAccID,
+
+											pos.Account_ID as Account_ID,
+
+											ISNULL(
+
+												CASE 
+
+													WHEN asse.AssetType_Const IN (1) THEN 
+
+														CASE 
+
+															WHEN asse.AssetClass_Const IN (2, 6, 7, 9) THEN 
+
+																asse.BaseValue * IIF(asse.BaseCurrencyAsset_ID = 17, 1, crsCrA.Bid)
+
+															ELSE 
+
+																
+
+
+
+																	(SELECT COALESCE(
+
+    (
+
+        SELECT TOP 1
+
+            IIF(isnull(mar.LastPrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0) = 0 , NULL, isnull(mar.LastPrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0))  AS Rate
+
+        FROM 
+
+            QORT_BACK_DB..MarketInfoHist mar
+
+        OUTER APPLY (
+
+            SELECT TOP 1 *
+
+            FROM QORT_BACK_DB..CrossRatesHist crs 
+
+            WHERE 
+
+                crs.TradeAsset_ID = mar.PriceAsset_ID
+
+                AND crs.OldDate = @DataToInt
+
+                AND crs.PriceAsset_ID = 17
+
+                AND InfoSource = 'CBA'
+
+        ) crsCrTra
+
+        WHERE 
+
+            mar.TSSection_ID = 154 -- 'OTC_Securities'
+
+            AND mar.Asset_ID = pos.Asset_ID
+
+            AND mar.OldDate = @DataToInt
+
+    ), 
+
+    (
+
+        SELECT TOP 1
+
+           IIF( isnull(mar.SettlePrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0) = 0 , NULL ,  isnull(mar.SettlePrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0)) AS Rate
+
+        FROM 
+
+            QORT_BACK_DB..MarketInfoHist mar
+
+        OUTER APPLY (
+
+            SELECT TOP 1 *
+
+            FROM QORT_BACK_DB..CrossRatesHist crs
+
+            WHERE 
+
+                crs.TradeAsset_ID = mar.PriceAsset_ID
+
+                AND crs.OldDate = @DataToInt
+
+                AND crs.PriceAsset_ID = 17
+
+                AND InfoSource = 'CBA'
+
+        ) crsCrTra
+
+        WHERE 
+
+            mar.TSSection_ID = 165 -- 'OTC_SWAP'
+
+            AND mar.Asset_ID = pos.Asset_ID
+
+            AND mar.OldDate = @DataToInt
+
+    )
+
+	, 
+
+    (
+
+        -- Третье выражение (BaseValue)
+
+        SELECT 
+
+            asse.BaseValue * IIF(asse.BaseCurrencyAsset_ID = 17, 1, crsCrA.Bid) AS Rate
+
+        FROM 
+
+            QORT_BACK_DB..Assets asse
+
+        OUTER APPLY (
+
+            SELECT TOP 1 *
+
+            FROM QORT_BACK_DB..CrossRatesHist crs 
+
+            WHERE 
+
+                crs.TradeAsset_ID = asse.BaseCurrencyAsset_ID
+
+                AND crs.OldDate = @DataToInt
+
+                AND crs.PriceAsset_ID = 17
+
+                AND InfoSource = 'CBA'
+
+        ) crsCrA
+
+        WHERE 
+
+            asse.ID = pos.Asset_ID
+
+    )
+
+	)
+
+							)							END
+
+													ELSE 
+
+														IIF(pos.Asset_ID = 17, 1, crsCrP.bid)
+
+												END, 0
+
+											)    * iif(pos.volfree < 0, 0, pos.VolFree )
+
+											AS VolumeAMD
+
+										FROM 
+
+											QORT_BACK_DB.dbo.PositionHist pos
+
+										LEFT OUTER JOIN 
+
+											QORT_BACK_DB.dbo.Assets asse ON asse.id = pos.Asset_ID
+
+										OUTER APPLY (
+
+											SELECT TOP 1 *
+
+											FROM QORT_BACK_DB..CrossRatesHist crs 
+
+											WHERE 
+
+												crs.TradeAsset_ID = pos.Asset_ID
+
+												AND crs.OldDate = @DataToInt
+
+												AND crs.PriceAsset_ID = 17
+
+										) crsCrP
+
+										OUTER APPLY (
+
+											SELECT TOP 1 *
+
+											FROM QORT_BACK_DB..CrossRatesHist crs 
+
+											WHERE 
+
+												crs.TradeAsset_ID = asse.BaseCurrencyAsset_ID
+
+												AND crs.OldDate = @DataToInt
+
+												AND crs.PriceAsset_ID = 17
+
+										) crsCrA
+
+										WHERE 
+
+											pos.Date = @DataToInt and pos.VolFree > 0
+
+									)
+
+
+
+									SELECT 
+
+										SubAccID,Account_ID,
+
+										SUM(VolumeAMD) AS TotalVolumeAMD
+
+
+
+									INTO #t8
+
+
+
+									FROM 
+
+										VolumeCalculation1
+
+									GROUP BY 
+
+										SubAccID, Account_ID;
+
+
+
+									--	select * from #t8 order by SubAccID desc--return
+
+										
+										
+	IF OBJECT_ID('tempdb..#t9', 'U') IS NOT NULL DROP TABLE #t9;
+	CREATE TABLE #t9 (
+    SubAccID INT,
+    ArmBrok_Mn_Client FLOAT DEFAULT 0,
+
+    CLIENT_CDA_Own FLOAT DEFAULT 0,
+
+    ARMBR_DEPO_BTA FLOAT DEFAULT 0,
+
+    ARMBR_DEPO_MAREX FLOAT DEFAULT 0,
+
+    ARMBR_DEPO FLOAT DEFAULT 0,
+
+    ARMBR_DEPO_GTN FLOAT DEFAULT 0,
+
+    ARMBR_DEPO_MAD FLOAT DEFAULT 0,
+
+    ARMBR_DEPO_AIX FLOAT DEFAULT 0,
+
+    ARMBR_DEPO_RON FLOAT DEFAULT 0,
+
+    ARMBR_DEPO_MTD FLOAT DEFAULT 0,
+
+    ARMBR_DEPO_HFN FLOAT DEFAULT 0,
+
+    ARMBR_DEPO_GPP FLOAT DEFAULT 0,
+
+    ARMBR_MONEY_BLOCK FLOAT DEFAULT 0,
+
+    CLIENT_CDA_Own_Frozen FLOAT DEFAULT 0,
+
+    ARMBR_DEPO_ALOR_PLUS FLOAT DEFAULT 0,
+
+	OTHER FLOAT DEFAULT 0
+
+
+);
+	INSERT INTO #t9 (
+    SubAccID,
+    ArmBrok_Mn_Client,
+    CLIENT_CDA_Own,
+	CLIENT_CDA_Own_Frozen,
+    ARMBR_DEPO_BTA,
+    ARMBR_DEPO_MAREX,
+    ARMBR_DEPO,
+    ARMBR_DEPO_GTN,
+    ARMBR_DEPO_MAD,
+    ARMBR_DEPO_AIX,
+    ARMBR_DEPO_RON,
+    ARMBR_DEP
+O_MTD,
+    ARMBR_DEPO_HFN,
+    ARMBR_DEPO_GPP,
+    ARMBR_MONEY_BLOCK,
+    ARMBR_DEPO_ALOR_PLUS,
+	OTHER
+)
+SELECT 
+    SubAccID,
+    MAX(CASE WHEN Account_ID = 3 THEN TotalVolumeAMD ELSE 0 END) AS ArmBrok_Mn_Client,
+    MAX(CASE WHEN Account_ID = 4 THEN Tot
+alVolumeAMD ELSE 0 END) AS CLIENT_CDA_Own,
+	MAX(CASE WHEN Account_ID = 171 THEN TotalVolumeAMD ELSE 0 END) AS CLIENT_CDA_Own_Frozen,
+    MAX(CASE WHEN Account_ID = 29 THEN TotalVolumeAMD ELSE 0 END) AS ARMBR_DEPO_BTA,
+    MAX(CASE WHEN Account_ID = 176 TH
+EN TotalVolumeAMD ELSE 0 END) AS ARMBR_DEPO_MAREX,
+    MAX(CASE WHEN Account_ID = 2 THEN TotalVolumeAMD ELSE 0 END) AS ARMBR_DEPO,
+    MAX(CASE WHEN Account_ID = 173 THEN TotalVolumeAMD ELSE 0 END) AS ARMBR_DEPO_GTN,
+    MAX(CASE WHEN Account_ID = 174 THE
+N TotalVolumeAMD ELSE 0 END) AS ARMBR_DEPO_MAD,
+    MAX(CASE WHEN Account_ID = 172 THEN TotalVolumeAMD ELSE 0 END) AS ARMBR_DEPO_AIX,
+    MAX(CASE WHEN Account_ID = 22 THEN TotalVolumeAMD ELSE 0 END) AS ARMBR_DEPO_RON,
+    MAX(CASE WHEN Account_ID = 19 TH
+EN TotalVolumeAMD ELSE 0 END) AS ARMBR_DEPO_MTD,
+    MAX(CASE WHEN Account_ID = 34 THEN TotalVolumeAMD ELSE 0 END) AS ARMBR_DEPO_HFN,
+    MAX(CASE WHEN Account_ID = 33 THEN TotalVolumeAMD ELSE 0 END) AS ARMBR_DEPO_GPP,
+    MAX(CASE WHEN Account_ID = 32 TH
+EN TotalVolumeAMD ELSE 0 END) AS ARMBR_MONEY_BLOCK,
+    MAX(CASE WHEN Account_ID = 180 THEN TotalVolumeAMD ELSE 0 END) AS ARMBR_DEPO_ALOR_PLUS,
+	    SUM(
+        CASE 
+            WHEN Account_ID NOT IN (3, 4, 171, 29, 176, 2, 173, 174, 172, 22, 19, 34, 3
+3, 32, 180) THEN TotalVolumeAMD
+            ELSE 0
+        END
+    ) AS OTHER
+FROM #t8
+GROUP BY SubAccID;
+
+
+
+--select * from #t9 order by SubAccID desc 
+
+--return
 
 										-------------------------------------------------------------- основной запрос------------------------------
 
@@ -700,6 +1256,40 @@ urrencyAsset_ID
 
 					, isnull(t6.TotalVolumeAMD,0) Volume_AMD_NonTradeCl_Depo 
 
+					, isnull(t7.TotalVolumeAMD,0) Volume_AMD_CurrentPosition ,
+
+						Isnull(t9.ArmBrok_Mn_Client, 0) ArmBrok_Mn_Client,
+
+						Isnull(t9.CLIENT_CDA_Own, 0) CLIENT_CDA_Own,
+
+						Isnull(t9.CLIENT_CDA_Own_Frozen, 0) CLIENT_CDA_Own_Frozen,
+
+						Isnull(t9.ARMBR_DEPO_BTA, 0) ARMBR_DEPO_BTA,
+
+						Isnull(t9.ARMBR_DEPO_MAREX, 0) ARMBR_DEPO_MAREX,
+
+						Isnull(t9.ARMBR_DEPO, 0) ARMBR_DEPO,
+
+						Isnull(t9.ARMBR_DEPO_GTN, 0) ARMBR_DEPO_GTN,
+
+						Isnull(t9.ARMBR_DEPO_MAD, 0) ARMBR_DEPO_MAD,
+
+						Isnull(t9.ARMBR_DEPO_AIX, 0) ARMBR_DEPO_AIX,
+
+						Isnull(t9.ARMBR_DEPO_RON, 0) ARMBR_DEPO_RON,
+
+						Isnull(t9.ARMBR_DEPO_MTD, 0) ARMBR_DEPO_MTD,
+
+						Isnull(t9.ARMBR_DEPO_HFN, 0) ARMBR_DEPO_HFN,
+
+						Isnull(t9.ARMBR_DEPO_GPP, 0) ARMBR_DEPO_GPP,
+
+						Isnull(t9.ARMBR_MONEY_BLOCK, 0) ARMBR_MONEY_BLOCK,
+
+						Isnull(t9.ARMBR_DEPO_ALOR_PLUS, 0) ARMBR_DEPO_ALOR_PLUS,
+
+						Isnull(t9.OTHER , 0) OTHER
+
 					--,  * 
 
 
@@ -748,6 +1338,11 @@ pe_ID IN (68)
 						ON t5.SubAcc_ID = sub.ID
 					full JOIN #t6 t6
 						ON t6.SubAccID = sub.ID
+					full JOIN 
+#t7 t7
+						ON t7.SubAccID = sub.ID
+					full JOIN #t9 t9
+						ON t9.SubAccID = sub.ID
 
 					
 

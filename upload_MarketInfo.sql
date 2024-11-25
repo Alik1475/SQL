@@ -2,7 +2,7 @@
 
  
 
--- exec QORT_ARM_SUPPORT.dbo.upload_MarketInfo @ip = '192.168.13.59',	@IsinCode = 'XS2080321198 CORP'
+-- exec QORT_ARM_SUPPORT.dbo.upload_MarketInfo @ip = '192.168.13.80',	@IsinCode = 'AMACBAB28ER5 CORP'
 
 
 
@@ -97,14 +97,14 @@ BEGIN
 			left outer join QORT_BACK_DB.dbo.Assets ass on ass.id = m.Asset_ID
 			
 		 where ass.ISIN = left(ca1.code,12) and olddate = @ytdDateint and (isnull(LastPrice,0) <> 0 OR isnull(M
-arketPrice,0) <> 0) --OR ISNULL(pr1.Value, 0) = 1
+arketPrice,0) <> 0) and m.TSSection_ID = 154
 )
 
 and ISNULL(pr1.Value, 0) <> 1
 
 
 
-		--and ca1.CODE = 'XS1392917784 CORP'
+		--and ca1.CODE = 'XS2010043904 CORP'
 
 			end
 	else 
@@ -117,7 +117,7 @@ and ISNULL(pr1.Value, 0) <> 1
 	end
 
 
-		SELECT * FROM @CodeAssets --return
+		--SELECT * FROM @CodeAssets return
 
         -- Создаем временную таблицу для хранения данных
 
@@ -476,7 +476,7 @@ B..Trades trad
         left outer join QORT_BACK_DB..Assets ass on ass.id = sec.Asset_ID
         left outer join QORT_BACK_DB..Assets ass1 on ass1.id = trad.CurrPriceAsset_
 ID
-        where ass.AssetClass_Const in (5,8,11,18) 
+        where ass.AssetClass_Const in (5,6,7,9,8,11,16,18)  
         and trad.TradeDate < @n
 		AND Trad.VT_Const NOT IN (12, 10) -- сделка не расторгнута
 

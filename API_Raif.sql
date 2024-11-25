@@ -518,13 +518,17 @@ ation: Bearer ' + @AccessToken + '" ' + '--header "Accept: application/json" ' +
 
 	FROM #ParsedResults
 
-	WHERE IntradayOperationId IN (
+	WHERE (IntradayOperationId IN (
 
 			SELECT par.IntradayOperationId
 
 			FROM QORT_ARM_SUPPORT.dbo.IntradayOperationId par
 
-			);
+			))
+
+			OR
+
+			(LEFT(Purpose,6) = 'Резерв');
 
 --*/
 

@@ -398,6 +398,14 @@ ms
 
 			select * from #comm-- where ISIN = 'AMGB1029A250'
 
+		
+
+			DELETE from QORT_BACK_TDB..CheckPositions -- удаляем значения перед загрузкой новых.
+
+			where CheckDate = @CheckDateInt and InfoSource = 'DEPEND' 
+
+			or (Date = @TodayDateInt and InfoSource = 'DEPEND')
+
 
 
 			if OBJECT_ID('tempdb..##comms', 'U') is not null drop table ##comms
@@ -1046,8 +1054,8 @@ ms
 
 					insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel, logRecords)
 
-					select 'File uploaded: ' + @FileName + ', lines: ' + cast(@rowsInFile as varchar) +', new Commissions: ' + cast((@rowsNew - @rowsError) as varchar) + ' / ' + cast((@rowsNew) as varchar) logMessage, iif(@rowsError > 0, 1001, 2001) errorLevel, (@rowsN
-ew - @rowsError) logRecords
+					select 'File uploaded: ' + @FileName + ', lines: ' + cast(@rowsInFile as varchar) +', new Commissions: ' + cast((@rowsNew - @rowsError) as varchar) + ' / ' + cast((@rowsNew) as varchar) logMessage, iif(@rowsError > 0, 1001, 2001) errorLevel, (@rowsNe
+w - @rowsError) logRecords
 
 				end
 
