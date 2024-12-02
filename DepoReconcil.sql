@@ -61,6 +61,10 @@ m;armine.khachatryan@armbrok.am'
 
 
 
+		exec QORT_ARM_SUPPORT.dbo.upload_Depolite @QueryDate = @ytdDate
+
+
+
 		if not exists (select 1 from QORT_BACK_TDB..CheckPositions where InfoSource in ('DEPOLITE') and CheckDate = @ytdInt) return
 
 		if not exists (select 1 from QORT_BACK_TDB..CheckPositions where InfoSource in ('DEPEND') and CheckDate = @ytdInt) return
@@ -119,7 +123,7 @@ WHERE RowNum > 1;
 
 	select CAST((isnull(chk.subacc_code,'')+'/'+isnull(chk.account_ExportCode,'')+'/'+cast(isnull(asss.isin,right(Asset_ShortName,12)) as varchar(128)) collate Cyrillic_General_CS_AS)  as varchar(128))  subcontoOUT
 
-		, chk.Subacc_Code Subacc_Code, Asset_ShortName Asset_ShortName, isnull(volfree,0) volume, InfoSource
+		, chk.Subacc_Code Subacc_Code, Asset_ShortName Asset_ShortName, round(isnull(volfree,0),4) volume, InfoSource
 
 	into #t1
 

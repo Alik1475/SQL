@@ -1,5 +1,5 @@
 ﻿
--- exec QORT_ARM_SUPPORT..Asset_insert @IsinCodes = 'USF1067PAF39 corp'
+-- exec QORT_ARM_SUPPORT..Asset_insert @IsinCodes = 'US912797ML87 corp'
 
 CREATE PROCEDURE [dbo].[Asset_insert]
 @IP VARCHAR(16)= '192.168.13.80',
@@ -210,7 +210,7 @@ BEGIN
 
 		--where s.Enabled <> s.id and b.isin is null --and s.ISIN = 'US8716071076'
 
-		 return
+		-- return
 
 
 

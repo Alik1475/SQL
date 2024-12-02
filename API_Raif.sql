@@ -632,7 +632,7 @@ ation: Bearer ' + @AccessToken + '" ' + '--header "Accept: application/json" ' +
 
 								LEFT OUTER JOIN QORT_BACK_DB..Subaccs sub ON sub.id = cla.SubAcc_ID
 
-								WHERE cla.Num = SUBSTRING(Purpose, PATINDEX('%[А-ЯA-Z][А-ЯA-Z][0-9][0-9][0-9][0-9][0-9][0-9]/[0-9][0-9]%', Purpose), 11) collate Cyrillic_General_CI_AS
+								WHERE right(cla.Num,9) = SUBSTRING(Purpose, PATINDEX('%[0-9][0-9][0-9][0-9][0-9][0-9]/[0-9][0-9]%', Purpose), 9) collate Cyrillic_General_CI_AS
 
 								)
 
