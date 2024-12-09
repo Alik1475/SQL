@@ -1,6 +1,6 @@
 ﻿
 
---exec QORT_ARM_SUPPORT.dbo.upload_Depolite @QueryDate = '20241128'
+--exec QORT_ARM_SUPPORT.dbo.upload_Depolite @QueryDate = '20241202'
 
 
 
@@ -12,7 +12,7 @@ AS
 
  BEGIN
 
-
+ EXECUTE AS LOGIN = 'aleksandr.mironov'
 
 	SET NOCOUNT ON
 
@@ -180,6 +180,8 @@ select row_number() over(order by t.account) rn
 
 			where t.QUERY_DATE = @QueryDate
 
+			
+
 			select * from #comms 
 
 
@@ -224,6 +226,7 @@ select row_number() over(order by t.account) rn
 						FROM 
 							#com
 ms
+							where Code not in ('AS1109')-- временно убрал счет Алора, чтобы не дублировался. К двум AS привязан один депо
 						GROUP BY 
 							checkdate, 
 							ISIN, 
@@ -252,7 +255,7 @@ ms
 
 	end catch
 
+	REVERT;
 
-
-END
+END;
 

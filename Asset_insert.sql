@@ -1,5 +1,5 @@
 ﻿
--- exec QORT_ARM_SUPPORT..Asset_insert @IsinCodes = 'US912797ML87 corp'
+-- exec QORT_ARM_SUPPORT..Asset_insert @IsinCodes = 'US00212E1038 EQUITY'
 
 CREATE PROCEDURE [dbo].[Asset_insert]
 @IP VARCHAR(16)= '192.168.13.80',
@@ -31,7 +31,92 @@ BEGIN
 
 		declare @Message varchar(1024)
 
-		
+		declare  @WaitCount int = 1200
+
+		while (@WaitCount > 0 and not exists (select top 1 1 from QORT_ARM_SUPPORT.dbo.BloombergData where Code = @IsinCodes))
+
+		begin
+
+			waitfor delay '00:00:03'
+
+			set @WaitCount = @WaitCount - 1
+
+		end
+
+		-----добавление эмитента если нет-----------------------
+
+		IF(NOT EXISTS (
+				select 1 
+				from QORT_BACK_DB.dbo.firms a
+				left outer join QORT_ARM_SUPPORT.dbo.BloombergData blm on blm.Issuer_Bulk = a.CBR_ShortName COLLATE SQL_Latin1_General_CP1_CI_AS
+				where blm.code = @IsinCodes and a.Enabled = 0 
+				a
+nd DATE = @TodayDateInt
+			))
+
+			begin
+
+
+
+				 insert into QORT_BACK_TDB.dbo.Firms (ET_Const, IsProcessed, BOCode, CBR_ShortName, name, FirmShortName,EngName,EngShortName,FT_Flags,IsResident, isfirm)
+
+				  select distinct 2 as ET_Const, 1 as IsProcessed
+
+				  , '0'+ CAST(isnull(BOCodeMax.BOC, '7000') AS varchar(12)) as BOCode
+
+				  , bl.Issuer_Bulk as CBR_ShortName 
+
+				  , bl.Issuer_Bulk as name
+
+				  , bl.Issuer_Bulk as FirmShortName
+
+				  , bl.Issuer_Bulk as EngName
+
+				  , bl.Issuer_Bulk as EngShortName
+
+				  , 128 as FT_Flags -- issue
+
+				  , iif(bl.DS497 = 'ARMENIA', 'y', 'n')  as IsResident
+
+				  , 'y' as isfirm
+
+				  --, fir.CBR_ShortName, ass.ISIN, * 
+
+				  FROM QORT_ARM_SUPPORT.dbo.BloombergData bl
+
+				outer apply (
+					SELECT (MAX(CAST((BOCode) AS INT)) + 1) AS BOC
+					FROM QORT_BACK_DB.dbo.Firms
+					WHERE 
+						ISNUMERIC(BOCode) = 1 -- Проверяем, что значение является числовым
+						AND TRY_CAST(BOCode AS INT) >= 7000 -- Проверяем, что значени
+е больше 7000
+						AND TRY_CAST(BOCode AS INT) < 8000 -- Проверяем, что значение меньше 8000
+				) BOCodeMax
+
+				where DATE = @TodayDateInt and Code = @IsinCodes
+
+
+
+  end --RETURN
+
+  				 -------------------- задержка----------------------
+
+		while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB.dbo.Firms t with (nolock) where t.IsProcessed in (1,2)))
+
+		begin
+
+			waitfor delay '00:00:03'
+
+			set @WaitCount = @WaitCount - 1
+
+		end
+
+
+
+
+
+
 
 		--/*
 
@@ -63,6 +148,8 @@ BEGIN
 
 			, Scale
 
+			, EmitentBOCode
+
 		) 
 
 	--	*/
@@ -75,7 +162,7 @@ BEGIN
 
 
 
-			 , CASE WHEN BL.DS122 = 'Equity' AND (BL.DS674 = 'Common Stock' OR BL.DS674 = 'Depositary Receipt' OR BL.DS674 = 'Preference')
+			 , CASE WHEN BL.DS122 = 'Equity' AND (BL.DS674 = 'Common Stock' OR BL.DS674 = 'Preference')
 
 				THEN 5 -- Equity RF(AC_SEC)
 
@@ -86,6 +173,10 @@ BEGIN
 				WHEN BL.DS122 = 'Corp' OR BL.DS122 = 'Govt' 
 
 				THEN 6 --	RF gov. bonds(AC_SNSEC)
+
+				WHEN BL.DS122 = 'Equity' and BL.DS674 = 'Depositary Receipt'
+
+				THEN 16 --	RDR(ADR)(AC_RDR)
 
 				ELSE 0
 
@@ -99,7 +190,7 @@ BEGIN
 
 				WHEN BL.DS122 = 'Equity' AND BL.DS674 = 'Preference'
 
-				THEN 2 -- 	Preferred/Preference shares(AS_SEC_PREV)
+				THEN 78 -- 	Preferred/Preference shares(AS_PREF)
 
 				WHEN BL.DS122 = 'Equity' AND BL.DS674 = 'Depositary Receipt'
 
@@ -111,11 +202,11 @@ BEGIN
 
 				WHEN BL.DS122 = 'Govt' 
 
-				THEN 6 --	Corporate bonds(AS_CORP)
+				THEN 3 --	Federal loan bonds(AS_OFZ)
 
 				WHEN BL.DS122 = 'Corp'  
 
-				THEN 3 --	Federal loan bonds(AS_OFZ)
+				THEN 6 --	Corporate bonds(AS_CORP)
 
 				ELSE 0
 
@@ -190,9 +281,18 @@ BEGIN
 
 			, 8 Scale
 
+			, BOCO.BOC as EmitentBOCode
+
 			--into #t
 
 		 FROM QORT_ARM_SUPPORT.dbo.BloombergData BL
+
+		 outer apply
+					(select top 1 BOCode as BOC
+							from QORT_BACK_DB.dbo.firms a
+							where bl.Issuer_Bulk = a.CBR_ShortName
+
+					) BOCO
 
 		 WHERE BL.Code = @IsinCodes AND BL.Found = 1
 
@@ -201,6 +301,10 @@ BEGIN
 				from QORT_BACK_DB.dbo.Assets a
 				where a.ISIN = LEFT(@IsinCodes,12) and a.Enabled = 0
 			)
+
+
+
+
 
 		--left outer join QORT_BACK_DB_TEST.dbo.Assets ass with (nolock) on ass.ISIN = s.ISIN and ass.AssetClass_Const <> 2 
 
@@ -216,7 +320,7 @@ BEGIN
 
 
 
-				declare  @WaitCount int = 1200 -------------------- задержка----------------------
+				 -------------------- задержка----------------------
 
 		while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB.dbo.Assets t with (nolock) where t.IsProcessed in (1,2)))
 
@@ -290,7 +394,7 @@ BEGIN
 				where a.ShortName = s.ShortName and a.Enabled = 0
 			)
 
-	declare @t table(code varchar(36))
+	/*declare @t table(code varchar(36))
 
 	insert into @t(code)
 
@@ -302,13 +406,21 @@ BEGIN
 
 	select * from @t
 
-
+	*/
 
 	--------------------запуск добавления котировки и купона-----------------------------
 
 	exec QORT_ARM_SUPPORT.dbo.upload_MarketInfo @IP, @IsinCode = @IsinCodes
 
 	--------------------------------------------------------------------------------
+
+	
+
+
+
+	
+
+
 
 	end try
 

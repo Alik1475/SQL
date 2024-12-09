@@ -52,7 +52,7 @@ BEGIN
 
 		from QORT_ARM_SUPPORT..IDTradeHistForCheckInstr r
 
-			
+		--set @OldIDTradeHist = 19770 	
 
 		select @CurIDTradeHist = max(h.id)
 
@@ -202,9 +202,9 @@ having
 
 		-- блок формирования уведомления о сделке с бумагой в санкционном списке
 
-			declare @result table (TradeDate int, TradeID int, ISIN varchar(16), AssetName varchar(32), IssueName varchar(256), ClientName varchar (256), SubAccCode varchar (40), CustomerCode varchar (30) )
+			declare @result table (TradeDate int, TradeID int, ISIN varchar(16), AssetName varchar(32), IssueName varchar(256), ClientName varchar (256), SubAccCode varchar (40), CustomerCode varchar (30) , Comment varchar (256))
 
-insert into @result (TradeDate, TradeID, ISIN, AssetName, IssueName, ClientName, SubAccCode, CustomerCode)
+insert into @result (TradeDate, TradeID, ISIN, AssetName, IssueName, ClientName, SubAccCode, CustomerCode, Comment)
 
 	select TradeDate
 
@@ -221,6 +221,8 @@ insert into @result (TradeDate, TradeID, ISIN, AssetName, IssueName, ClientName,
 	 , l.SubAccCode SubAccCode
 
 	 , l.ConstitutorCode CustomerCode
+
+	 , k.Comment AS  Comment
 
 	 
 
@@ -274,17 +276,17 @@ insert into @result (TradeDate, TradeID, ISIN, AssetName, IssueName, ClientName,
 
 				+ '//2\\' + cast (tt.ISIN as varchar)-- collate Cyrillic_General_CI_AS
 
-				+ '//2\\' + tt.Assetname collate Cyrillic_General_CI_AS 
+				+ '//2\\' + isnull(tt.Assetname,'') collate Cyrillic_General_CI_AS 
 
-				+ '//2\\' + tt.IssueName collate Cyrillic_General_CI_AS 
+				+ '//2\\' + isnull(tt.IssueName,'') collate Cyrillic_General_CI_AS 
 
-				+ '//2\\' + tt.ClientName collate Cyrillic_General_CI_AS 
+				+ '//2\\' + isnull(tt.ClientName,'') collate Cyrillic_General_CI_AS 
 
-				+ '//2\\' + tt.SubAccCode collate Cyrillic_General_CI_AS --PriceCurrency
+				+ '//2\\' + isnull(tt.SubAccCode,'') collate Cyrillic_General_CI_AS --PriceCurrency
 
-				+ '//2\\' + tt.CustomerCode collate Cyrillic_General_CI_AS
+				+ '//2\\' + isnull(tt.CustomerCode,'') collate Cyrillic_General_CI_AS
 
-				--+ '//2\\' + tt.ClientName --collate Cyrillic_General_CI_AS
+				+ '//2\\' + isnull(tt.Comment,'') collate Cyrillic_General_CI_AS
 
 				--+ '//2\\' + iif(t.BuySell = 1, 'Buy', 'Sell') --Operation
 
@@ -340,9 +342,9 @@ insert into @result (TradeDate, TradeID, ISIN, AssetName, IssueName, ClientName,
 
 			+ '</td><td>CustomerCode'
 
-			/*+ '</td><td>Price'
+			+ '</td><td>Comment'
 
-			+ '</td><td>PriceCurrency'
+			/*+ '</td><td>PriceCurrency'
 
 			+ '</td><td>Volume'
 

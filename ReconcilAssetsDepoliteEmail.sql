@@ -18,7 +18,7 @@ AS
 
 BEGIN
 
-
+ EXECUTE AS LOGIN = 'aleksandr.mironov';
 
 	begin try
 
@@ -82,19 +82,41 @@ BEGIN
 
 	, s2.StatusTXT
 
+	, CUSTOM.NAME_ARM CUSTOMER_NAME_ARM
+
+	, CUSTOM.NAME_ENG CUSTOMER_NAME_ENG
+
+	, CUSTOM.CUSTOMER id_CUSTOMER
+
+	, FIR.Name emname
+
+	, FIRp.NameU
+
+	, FIR.BOCode BOCode
+
+	, FIR.EmitCode EmitCode
+
+	, custom.DEDNUM DEDNUM
+
 	--,* 
 
 	into ##result
 
 	from [192.168.13.8].[Depositary].[dbo].[SECURKIND] sec
 
-  outer apply(select top 1 NAME_A as NAME_ARM, NAME_E as NAME_ENG from [192.168.13.8].[Depositary].[dbo].[DICTION_S] where NUMID = sec.KIND and CCOLUMN = 'KIND') KIND
+  outer apply(select top 1 NAME_A as NAME_ARM, NAME_E as NAME_ENG from [192.168.13.8].[Depositary].[dbo].[DICTION_S] where NUMID = sec.KIND and CCOLUMN = 'KIND' and CTABLE = 'SECUR') KIND
 
-  outer apply(select top 1 NAME_A as NAME_ARM, NAME_E as NAME_ENG from [192.168.13.8].[Depositary].[dbo].[DICTION_S] where NUMID = sec.TYPE and CCOLUMN = 'TYPE') TYPE
+  outer apply(select top 1 NAME_A as NAME_ARM, NAME_E as NAME_ENG from [192.168.13.8].[Depositary].[dbo].[DICTION_S] where NUMID = sec.TYPE and CCOLUMN = 'TYPE' AND CTABLE = 'SECUR') TYPE
+
+  outer apply(select top 1 NAME_A as NAME_ARM, NAME_E as NAME_ENG, CUSTOMER AS  CUSTOMER, DEDNUM as DEDNUM from [192.168.13.8].[Depositary].[dbo].[CUSTOMER] where CUSTOMER = sec.OWNER) CUSTOM
 
   full outer join [QORT_BACK_DB].[dbo].[Assets] ass on ass.ISIN = Sec.num COLLATE SQL_Latin1_General_CP1_CI_AS and Enabled = 0 
 
 	left outer join QORT_BACK_DB.dbo.Assets assCur on assCur.id =  ass.BaseCurrencyAsset_ID
+
+	left outer join QORT_BACK_DB.dbo.Firms FIR on FIR.id =  ass.EmitentFirm_ID
+
+	left outer join QORT_BACK_DB.dbo.FirmProperties FIRP ON FIRP.Firm_ID = FIR.id
 
 		outer apply (
 
@@ -116,7 +138,7 @@ SELECT
 
             + CASE 
 
-                WHEN sec.kind = 2 AND ass.AssetClass_Const NOT IN (6) THEN 
+                WHEN sec.kind = 2 AND ass.AssetClass_Const NOT IN (6)  and ass.AssetSort_Const not IN (3) and ass.COUNTRY COLLATE SQL_Latin1_General_CP1_CI_AS not IN ('Armenia') THEN 
 
                     ', KIND: ' + sec.num + type.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' '
 
@@ -140,23 +162,43 @@ SELECT
 
                     ', NOMINAL: ' + CAST(sec.MINAMNT AS VARCHAR(12)) + ' depolite/qort ' + CAST(ass.BaseValue AS VARCHAR(12))
 
-                ELSE ''
+      ELSE ''
 
               END
+
+				+ CASE 
+
+					WHEN isnull(custom.DEDNUM,'') COLLATE SQL_Latin1_General_CP1_CI_AS <> isnull(FIR.BOCode,' ') COLLATE SQL_Latin1_General_CP1_CI_AS THEN 
+
+						', ISSUE: ' + CAST(isnull(custom.NAME_ARM,'') COLLATE SQL_Latin1_General_CP1_CI_AS AS VARCHAR(12)) 
+
+						+ ' depolite/qort ' 
+
+						+ CAST(isnull(FIR.Name,'') COLLATE SQL_Latin1_General_CP1_CI_AS AS VARCHAR(12))
+
+					ELSE ''
+
+				  END
 
             + CASE 
 
                 WHEN sec.kind = 4 AND ass.COUNTRY COLLATE SQL_Latin1_General_CP1_CI_AS IN ('Armenia') THEN 
 
-                    ', KIND: ' + sec.num + type.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' DEPOLITE/Qort-Armenia'
+                    ', KIND: ' + sec.num + '_'+ KIND.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' DEPOLITE/Qort-Armenia'
 
                 WHEN sec.kind = 3 AND ass.COUNTRY COLLATE SQL_Latin1_General_CP1_CI_AS NOT IN ('Armenia') THEN 
 
-                    ', KIND: ' + sec.num + type.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' DEPOLITE/Qort-notArmenia'
+                    ', KIND: ' + sec.num + '_'+ KIND.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' DEPOLITE/Qort-notArmenia'
 
-                WHEN sec.kind IN (1, 5) AND (ass.AssetClass_Const IN (6) OR ass.COUNTRY COLLATE SQL_Latin1_General_CP1_CI_AS IN ('Armenia')) THEN 
+                WHEN sec.kind IN (1) AND (ass.AssetClass_Const IN (6) and ass.COUNTRY COLLATE SQL_Latin1_General_CP1_CI_AS not IN ('Armenia')) THEN 
 
-                    ', KIND: ' + sec.num + type.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' DEPOLITE/Qort-notOther'
+                    ', KIND: ' + sec.num + '_'+ KIND.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' DEPOLITE/Qort-notOther'
+
+					WHEN sec.kind IN (5) AND (ass.AssetClass_Const not IN (11) and ass.COUNTRY COLLATE SQL_Latin1_General_CP1_CI_AS not IN ('Armenia')) THEN 
+
+                    ', KIND: ' + sec.num + '_'+ KIND.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' DEPOLITE/Qort-notOther'
+
+					
 
                 ELSE ''
 
@@ -166,27 +208,27 @@ SELECT
 
                 WHEN sec.type = 1 AND ((ass.AssetClass_Const NOT IN (6, 7, 9) OR ass.IsCouponed = 'y')) THEN 
 
-                    ', TYPE: ' + sec.num + type.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' DEPOLITE/Qort-withCoupon'
+                    ', TYPE: ' + sec.num +'_'+ type.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' DEPOLITE/Qort-withCoupon'
 
                 WHEN sec.type = 2 AND ((ass.AssetClass_Const NOT IN (6, 7, 9) OR ass.IsCouponed = 'n')) THEN 
 
-                    ', TYPE: ' + sec.num + type.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' DEPOLITE/Qort-notCoupon'
+                    ', TYPE: ' + sec.num + '_'+ type.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' DEPOLITE/Qort-notCoupon'
 
                 WHEN sec.type IN (3, 7, 8) AND ((ass.AssetClass_Const NOT IN (8,5) OR ass.AssetSort_Const NOT IN (1))) THEN 
 
-                    ', TYPE: ' + sec.num + type.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' DEPOLITE/Qort-NOTcommon'
+                    ', TYPE: ' + sec.num + '_'+ type.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' DEPOLITE/Qort-NOTcommon'
 
                 WHEN sec.type IN (4) AND ((ass.AssetClass_Const NOT IN (8,5) OR ass.AssetSort_Const NOT IN (2))) THEN 
 
-                    ', TYPE: ' + sec.num + type.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' DEPOLITE/Qort-NOTpreferred'
+                    ', TYPE: ' + sec.num + '_'+ type.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' DEPOLITE/Qort-NOTpreferred'
 
                 WHEN sec.type IN (5) AND ass.AssetClass_Const NOT IN (18) THEN 
 
-                    ', TYPE: ' + sec.num + type.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' DEPOLITE/Qort-notETF'
+                    ', TYPE: ' + sec.num + '_'+ type.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' DEPOLITE/Qort-notETF'
 
                 WHEN sec.type IN (6) AND ass.AssetClass_Const NOT IN (16) THEN 
 
-                    ', TYPE: ' + sec.num + type.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' DEPOLITE/Qort-notADR'
+                    ', TYPE: ' + sec.num + '_'+ type.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' DEPOLITE/Qort-notADR'
 
                 ELSE ''
 
@@ -256,11 +298,67 @@ SELECT
 
 	
 
-  where NOT (Sec.num IS NULL AND ass.ISIN IS NULL) and ass.AssetClass_Const not in(2,3,4,12,13,14,15,17) and ass.Enabled = 0 and ass.CancelDate < @todayInt
+  where NOT (Sec.num IS NULL or ass.ISIN IS NULL) 
+
+  and not (Sec.num = '' or ass.ISIN = '')
+
+  and ass.Enabled = 0 and (ass.CancelDate > @todayInt or isnull(ass.CancelDate,0) < 20001231)
+
+   and ass.AssetClass_Const not in(2,3,4,12,13,14,15,17) 
+
+   and ass.IsTrading = 'y'
 
 
 
 	select * from ##result --order by BOCode
+
+/*
+
+	insert into QORT_BACK_TDB..Firms (ET_Const, IsProcessed, BOCode, EmitCode)
+
+	select distinct 4 as ET_Const, 1 as IsProcessed, BOCode, id_CUSTOMER as EmitCode
+
+from ##result
+
+where id_CUSTOMER is not null --and BOCode = '01247'
+
+
+
+where IsFirm = 'y' and Enabled = 0 a
+
+and EXISTS (
+
+    SELECT 1
+
+    FROM QORT_ARM_SUPPORT.dbo.FTGetIncludedFlags(f.FT_Flags) g
+
+    WHERE g.FlagName = 'FT_EMITENT'
+
+);
+
+
+
+
+
+UPDATE [192.168.13.8].Depositary.dbo.CUSTOMER
+
+SET DEDNUM = r.BOCode
+
+--select r.BOCode --'00215'
+
+FROM [192.168.13.8].Depositary.dbo.CUSTOMER c
+
+JOIN QORT_BACK_DB.dbo.Firms r
+
+ON c.CUSTOMER = r.EmitCode
+
+WHERE isnull(r.EmitCode,'') <> ''
+
+and r.EmitCode = 6244;
+
+
+
+--*/
 
 	return
 
@@ -315,7 +413,6 @@ SELECT
 			+ ' from ##Result order by ISINQ'
 
 		exec(@sql2)
-
 		*/
 
 		declare @NotifyMessage varchar(max)
@@ -504,7 +601,7 @@ SELECT
 
 	end catch
 
-
+	REVERT;
 
 END
 
