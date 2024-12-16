@@ -8,7 +8,7 @@
 
 
 
--- exec QORT_ARM_SUPPORT.dbo.LoadFirmDepolite @BOCode = '01475'
+-- exec QORT_ARM_SUPPORT.dbo.LoadFirmDepolite @BOCode = '07003'
 
 
 
@@ -256,7 +256,7 @@ FROM QORT_BACK_DB.dbo.Firms f
 
 left outer join QORT_BACK_DB.dbo.FirmProperties pro on pro.Firm_ID = f.id
 
-left outer join QORT_BACK_DB.dbo.Countries c on c.ID = f.Country_ID
+left outer join QORT_BACK_DB.dbo.Countries c on c.ID = pro.TaxResidentCountry_ID
 
 WHERE f.BOCode = @BOCode
 
@@ -321,7 +321,6 @@ where DEDNUM = @BOCode
 end
 
 else
-
 begin
 
 print 'customer old'

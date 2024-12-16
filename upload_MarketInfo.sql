@@ -73,7 +73,9 @@ BEGIN
         );
 
 		    -- Заполнение таблицы #Curloutput данными
+
 		 if (@IsinCode is null) 
+
    begin
 
 
@@ -85,6 +87,7 @@ BEGIN
         SELECT ca1.assid, ca1.ShortName, ca1.code FROM ##CodeAssets ca1
 
 		OUTER APPLY(
+
 			SELECT top 1 PR.Value FROM QORT_BACK_DB.dbo.Assets ass1-- WHERE LEFT(CA1.CODE,12) = ass1.ISIN
 
 			LEFT OUTER JOIN QORT_BACK_DB.dbo.AssetProperties PR ON PR.Asset_ID = ass1.ID
@@ -92,12 +95,17 @@ BEGIN
 			WHERE PR.AssetOption_ID = 2 AND LEFT(ca1.code ,12) = ass1.ISIN) pr1
 
 		where NOT EXISTS (
+
 		 select 1 
+
 			from QORT_BACK_DB.dbo.MarketInfoHist m
+
 			left outer join QORT_BACK_DB.dbo.Assets ass on ass.id = m.Asset_ID
+
 			
-		 where ass.ISIN = left(ca1.code,12) and olddate = @ytdDateint and (isnull(LastPrice,0) <> 0 OR isnull(M
-arketPrice,0) <> 0) and m.TSSection_ID = 154
+
+		 where ass.ISIN = left(ca1.code,12) and olddate = @ytdDateint and (isnull(ClosePrice,0) <> 0 OR isnull(MarketPrice,0) <> 0) and m.TSSection_ID = 154
+
 )
 
 and ISNULL(pr1.Value, 0) <> 1
@@ -107,14 +115,21 @@ and ISNULL(pr1.Value, 0) <> 1
 		--and ca1.CODE = 'XS2010043904 CORP'
 
 			end
+
 	else 
+
 	begin
+
 	
+
 	INSERT INTO @CodeAssets (ASSID, Asset_ShortName, Code)
 
         
+
 	VALUES (0, (select top 1 shortname from QORT_BACK_DB.dbo.Assets where ISIN = LEFT(@IsinCode,12)), @IsinCode)
+
 	end
+
 
 
 		--SELECT * FROM @CodeAssets return
@@ -133,7 +148,7 @@ and ISNULL(pr1.Value, 0) <> 1
 
             IsProcent CHAR(1),
 
-            LastPrice FLOAT,
+            ClosePrice FLOAT,
 
 			MarketPrice FLOAT,
 
@@ -153,7 +168,7 @@ and ISNULL(pr1.Value, 0) <> 1
 
 
 
-        INSERT INTO #t (IsProcessed, Code, Asset_ShortName, ASSID, IsProcent, LastPrice, MarketPrice, MarketPrice2, OldDate, TSSection_Name, PriceAsset_ShortName /*,Accruedint, DS027*/)
+        INSERT INTO #t (IsProcessed, Code, Asset_ShortName, ASSID, IsProcent, ClosePrice, MarketPrice, MarketPrice2, OldDate, TSSection_Name, PriceAsset_ShortName /*,Accruedint, DS027*/)
 
         SELECT 
 
@@ -167,7 +182,7 @@ and ISNULL(pr1.Value, 0) <> 1
 
             CASE WHEN RIGHT(Cass.Code, 4) = 'CORP' THEN 'y' ELSE 'n' END AS IsProcent,
 
-            0 AS LastPrice,
+            0 AS ClosePrice,
 
 			0 AS MarketPrice,
 
@@ -233,28 +248,42 @@ and ISNULL(pr1.Value, 0) <> 1
 
 
 
-            -- Обновление значения LastPrice в таблице #t
+            -- Обновление значения ClosePrice в таблице #t
 
 			UPDATE #t
+
 			SET 
-				LastPrice = CASE 
+
+				ClosePrice = CASE 
+
 					WHEN ISNULL((SELECT TOP 1 Px_Last FROM ##ParsedResults), 0) <> 0 
+
 						THEN ISNULL((SELECT TOP 1 Px_Last FROM ##ParsedResults), 0)
-					WHEN ISNULL(CAST((SELECT TOP 1 PX_CLOSE_1D FROM QORT_ARM_SUPPORT.dbo.B
-loombergData 
+
+					WHEN ISNULL(CAST((SELECT TOP 1 PX_CLOSE_1D FROM QORT_ARM_SUPPORT.dbo.BloombergData 
+
 									 WHERE CODE = @CurrentCode AND Date = @todayInt) AS FLOAT), 0) <> 0 
+
 						THEN ISNULL(CAST((SELECT TOP 1 PX_CLOSE_1D FROM QORT_ARM_SUPPORT.dbo.BloombergData 
+
 										 WHERE CODE = @CurrentCode AND Date = @todayInt) AS FLOAT), 0)
 
 					ELSE 0					
+
 				END
+
     /*
+
 				,Accruedint = CAST((SELECT TOP 1 Int_Acc FROM QORT_ARM_SUPPORT.dbo.BloombergData 
+
 								  WHERE CODE = @CurrentCode AND Date = @todayInt) AS FLOAT),
-				DS027 = CAST((SELECT TOP 1 BB_COMPOSITE FROM QORT_ARM_SUPPORT.db
-o.BloombergData 
+
+				DS027 = CAST((SELECT TOP 1 BB_COMPOSITE FROM QORT_ARM_SUPPORT.dbo.BloombergData 
+
 								  WHERE CODE = @CurrentCode AND Date = @todayInt) AS int)
+
     */
+
 			WHERE Code = @CurrentCode;
 
 
@@ -265,7 +294,7 @@ o.BloombergData
 
 			IF ((ISNULL(
 
-                (SELECT TOP 1 LastPrice FROM #t where Code = @CurrentCode), 
+                (SELECT TOP 1 ClosePrice FROM #t where Code = @CurrentCode), 
 
                 0) = 0) AND (RIGHT(@CurrentCode,4) = 'CORP'))
 
@@ -274,8 +303,11 @@ o.BloombergData
 			exec QORT_ARM_SUPPORT.dbo.BDP_Request @IP,
 
 				@IsinCodes = @CurrentCode,
+
 				@Field1 = 'PX_LAST',
+
 				@Field2 = 'PX_CLOSE_1D',
+
 				@Field3 = 'PX_DISC_MID',
 
 				@Field4 = 'MATURITY'
@@ -283,29 +315,43 @@ o.BloombergData
 
 
 			    UPDATE #t
-				SET LastPrice = CASE 
+
+				SET ClosePrice = CASE 
+
 					WHEN OBJECT_ID('tempdb..##ParsedResultsBDP', 'U') IS NOT NULL 
+
 						THEN CASE 
+
 							WHEN ISNULL(CAST((SELECT TOP 1 FIELD2 FROM ##ParsedResultsBDP WHERE RIGHT(CODE,10) = '@BVAL CORP') AS FLOAT), 0) <> 0 
-	
-							 THEN ISNULL(CAST((SELECT TOP 1 FIELD2 FROM ##ParsedResultsBDP WHERE RIGHT(CODE,10) = '@BVAL CORP') AS FLOAT), 0)
+
+								 THEN ISNULL(CAST((SELECT TOP 1 FIELD2 FROM ##ParsedResultsBDP WHERE RIGHT(CODE,10) = '@BVAL CORP') AS FLOAT), 0)
+
 							WHEN ISNULL(CAST((SELECT TOP 1 FIELD2 FROM ##ParsedResultsBDP WHERE RIGHT(CODE,10) = '@BMRK CORP') AS FLOAT), 0) <> 0 
-								
- THEN ISNULL(CAST((SELECT TOP 1 FIELD2 FROM ##ParsedResultsBDP WHERE RIGHT(CODE,10) = '@BMRK CORP') AS FLOAT), 0)
+
+								 THEN ISNULL(CAST((SELECT TOP 1 FIELD2 FROM ##ParsedResultsBDP WHERE RIGHT(CODE,10) = '@BMRK CORP') AS FLOAT), 0)
+
 							ELSE  0
+
 							 END
+
 					 ELSE 0
+
 					END
+
 				WHERE Code = @CurrentCode;
 
 				
 
 			    UPDATE #t
+
 				SET MarketPrice =  ISNULL(CAST((SELECT TOP 1 FIELD1 FROM ##ParsedResultsBDP) AS FLOAT), 0)
+
 				WHERE Code = @CurrentCode;
 
 				 UPDATE #t
+
 				SET MarketPrice2 =  ISNULL(CAST((SELECT TOP 1 FIELD3 FROM ##ParsedResultsBDP) AS FLOAT), 0)
+
 				WHERE Code = @CurrentCode;
 
 
@@ -337,17 +383,27 @@ o.BloombergData
 		--/*
 
 		  INSERT INTO QORT_BACK_TDB..ImportMarketInfo (
+
             OldDate
+
           , TSSection_Name
+
           , Asset_ShortName
-          , LastPrice
+
+          , ClosePrice
+
 		  , MarketPrice
+
 		  , MarketPrice2
+
           , IsProcessed
+
           , isprocent
-          , PriceAsset_Sh
-ortName
+
+          , PriceAsset_ShortName
+
 		--  , Accruedint
+
         )
 
 		--*/
@@ -360,7 +416,7 @@ ortName
 
 		, t.Asset_ShortName Asset_ShortName
 
-		, t.LastPrice as LastPrice
+		, t.ClosePrice as ClosePrice
 
 		, t.MarketPrice as MarketPrice
 
@@ -381,10 +437,15 @@ ortName
 --/* ---------------------------Блок вставки значений ACI для расчета купонов----------------------
 
 		   INSERT INTO QORT_BACK_TDB..AccruedInt (
+
 		   IsProcessed,
+
            Date,
+
 		   Asset_ShortName,
+
 		   Volume
+
         )
 
 		--*/
@@ -412,9 +473,13 @@ ortName
 		--and ass.ShortName = 'SQBNZU 5.75 12/02/24'
 
 		and NOT EXISTS (
+
 		 select 1 
+
 			from QORT_BACK_TDB..AccruedInt accr
-		 where BLP.DS027 = accr.Date and ass.ShortName = accr.Asset_ShortName --and isnull(LastPrice,0) <> 0
+
+		 where BLP.DS027 = accr.Date and ass.ShortName = accr.Asset_ShortName --and isnull(ClosePrice,0) <> 0
+
 )
 
 
@@ -424,10 +489,16 @@ ortName
 
 
 
+
 declare @ytdDateintS int = 20200000
+
 SET @ytdDateintS = @ytdDateintS + (@ytdDateint % 100000) - RIGHT(@ytdDateint,2) + 1 -- формируем дату первого дня месяца
+
 --print @ytdDateintS
+
 set @n = @ytdDateint
+
+
 
 while @n >= @ytdDateintS
 
@@ -438,14 +509,25 @@ while @n >= @ytdDateintS
 	--/*
 
 		  INSERT INTO QORT_BACK_TDB..ImportMarketInfo (
+
             OldDate
+
           , TSSection_Name
+
           , Asset_ShortName
+
           , SettlePrice
+
           , IsProcessed
+
           , isprocent
+
           , PriceAsset_ShortName
+
+		  , LastDate
+
 	
+
         )
 
 		--*/
@@ -454,30 +536,54 @@ while @n >= @ytdDateintS
 
 
 
+
+
     select 
+
         @n as OldDate
+
       , 'OTC_SWAP' as TSSection_Name
+
       , CTE.Asset_ShortName
+
       , CTE.SettlePrice
+
       , 1 as IsProcessed
+
       , 'n' as IsProcent
+
       , CTE.PriceAsset_ShortName
+
+	  , CTE.TradeDate
+
     from (
+
         select 
-            ass.Shor
-tName as Asset_ShortName
+
+            ass.ShortName as Asset_ShortName
+
           , trad.Price as SettlePrice
+
           , ass1.ShortName as PriceAsset_ShortName
+
 		  , ass.id assID
+
           , ROW_NUMBER() OVER (PARTITION BY ass.ShortName ORDER BY trad.TradeDate DESC) as RowNum
-        from QORT_BACK_D
-B..Trades trad 
+
+		  , trad.TradeDate
+
+        from QORT_BACK_DB..Trades trad 
+
         left outer join QORT_BACK_DB..Securities sec on sec.id = trad.Security_ID
+
         left outer join QORT_BACK_DB..Assets ass on ass.id = sec.Asset_ID
-        left outer join QORT_BACK_DB..Assets ass1 on ass1.id = trad.CurrPriceAsset_
-ID
+
+        left outer join QORT_BACK_DB..Assets ass1 on ass1.id = trad.CurrPriceAsset_ID
+
         where ass.AssetClass_Const in (5,6,7,9,8,11,16,18)  
+
         and trad.TradeDate < @n
+
 		AND Trad.VT_Const NOT IN (12, 10) -- сделка не расторгнута
 
           AND trad.NullStatus = 'n'
@@ -487,8 +593,11 @@ ID
           AND trad.IsDraft = 'n'
 
           AND trad.IsProcessed = 'y'
+
     ) CTE
+
     where CTE.RowNum = 1
+
 	and NOT EXISTS (
 
 				select TOP 1 a.SettlePrice
@@ -500,7 +609,9 @@ ID
 				and a.TSSection_ID = 165 -- OTC_SWAP
 
 			)
+
     set @n = @n - 1
+
 end
 
 

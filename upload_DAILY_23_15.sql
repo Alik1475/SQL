@@ -30,7 +30,9 @@ BEGIN
 
 		exec QORT_ARM_SUPPORT..UPLOAD_MarketData_CBA -- загрузка котировок из по бумагам из списка ЦБ РА
 
+		exec QORT_ARM_SUPPORT..UPLOAD_MarketData_AMX -- загрузка котировок по файлу с AMX
 
+		exec QORT_ARM_SUPPORT..UPLOAD_MarketData_CBONDS -- загрузка котировок по файлу с CBONDS
 
 
 

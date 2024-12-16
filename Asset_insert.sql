@@ -1,5 +1,5 @@
 ﻿
--- exec QORT_ARM_SUPPORT..Asset_insert @IsinCodes = 'US00212E1038 EQUITY'
+-- exec QORT_ARM_SUPPORT..Asset_insert @IsinCodes = 'XS2465622707 CORP'
 
 CREATE PROCEDURE [dbo].[Asset_insert]
 @IP VARCHAR(16)= '192.168.13.80',
@@ -13,7 +13,7 @@ AS
 
 BEGIN
 
-
+SET NOCOUNT ON;
 
 
 
@@ -21,7 +21,7 @@ BEGIN
 
 
 
-		exec QORT_ARM_SUPPORT..BDP_FlaskRequest @IP, @IsinCode = @IsinCodes
+		
 
 
 
@@ -29,9 +29,40 @@ BEGIN
 
 		declare @TodayDateInt int = cast(convert(varchar, @TodayDate, 112) as int)
 
-		declare @Message varchar(1024)
+		declare @Message varchar(1024) = ''
 
-		declare  @WaitCount int = 1200
+		declare  @WaitCount int = 20
+
+		declare  @Issue varchar(120)
+
+		
+
+				if EXISTS (select 1
+				from QORT_BACK_DB.dbo.Assets a
+
+				where  a.isin = left(@IsinCodes,12))
+
+				begin
+
+				set @Issue = (select created_date from QORT_BACK_DB.dbo.Assets
+
+				where  isin = left(@IsinCodes,12))
+
+				SET @Message = @Message + 'The asset for ISIN: ' + left(@IsinCodes,12) + ' already exists in the database:' +@Issue+'. No addition required.';
+
+				insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) values (@message, 2001); 
+
+				--return
+
+				end;
+
+				
+
+
+
+		exec QORT_ARM_SUPPORT..BDP_FlaskRequest @IP, @IsinCode = @IsinCodes
+
+
 
 		while (@WaitCount > 0 and not exists (select top 1 1 from QORT_ARM_SUPPORT.dbo.BloombergData where Code = @IsinCodes))
 
@@ -42,6 +73,24 @@ BEGIN
 			set @WaitCount = @WaitCount - 1
 
 		end
+
+		
+
+		if (@WaitCount <= 0 or NOT EXISTS (
+					SELECT TOP 1 1 
+					FROM QORT_ARM_SUPPORT.dbo.BloombergData 
+					WHERE Code = @IsinCodes AND found = 1)) 
+		begin SET @Message = 'Adding Issue for ISIN: ' + left(@IsinCodes,12) +
+                   '. It is not
+ possible to add the security automatically as the instrument with this ISIN was not found in Bloomberg. Please consider adding it manually.';
+
+				   insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) values (@message, 2001); 
+
+				   return
+
+				   end;
+
+		set @WaitCount = 20
 
 		-----добавление эмитента если нет-----------------------
 
@@ -58,7 +107,7 @@ nd DATE = @TodayDateInt
 
 
 
-				 insert into QORT_BACK_TDB.dbo.Firms (ET_Const, IsProcessed, BOCode, CBR_ShortName, name, FirmShortName,EngName,EngShortName,FT_Flags,IsResident, isfirm)
+				 insert into QORT_BACK_TDB.dbo.Firms (ET_Const, IsProcessed, BOCode, CBR_ShortName, name, FirmShortName,EngName,EngShortName,FT_Flags,IsResident, isfirm, TaxResidentCountryName)
 
 				  select distinct 2 as ET_Const, 1 as IsProcessed
 
@@ -80,6 +129,8 @@ nd DATE = @TodayDateInt
 
 				  , 'y' as isfirm
 
+				  , country.TaxResidentCountryName as TaxResidentCountryName
+
 				  --, fir.CBR_ShortName, ass.ISIN, * 
 
 				  FROM QORT_ARM_SUPPORT.dbo.BloombergData bl
@@ -94,11 +145,19 @@ nd DATE = @TodayDateInt
 						AND TRY_CAST(BOCode AS INT) < 8000 -- Проверяем, что значение меньше 8000
 				) BOCodeMax
 
-				where DATE = @TodayDateInt and Code = @IsinCodes
+				outer apply (
+					SELECT top 1 CodeISO AS TaxResidentCountryName
+					FROM QORT_BACK_DB.dbo.Countries co
+					WHERE 
+						CHARINDEX(bl.DS497, co.Name) > 0
+				) country
+
+				where DATE = @TodayDateInt and Code = @IsinCodes;
 
 
 
-  end --RETURN
+
+  
 
   				 -------------------- задержка----------------------
 
@@ -112,7 +171,25 @@ nd DATE = @TodayDateInt
 
 		end
 
+		set @WaitCount = 20
 
+
+
+				set @Issue = (select top 1 a.Name
+				from QORT_BACK_DB.dbo.firms a
+				left outer join QORT_ARM_SUPPORT.dbo.BloombergData blm on blm.Issuer_Bulk = a.CBR_ShortName COLLATE SQL_Latin1_General_CP1_CI_AS
+				and blm.code = @IsinCodes and a.Enabled = 0 	a
+nd DATE = @TodayDateInt)
+
+				
+
+
+
+				SET @Message = @Message + 'Adding Issue for ISIN: ' + left(@IsinCodes,12) + isnull(@Issue, 'Error') +';';
+
+
+
+end --RETURN
 
 
 
@@ -332,6 +409,19 @@ nd DATE = @TodayDateInt
 
 		end
 
+
+
+				set @Issue = (select top 1 a.ShortName
+				from QORT_BACK_DB.dbo.Assets a
+
+				where  a.isin = left(@IsinCodes,12));
+
+				SET @Message = @Message + ' Adding Assets for ISIN: '+ left(@IsinCodes,12) + isnull(@Issue, 'Error')+';';
+
+
+
+
+
 		--/*
 
 		insert into QORT_BACK_TDB.dbo.Securities (
@@ -394,6 +484,43 @@ nd DATE = @TodayDateInt
 				where a.ShortName = s.ShortName and a.Enabled = 0
 			)
 
+		set @WaitCount = 20
+
+		while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB.dbo.Securities t with (nolock) where t.IsProcessed in (1,2)))
+
+		begin
+
+			waitfor delay '00:00:03'
+
+			set @WaitCount = @WaitCount - 1
+
+		end
+
+
+
+				set @Issue = (select top 1 s.ShortName
+				from QORT_BACK_DB.dbo.Assets a
+
+				left outer join QORT_BACK_DB.dbo.Securities s on s.Asset_ID = a.id
+
+				where  a.isin = left(@IsinCodes,12))
+
+				SET @Message = @Message + ' Adding Securities for ISIN: '+ left(@IsinCodes,12) + isnull(@Issue, 'Error');
+
+			
+
+			
+
+			
+
+			----Обновление справочника Depolite---
+
+
+
+			exec QORT_ARM_SUPPORT.dbo.LoadSecurDepolite @ISINCode = @IsinCodes
+
+-------------------------------------------------------------------------------------------------
+
 	/*declare @t table(code varchar(36))
 
 	insert into @t(code)
@@ -414,13 +541,11 @@ nd DATE = @TodayDateInt
 
 	--------------------------------------------------------------------------------
 
+
+
+	insert into QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) values (@message, 2001); 
+
 	
-
-
-
-	
-
-
 
 	end try
 
@@ -435,6 +560,23 @@ nd DATE = @TodayDateInt
 		print @Message
 
 	end catch
+
+
+
+		SELECT top 1 [logId]
+
+      ,[logDate]
+
+      ,[logProc]
+
+      ,[logMessage]
+
+      ,[logRecords]
+
+      ,[spid]
+	FROM [QORT_ARM_SUPPORT].[dbo].[uploadLogs]
+	WHERE logProc = 'Asset_insert'
+	ORDER BY logDate DESC;
 
 
 

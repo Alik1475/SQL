@@ -1,6 +1,6 @@
-﻿/* exec QORT_ARM_SUPPORT..GetFlaskData @ID = '192.168.13.59'
+﻿/* exec QORT_ARM_SUPPORT..GetFlaskData @ID = '192.168.13.80',
 
-    @IsinCodes = 'US0378331005 EQUITY', -- Строка с ISIN-кодами, разделенными запятыми, например: 'US78462F1030,US9128285M81'
+    @IsinCodes = 'US74347Y7638 EQUITY', -- Строка с ISIN-кодами, разделенными запятыми, например: 'US78462F1030,US9128285M81'
     @StartDate = 20240924,   -- Дата начала в формате YYYYMMDD
     @EndDate = 20240924 -- Дата окончания в формате YYYYMMDD
 --	, 

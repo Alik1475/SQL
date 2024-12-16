@@ -316,7 +316,7 @@ BEGIN
 
 			UPDATE #tk
 
-			SET Turnover = @OutputParam1
+			SET Turnover = isnull(@OutputParam1,0)
 
 			WHERE ID = @ID;
 

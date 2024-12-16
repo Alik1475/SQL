@@ -8,7 +8,7 @@
 
 
 
--- exec QORT_ARM_SUPPORT.dbo.LoadSecurDepolite @ISINCode = 'XS1791937441'
+-- exec QORT_ARM_SUPPORT.dbo.LoadSecurDepolite @ISINCode = 'NL0009805522'
 
 
 
@@ -40,6 +40,14 @@ EXECUTE AS LOGIN = 'aleksandr.mironov';
 
 		declare @Message varchar(1024) -- для уведомлений об ошибках
 
+		declare @OWNER bigint
+
+		declare @BOCode varchar(32)
+
+		declare @WaitCount int = 1200
+
+		set @ISINCode = LEFT(@ISINCode,12)
+
 
 
 IF not EXISTS (
@@ -54,355 +62,268 @@ IF not EXISTS (
 
 BEGIN
 
-return
 
 
 
-/*
 
-		INSERT INTO [192.168.13.8].[Depositary].[dbo].[SECURKIND] (
+SET @BOCode = (
+    SELECT TOP 1 firms.BOCode
+    FROM QORT_BACK_DB.dbo.Assets asss
+	left outer join QORT_BACK_DB.dbo.Firms firms on firms.id = asss.EmitentFirm_ID
+    WHERE asss.ISIN = @ISINCode and asss.Enabled = 0 and asss.IsTrading = 'y'
+)	
 
-    EXTNUM, PERSON, TRUSTED, IsBENEFIC, IsBROKER,
 
-    ISDEPOS, RESIDENCE, SECTOR, NAME_A, SNAME_A, FNAME_A,
 
-    NAME_E, NAME_R, SEX, BIRTHDAY, BIRTHPLACE, COUNTRY,
+if (@BOCode is null) begin print 'Problem Issue' return end
 
-    REGION, ADDRESS_A, ADDRESS_E, ADDRESS_R, SADDRESS_A,
 
-    SADDRESS_E, SOCCART, TAXPAYER, REGNUM, ORGTYPE, ORGNAME,
 
-    DOCSRC, DOCDATE, DOCUMENT, DOCISSUDT, DrLicNum, DrClass,
 
-    DrLicOflssue, DrLicExpire, Experience, ODOCSRC, ODOCUMENT,
 
-    ODOCDATE, ODOCISSUDT, PHONE, MOBILE, FAX, ZIP, EMAIL,
-
-    WORKPLACE, WORKER, WORKER_E, WORKER_R, WORKPOST, WORKPOST_E,
-
-    WORKPOST_R, LICENCEDATE, LICENCENUM, OPENDATE, BRANCH,
-
-    FULLKIND, KINDNUM, REGNUM2, TSOWNER, TSUSER, TSTIME,
-
-    BROKER, PASWORD, SNAME_E, FNAME_E, WEBSIT, CITY, Build,
-
-    AptNum, SREGION, SCITY, SBuild, SAptNum, CONTDATE,
-
-    CONTNUM, DROPEN, PAYKIND, DEDTIME, DEDNUM
-
+SET @OWNER = (
+    SELECT TOP 1 customer
+    FROM [192.168.13.8].[Depositary].[dbo].[CUSTOMER] g
+    WHERE g.DEDNUM = @BOCode
 )
 
---*//*
 
-SELECT 
 
-    '' as EXTNUM
+if (@OWNER is null) 
 
-	, iif(f.isfirm = 'y', 2 , 3) as  PERSON
+begin 
 
-	,0 as TRUSTED
+print 'load issue'
 
-	, 1 as IsBENEFIC
+exec QORT_ARM_SUPPORT.dbo.LoadFirmDepolite @BOCode = @BOCode
 
-	, 0 as IsBROKER
+end
 
-	, 0 as ISDEPOS
 
-	, iif(f.IsResident = 'y', 1, 0) as RESIDENCE
 
-	, 99 SECTOR
+while (@WaitCount > 0 and @OWNER is null)
 
-	, f.name NAME_A
-
-	, '' SNAME_A
-
-	, '' FNAME_A
-
-	, f.name NAME_E
-
-	, '' NAME_R
-
-	, IIF(f.isfirm = 'y', 0, IIF(f.sex = 'n', 1 , 2))  SEX
-
-	, null BIRTHDAY
-
-	, null BIRTHPLACE
-
-	, c.Code_Alfa_3 COUNTRY
-
-	, 'NN' REGION
-
-	,ISNULL( pro.AddrJuSettlementU, '') as ADDRESS_A
-
-	, f.LatAddrJu as ADDRESS_E
-
-	,'' ADDRESS_R
-
-	, f.LatAddrJu SADDRESS_A
-
-	, f.LatAddrJu SADDRESS_E
-
-	, null SOCCART
-
-	, null TAXPAYER
-
-	, f.IDocNum REGNUM
-
-	, null ORGTYPE
-
-	, '' ORGNAME
-
-	, null DOCSRC
-
-	, null DOCDATE
-
-	, null DOCUMENT
-
-	, null DOCISSUDT
-
-	, null DrLicNum
-
-	, null DrClass
-
-	, 0 DrLicOflssue
-
-	, 0 DrLicExpire
-
-	, null Experience
-
-	, null ODOCSRC
-
-	, null ODOCUMENT
-
-	, null ODOCDATE
-
-	, null ODOCISSUDT
-
-	, null PHONE
-
-	, null MOBILE
-
-	, null FAX
-
-	, null ZIP
-
-	, null EMAIL
-
-	, null WORKPLACE
-
-	, null WORKER
-
-	, null WORKER_E
-
-	, null WORKER_R
-
-	, null WORKPOST
-
-	, null WORKPOST_E
-
-	, null WORKPOST_R
-
-	, null LICENCEDATE
-
-	, null LICENCENUM
-
-	, null OPENDATE
-
-	, 00 BRANCH
-
-	, 1 FULLKIND
-
-	, '' as KINDNUM
-
-	, null REGNUM2
-
-	, null TSOWNER
-
-	, 'qort' TSUSER
-
-	, @todayDate TSTIME
-
-	, null BROKER
-
-	, null PASWORD
-
-	, null SNAME_E
-
-	, null FNAME_E
-
-	, null WEBSIT
-
-	, null CITY
-
-	, null Build
-
-	, null AptNum
-
-	, null SREGION
-
-	, null SCITY
-
-	, null SBuild
-
-	, null SAptNum
-
-	, null CONTDATE
-
-	, null CONTNUM
-
-	, null DROPEN
-
-	, 0 PAYKIND
-
-	, null DEDTIME
-
-	, @BOCode DEDNUM
-
-FROM QORT_BACK_DB.dbo.Firms f
-
-left outer join QORT_BACK_DB.dbo.FirmProperties pro on pro.Firm_ID = f.id
-
-left outer join QORT_BACK_DB.dbo.Countries c on c.ID = f.Country_ID
-
-WHERE f.BOCode = @BOCode
-
-and not EXISTS (
-
-    SELECT 1
-
-    FROM [192.168.13.8].[Depositary].[dbo].[CUSTOMER]  g
-
-    WHERE g.DEDNUM = @BOCode
-
-);
-
-
+		begin
+
+
+
+		set @OWNER = (select top 1 CUSTOMER from [192.168.13.8].[Depositary].[dbo].[CUSTOMER] where DEDNUM = @BOCode)
+
+			waitfor delay '00:00:03'
+
+			set @WaitCount = @WaitCount - 1
+
+		end
+
+
+
+
+
+if (@OWNER is null) begin print 'Problem OWNER' return end
+
+
+
+
+
+
+
+--/*
+
+					INSERT INTO [192.168.13.8].[Depositary].[dbo].[SECURKIND] (
+				SECUR,
+				KIND,
+				TYPE,
+				RERATE,
+				MINAMNT,
+				OPENDATE,
+				CLOSEDATE,
+				PERIOD,
+				NOTE,
+				YRATE,
+				STATE,
+				TSTIME,
+				OWNER,
+				FIRSTDATE,
+				NUM,
+				REGNUM,
+		
+		SCUR
+			)
+--*/
+			SELECT 
+				left(ass.Name + ' ' + ass.ISIN + ' ' + fir.Name,49) AS SECUR, -- SECUR
+				CASE 
+					WHEN ass.COUNTRY COLLATE SQL_Latin1_General_CP1_CI_AS NOT IN ('Armenia') THEN 4 -- KIND
+					WHEN ass.AssetClass_Const IN (6) AND ass.Ass
+etSort_Const IN (3) THEN 2 -- Depolie(MinFin)
+					WHEN ass.AssetClass_Const IN (6) AND ass.AssetSort_Const NOT IN (3) THEN 3 -- Depolie(CorpBonds)
+					ELSE 5 -- Depolite (other)
+				END AS KIND,
+				CASE 
+					WHEN ass.AssetClass_Const IN (18) THEN 5 --
+ TYPE
+					WHEN ass.AssetClass_Const IN (16) THEN 6
+					WHEN ass.AssetClass_Const IN (6, 7, 9) AND ass.IsCouponed = 'n' THEN 1
+					WHEN ass.AssetClass_Const IN (6, 7, 9) AND ass.IsCouponed = 'y' THEN 2
+					WHEN ass.AssetClass_Const IN (8, 5) AND ass.As
+setSort_Const IN (1) THEN 3
+					WHEN ass.AssetClass_Const IN (8, 5) AND ass.AssetSort_Const IN (2, 78) THEN 4
+					ELSE 8
+				END AS TYPE,
+				1 AS RERATE, -- RERATE
+				ass.BaseValue AS MINAMNT, -- MINAMNT
+				CONVERT(DATETIME, CONVERT(VARCHAR(8), IIF(a
+ss.EmitDate = 0, null, ass.EmitDate), 112)) AS OPENDATE, -- OPENDATE
+				CONVERT(DATETIME, CONVERT(VARCHAR(8), IIF(ass.CancelDate = 0, null, ass.CancelDate), 112)) AS CLOSEDATE, -- CLOSEDATE
+				0 AS PERIOD, -- PERIOD
+				NULL AS NOTE, -- NOTE
+				isnull(
+cp.cpn,0) AS YRATE, -- YRATE
+				1 AS STATE, -- STATE
+				@todayDate AS TSTIME, -- TSTIME
+				@OWNER AS OWNER, -- OWNER
+				NULL AS FIRSTDATE, -- FIRSTDATE
+				@ISINCode AS NUM, -- NUM
+				NULL AS REGNUM, -- REGNUM
+				assC.Name AS SCUR -- SCUR
+			FROM QO
+RT_BACK_DB.dbo.Assets ass
+			LEFT OUTER JOIN QORT_BACK_DB.dbo.Assets assC 
+				ON assC.id = ass.BaseCurrencyAsset_ID
+			LEFT OUTER JOIN QORT_BACK_DB.dbo.Firms fir 
+				ON fir.ID = ass.EmitentFirm_ID
+			OUTER APPLY (
+				SELECT TOP 1 Cpn AS cpn 
+				FROM Q
+ORT_ARM_SUPPORT.dbo.BloombergData 
+				WHERE LEFT(code, 12) = @ISINCode
+				ORDER BY DATE DESC
+			) AS Cp
+			WHERE ass.isin = @ISINCode 
+			  AND ass.Enabled = 0 
+			  AND ass.IsTrading = 'y'
+			  AND NOT EXISTS (
+				  SELECT 1
+				  FROM [192.168.13.8].
+[Depositary].[dbo].[SECURKIND] g
+				  WHERE g.num = @ISINCode
+			  );
+
+			  
 
 WAITFOR DELAY '00:00:01'; -- Пауза на 1 секунду
 
 
 
-INSERT INTO [192.168.13.8].[Depositary].[dbo].[CUSTOPTION] ( CUST, CHARID, ISOPTION, BDATE, EDATE)
-
-select
-
-customer as CUST
-
-,'IsBENEFIC' as CHARID
-
-,  1 as ISOPTION
-
-, null BDATE
-
-, null EDATE
-
-from [192.168.13.8].[Depositary].[dbo].[CUSTOMER] 
-
-where DEDNUM = @BOCode
-
-and not EXISTS (
-
-    SELECT 1
-
-    FROM [192.168.13.8].[Depositary].[dbo].[CUSTOPTION]  g
-
-    WHERE g.ID = customer 
-
-	and g.CHARID = 'IsBENEFIC'
-
-);
 
 
 
 
 
-insert into QORT_BACK_TDB..Firms (ET_Const, IsProcessed, BOCode, EmitCode)
 
 
-
-select 4 as ET_Const, 1 as IsProcessed, @BOCode, customer as EmitCode
-
-from [192.168.13.8].[Depositary].[dbo].[CUSTOMER] 
-
-where DEDNUM = @BOCode
-
---*/
 
 end
 
-else begin
+else 
+
+begin
 
 
 
 
 
-/*UPDATE c
+UPDATE c
 
 SET 
 
-*/
+    KIND = ISNULL(
 
-				select
+        CASE 
 
+            WHEN R.COUNTRY COLLATE SQL_Latin1_General_CP1_CI_AS NOT IN ('Armenia') THEN 4  -- depolite(not Armenia securities)
 
+            WHEN r.AssetClass_Const IN (6) AND r.AssetSort_Const IN (3) THEN 2 -- Depolie(MinFin)
 
-						 (case WHEN R.COUNTRY COLLATE SQL_Latin1_General_CP1_CI_AS NOT IN ('Armenia') THEN 4 
+            WHEN r.AssetClass_Const IN (6) AND r.AssetSort_Const NOT IN (3) THEN 3 -- Depolie(CorpBonds)
 
-							WHEN r.AssetClass_Const IN (6)   THEN  2
+            ELSE 5 -- Depolite (other)
 
-								              
+        END, 
 
-								  ELSE 3
+        c.KIND
 
-								  END) KIND
+    ),
 
-					,  (case  WHEN  r.AssetClass_Const IN (18) THEN 5
+    TYPE = ISNULL(
 
-					WHEN r.AssetClass_Const IN (16) THEN 6
+        CASE 
 
-	                WHEN (r.AssetClass_Const IN (6, 7, 9) and r.IsCouponed = 'n') THEN 1
+            WHEN r.AssetClass_Const IN (18) THEN 5
 
-      
+            WHEN r.AssetClass_Const IN (16) THEN 6
 
-                    WHEN  (r.AssetClass_Const IN (6, 7, 9) and r.IsCouponed = 'y') THEN 2
+            WHEN r.AssetClass_Const IN (6, 7, 9) AND r.IsCouponed = 'n' THEN 1
 
-               
+            WHEN r.AssetClass_Const IN (6, 7, 9) AND r.IsCouponed = 'y' THEN 2
 
-                    WHEN (r.AssetClass_Const IN (8,5) and r.AssetSort_Const IN (1)) THEN 3
+            WHEN r.AssetClass_Const IN (8, 5) AND r.AssetSort_Const IN (1) THEN 3
 
-                    
+            WHEN r.AssetClass_Const IN (8, 5) AND r.AssetSort_Const IN (2, 78) THEN 4
 
-                    WHEN  (r.AssetClass_Const IN (8,5) and r.AssetSort_Const IN (2)) THEN 4      
+            ELSE 8
 
-                 
+        END, 
 
-				    WHEN r.AssetClass_Const IN (16) THEN 6
+        c.TYPE
 
-					else 8
+    ),
 
-					end) type
+    MINAMNT = ISNULL(r.BaseValue, c.MINAMNT),
 
-					
+    SCUR = ISNULL(fi.Name, c.scur),
 
-	,  r.BaseValue MINAMNT
+		OPENDATE = ISNULL(
+			CONVERT(DATETIME, CONVERT(VARCHAR(8), IIF(r.EmitDate = 0, '19000101', r.EmitDate), 112)), 
+			c.OPENDATE
+		),
+		CLOSEDATE = ISNULL(
+			CONVERT(DATETIME, CONVERT(VARCHAR(8), IIF(r.CancelDate = 0, '19000101', r.CancelDate), 112)), 
+	
+		c.CLOSEDATE
+		),
 
-	, fi.Name scur 
-
-
-
-
-
-
+    YRATE = ISNULL(cou.Procent, c.YRATE)
 
 FROM [192.168.13.8].[Depositary].[dbo].[SECURKIND] c
 
 JOIN QORT_BACK_DB.dbo.Assets r
 
-ON c.num = r.ISIN COLLATE SQL_Latin1_General_CP1_CI_AS and Enabled = 0
+    ON c.num = r.ISIN COLLATE SQL_Latin1_General_CP1_CI_AS 
 
-left outer join QORT_BACK_DB.dbo.firms fi on fi.id = r.BaseCurrencyAsset_ID
+    AND r.Enabled = 0 
 
-WHERE c.NUM = @ISINCode
+    AND r.IsTrading = 'y'
+
+LEFT OUTER JOIN QORT_BACK_DB.dbo.Assets fi 
+
+    ON fi.id = r.BaseCurrencyAsset_ID
+
+LEFT OUTER JOIN QORT_BACK_DB.dbo.Coupons cou 
+
+    ON cou.Asset_ID = r.ID 
+
+    AND cou.id <> cou.Enabled 
+
+    AND cou.IsCanceled = 'n' 
+
+    AND cou.BeginDate <= @todayInt 
+
+    AND cou.EndDate > @todayInt
+
+WHERE c.NUM = @ISINCode;
+
+
 
 --and r.EmitCode = 1;
 

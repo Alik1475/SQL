@@ -6,7 +6,7 @@
 
 
 
--- exec QORT_ARM_SUPPORT.dbo.exportTrades_RegulatoryNY06BuySellREPO '20241022'
+-- exec QORT_ARM_SUPPORT.dbo.exportTrades_RegulatoryNY06BuySellREPO '20241127'
 
 
 
@@ -171,7 +171,8 @@ Country.NameU)), ''))
 
 				ELSE
 
-				iif(a.EmitentFirm_ID = 137, NULL, cast(t.Qty as decimal(32,5)))  END [Qty_K] -- Алик 04/03/2024 поправил количество знаков после запятой на 5; 26/02/2024 a.EmitentFirm_ID = 137 это REPUBLIC OF ARMENIA. Исключение для гос.бумаг
+				iif(a.EmitentFirm_ID = 137 Or (a.Country = 'Armenia' and a.assetSort_Const in(3)) , NULL, cast(t.Qty as decimal(32,5)))  END [Qty_K] -- Алик 04/03/2024 поправил количество знаков после запятой на 5; 26/02/2024 a.EmitentFirm_ID = 137 это REPUBLIC OF AR
+MENIA. Исключение для гос.бумаг
 
 			--, QORT_ARM_SUPPORT.dbo.fFloatToCurrency5(t.Volume1) Volume_L
 
@@ -229,11 +230,11 @@ Country.NameU)), ''))
 
 			, left (t.AgreeNum,iif(charindex( '/', t.AgreeNum) = 0, len(t.AgreeNum ), charindex( '/', t.AgreeNum ) - 1))  AgreeNum_R_D -- Алик 26/02/2024 значение договора t.AgreeNum до '/'
 
-			, iif(tt.tt=2, N'é»åá', '') RepoType_R_F
+			, iif(t.BuySell = 2, N'é»åá', N'Ñ³Ï³¹³ñÓ é»åá') RepoType_R_F
 
 			--, iif(tt.tt=2, iif(p.TransactionDate > 0, N'»ñÏ³ñ³Ó·í³Í', N'Ýáñ ÏÝùí³Í'), '') RepoType2_R_G
 
-			, iif(isnull(pRepo1.id,0) <> 0, N'»ñÏ³ñ³Ó·í³Í', N'Ýáñ ÏÝùí³Í') RepoType2_R_G
+			, iif(isnull(pRepo1.id,0) <> 0, iif(pRepo1.dateafter1 > pRepo2.dateafter2, N'»ñÏ³ñ³Ó·í³Í', N'Ïñ×³ïí³Í'), N'Ýáñ ÏÝùí³Í') RepoType2_R_G
 
 			--, iif(tt.tt=2 and t.RepoRate > 1e-8, QORT_ARM_SUPPORT.dbo.fFloatToCurrency5(t.RepoRate) + '%' + ' ???', '???') RepoRate_R_O
 
@@ -252,6 +253,14 @@ Country.NameU)), ''))
 			, iif(tt.tt=2 and p.TransactionDate > 0, QORT_ARM_SUPPORT.dbo.fIntToDateVarcharShort(p.TransactionDate), '') TransactionDate_R_T
 
 			, pRepo1.PhaseTime
+
+			--, t.RepoTrade_ID
+
+			--, pRepo1.dateafter1
+
+			--, pRepo2.dateafter2
+
+
 
 		into #r
 
@@ -357,7 +366,26 @@ Country.NameU)), ''))
 
 		outer apply(select top 1 p.PhaseDate TransactionDate from QORT_BACK_DB.dbo.Phases p with (nolock) where p.Trade_ID = t.RepoTrade_ID and p.IsCanceled = 'n' order by ID desc) p
 
-		outer apply(select top 1 p.PhaseTime, p.id from QORT_BACK_DB.dbo.Phases p with (nolock) where p.Trade_ID = t.RepoTrade_ID and p.IsCanceled = 'n' and p.PC_Const in (13,14) order by id desc) pRepo1
+		outer apply(select top 1 p.PhaseTime, p.id, p.DateAfter as DateAfter1 from QORT_BACK_DB.dbo.Phases p with (nolock) 
+
+			where p.Trade_ID = t.RepoTrade_ID and p.IsCanceled = 'n' and p.PC_Const in (14) order by id desc) pRepo1
+
+			OUTER APPLY (
+    SELECT TOP 1 p.BackDate as DateAfter2, p.id
+    FROM QORT_BACK_DB.dbo.TradesHist p WITH (NOLOCK)
+    WHERE 
+        p.Founder_ID = t.RepoTrade_ID 
+        AND p.id < (
+            SELECT TOP 1 p1.id
+            FROM QORT_BACK_DB.dbo.T
+radesHist p1 WITH (NOLOCK)
+            WHERE 
+                p1.Founder_ID = t.RepoTrade_ID 
+                AND p1.BackDate = pRepo1.DateAfter1
+            ORDER BY p1.id asc
+        )
+    ORDER BY p.id DESC
+) pRepo2
 
 		where /*t.TradeDate between @TradeDateFrom and @TradeDateTo
 
@@ -377,7 +405,7 @@ Country.NameU)), ''))
 
 	
 
-	--select * from #r
+	--select * from #r return
 
 		select r.Num_A, r.Code_B, r.ArmCode_C, r.Time_D Time_D, r.BuySell_E, r.PriceType_F, r.ISIN_G, r.Emitent_H, r.BaseValueVolume_I, r.Price_J, r.Qty_K, r.Volume_L
 
@@ -397,8 +425,8 @@ Country.NameU)), ''))
 
 			, FORMAT(ROUND(r.Qty_K, 5), 'N5') Qty_L, FORMAT(ROUND(r.Volume_L, 5), 'N5')  Volume_M, r.PayCurrency_M PayCurrency_N, FORMAT(ROUND(r.RepoRate_R_O, 5), 'N5') + '%' RepoRate_R_O, dbo.fVarcharDateYYYYToVarcharDateYY(r.RepoBackDate_R_P) RepoBackDate_R_P
 
-			, RepoLocation_Q, /*r.TradeDate_P*/ dbo.fVarcharDateYYYYToVarcharDateYY(r.TradeDate_R_R) TradeDate_R, dbo.fVarcharDateYYYYToVarcharDateYY(r.TradeDate_R_R) TradeDate_R_R, dbo.fVarcharDateYYYYToVarcharDateYY(r.TransactionDate_R_T) TransactionDate_R_T --
- Алик 26/02/2024 поменял r.TradeDate2_R_S на r.TradeDate_R_R. выводим равное значение, до настройки механизма отражения РЕПО вендором
+			, RepoLocation_Q, /*r.TradeDate_P*/ dbo.fVarcharDateYYYYToVarcharDateYY(r.TradeDate_R_R) TradeDate_R, dbo.fVarcharDateYYYYToVarcharDateYY(r.TradeDate_R_R) TradeDate_R_R, dbo.fVarcharDateYYYYToVarcharDateYY(r.TransactionDate_R_T) TransactionDate_R_T -- 
+Алик 26/02/2024 поменял r.TradeDate2_R_S на r.TradeDate_R_R. выводим равное значение, до настройки механизма отражения РЕПО вендором
 
 			, r.CPCode_R CPCode_U, r.ExternalBroker_S ExternalBroker_V
 

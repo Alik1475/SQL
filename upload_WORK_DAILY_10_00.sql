@@ -14,7 +14,15 @@ AS
 
 BEGIN
 
+--EXEC msdb.dbo.sp_help_job @job_name = 'upload_WORK_DAILY_10-00';
 
+--EXEC msdb.dbo.sp_stop_job @job_name = 'upload_WORK_DAILY_10-00';
+
+
+
+--SELECT name 
+--FROM msdb.dbo.sysjobs
+--WHERE name LIKE '%upload_WORK_DAILY%';
 
 	begin try
 

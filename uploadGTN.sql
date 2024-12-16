@@ -653,7 +653,9 @@ END TRY
 
 					,round(cast(t.SequenceNo as float),0) Ref
 
-					,CONVERT(INT, CONVERT(VARCHAR, dbo.fGetBusinessDay(CONVERT(DATETIME, T.DateGMT, 101), 1), 112)) AS PutPlannedDate
+					,CONVERT(INT, CONVERT(VARCHAR, dbo.fGetBusinessDay(CONVERT(DATETIME, CONVERT(VARCHAR(8), t.ConvertedDate), 112), 1), 112)) AS PutPlannedDate				
+
+						--CONVERT(INT, CONVERT(VARCHAR, dbo.fGetBusinessDay(CONVERT(DATETIME, T.DateGMT, 101), 1), 112)) 
 
 					,t.ConvertedTime AS TimeIntUpdate
 
@@ -913,7 +915,7 @@ END TRY
 
 
 
-				/*
+				--/*
 
 				-- весь файл обработан, надо переложить в history
 
