@@ -385,38 +385,55 @@ BEGIN
 
 
 BEGIN TRY
-    UPDATE #Transactions
-    SET 
-        ConvertedDate = CAST(CONVERT(VARCHAR, 
-                        IIF(ABS(DATEDIFF(DAY, GETDATE(), DATEADD(HOUR, 4, TRY_CONVERT(DATETIME, DateGMT, 101)))) <= ABS(DATEDIFF(DAY, GETDATE(), DATEADD(HOUR, 4, TR
-Y_CONVERT(DATETIME, DateGMT, 103)))), 
-                            DATEADD(HOUR, 4, TRY_CONVERT(DATETIME, DateGMT, 101)), 
-                            DATEADD(HOUR, 4, TRY_CONVERT(DATETIME, DateGMT, 103))
-                        ), 112) AS INT),
-        C
-onvertedTime = CAST(
-                        RIGHT('0' + CAST(DATEPART(HOUR, DATEADD(HOUR, 4, 
-                        IIF(ABS(DATEDIFF(DAY, GETDATE(), TRY_CONVERT(DATETIME, DateGMT, 101))) <= ABS(DATEDIFF(DAY, GETDATE(), TRY_CONVERT(DATETIME, DateGMT, 10
-3))),
-                            TRY_CONVERT(DATETIME, DateGMT, 101), 
-                            TRY_CONVERT(DATETIME, DateGMT, 103)))) AS VARCHAR), 2) + 
-                        RIGHT('0' + CAST(DATEPART(MINUTE, DATEADD(HOUR, 4, 
-                     
-   IIF(ABS(DATEDIFF(DAY, GETDATE(), TRY_CONVERT(DATETIME, DateGMT, 101))) <= ABS(DATEDIFF(DAY, GETDATE(), TRY_CONVERT(DATETIME, DateGMT, 103))),
-                            TRY_CONVERT(DATETIME, DateGMT, 101), 
-                            TRY_CONVERT(DATE
-TIME, DateGMT, 103)))) AS VARCHAR), 2) + 
-                        RIGHT('0' + CAST(DATEPART(SECOND, DATEADD(HOUR, 4, 
-                        IIF(ABS(DATEDIFF(DAY, GETDATE(), TRY_CONVERT(DATETIME, DateGMT, 101))) <= ABS(DATEDIFF(DAY, GETDATE(), TRY_CONVER
-T(DATETIME, DateGMT, 103))),
-                            TRY_CONVERT(DATETIME, DateGMT, 101), 
-                            TRY_CONVERT(DATETIME, DateGMT, 103)))) AS VARCHAR), 2) + 
-                        RIGHT('00' + CAST(DATEPART(MILLISECOND, DATEADD(HO
-UR, 4, 
-                        IIF(ABS(DATEDIFF(DAY, GETDATE(), TRY_CONVERT(DATETIME, DateGMT, 101))) <= ABS(DATEDIFF(DAY, GETDATE(), TRY_CONVERT(DATETIME, 103))),
-                            TRY_CONVERT(DATETIME, DateGMT, 101), 
-                        
-    TRY_CONVERT(DATETIME, DateGMT, 103)))) AS VARCHAR), 3) AS INT
+UPDATE #Transactions
+
+SET 
+
+    ConvertedDate = CAST(CONVERT(VARCHAR, 
+
+                    IIF(ABS(DATEDIFF(DAY, GETDATE(), DATEADD(HOUR, 4, TRY_CONVERT(DATETIME, DateGMT, 101)))) <= ABS(DATEDIFF(DAY, GETDATE(), DATEADD(HOUR, 4, ISNULL(TRY_CONVERT(DATETIME, DateGMT, 103), 0)))), 
+
+                        DATEADD(HOUR, 4, TRY_CONVERT(DATETIME, DateGMT, 101)), 
+
+                        DATEADD(HOUR, 4, ISNULL(TRY_CONVERT(DATETIME, DateGMT, 103), 0))
+
+                    ), 112) AS INT),
+
+    ConvertedTime = CAST(
+
+                    RIGHT('0' + CAST(DATEPART(HOUR, DATEADD(HOUR, 4, 
+
+                    IIF(ABS(DATEDIFF(DAY, GETDATE(), TRY_CONVERT(DATETIME, DateGMT, 101))) <= ABS(DATEDIFF(DAY, GETDATE(), ISNULL(TRY_CONVERT(DATETIME, DateGMT, 103), 0))),
+
+                        TRY_CONVERT(DATETIME, DateGMT, 101), 
+
+                        ISNULL(TRY_CONVERT(DATETIME, DateGMT, 103), 0)))) AS VARCHAR), 2) + 
+
+                    RIGHT('0' + CAST(DATEPART(MINUTE, DATEADD(HOUR, 4, 
+
+                    IIF(ABS(DATEDIFF(DAY, GETDATE(), TRY_CONVERT(DATETIME, DateGMT, 101))) <= ABS(DATEDIFF(DAY, GETDATE(), ISNULL(TRY_CONVERT(DATETIME, DateGMT, 103), 0))),
+
+                        TRY_CONVERT(DATETIME, DateGMT, 101), 
+
+                        ISNULL(TRY_CONVERT(DATETIME, DateGMT, 103), 0)))) AS VARCHAR), 2) + 
+
+                    RIGHT('0' + CAST(DATEPART(SECOND, DATEADD(HOUR, 4, 
+
+                    IIF(ABS(DATEDIFF(DAY, GETDATE(), TRY_CONVERT(DATETIME, DateGMT, 101))) <= ABS(DATEDIFF(DAY, GETDATE(), ISNULL(TRY_CONVERT(DATETIME, DateGMT, 103), 0))),
+
+                        TRY_CONVERT(DATETIME, DateGMT, 101), 
+
+                        ISNULL(TRY_CONVERT(DATETIME, DateGMT, 103), 0)))) AS VARCHAR), 2) + 
+
+                    RIGHT('00' + CAST(DATEPART(MILLISECOND, DATEADD(HOUR, 4, 
+
+                    IIF(ABS(DATEDIFF(DAY, GETDATE(), TRY_CONVERT(DATETIME, DateGMT, 101))) <= ABS(DATEDIFF(DAY, GETDATE(), ISNULL(TRY_CONVERT(DATETIME, DateGMT, 103), 0))),
+
+                        TRY_CONVERT(DATETIME, DateGMT, 101), 
+
+                        ISNULL(TRY_CONVERT(DATETIME, DateGMT, 103), 0)))) AS VARCHAR), 3) AS INT
+
+
     );
 END TRY
 
@@ -441,6 +458,7 @@ END TRY
 					SELECT @ErrorMessage = ERROR_MESSAGE()
 
 						,@ErrorSeverity = ERROR_SEVERITY()
+
 						,@ErrorState = ERROR_STATE();
 
 

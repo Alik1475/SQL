@@ -4,61 +4,69 @@
 CREATE PROCEDURE [dbo].[ReconcilAssetsBloomberg]
 AS
 BEGIN
+EXECUTE AS LOGIN = 'aleksandr.mironov';
     BEGIN TRY
         -- Инициализация переменных
         DECLARE @WaitCount INT;
-        DECLARE @Message VARCHAR(1024);
+        DECLARE @Mes
+sage VARCHAR(1024);
 
-        DECLARE @Se
-ndMail BIT = 0;
+        DECLARE @SendMail BIT = 0;
         DECLARE @FileName VARCHAR(128) = '\\192.168.14.22\Exchange\QORT_Files\Assets\Assets_Bloomberg.xlsx';
 
-        DECLARE @NotifyEmail VARCHAR(1024) = 'backoffice@armbrok.am;depo@armbrok.am;QORT@armbrok.am;'--aleksandr.mironov@armbrok.
-am;sona.nalbandyan@armbrok.am;armine.khachatryan@armbrok.am';
+        DECLARE @NotifyEmail VARCHAR(1024) = 'backoffice@armbrok.am;depo@armbrok.am;QORT@
+armbrok.am;'--aleksandr.mironov@armbrok.am;sona.nalbandyan@armbrok.am;armine.khachatryan@armbrok.am';
         DECLARE @Sheet1 VARCHAR(64) = 'Sheet1';
 		DECLARE @todayDate DATE = GETDATE()
-        DECLARE @todayInt INT = CAST(CONVERT(VARCHAR, @todayDate, 112) AS INT)
-        DECLARE @sql VARCHAR
-(1024);
+        DECLARE @todayInt INT = CAST(CONVERT(VARCHAR, @todayDate, 1
+12) AS INT)
+        DECLARE @sql VARCHAR(1024);
 
         -- Очистка временных таблиц, если они существуют
         IF OBJECT_ID('tempdb..##f', 'U') IS NOT NULL DROP TABLE ##f;
         IF OBJECT_ID('tempdb..#t', 'U') IS NOT NULL DROP TABLE #t;
-        IF OBJECT_ID('tempdb..##resultT', 'U') IS NOT
- NULL DROP TABLE ##resultT;
+        IF OB
+JECT_ID('tempdb..##resultT', 'U') IS NOT NULL DROP TABLE ##resultT;
 
 -- обновление справочника про бумаги с истекшим сроком погашения--------------	
 				insert into QORT_BACK_TDB.dbo.Assets (ET_Const, IsProcessed, marking, IsTrading)  
 
-				  select distinct 4 as ET_Const, 1 as IsProcessed
-
-				 , Marking as marking
-
-				  , 'n' as IsTrading				 
-
-				  FROM QORT_BACK_DB.dbo.assets 
-
-				  where AssetClass_Const in (6) and CancelDate < @todayInt and Enabled = 0
-
-					  AND  IsTrading = 'y'
+				  SELECT DISTINCT 
+						4 AS ET_Const,
+						1 AS IsProcessed,
+						Marking AS marking,
+						'n' AS IsTrading
+					FROM QORT_BACK_DB.dbo.assets a
+					WHERE 
+						a.AssetClass_Const IN (6) 
+						AND a.CancelDate < @todayInt 
+						AND a.Enabled =
+ 0
+						AND a.IsTrading = 'y'
+						AND NOT EXISTS (
+							SELECT TOP 1 1 
+							FROM QORT_BACK_DB.dbo.Position po
+							WHERE po.Asset_ID = a.id 
+							  AND po.VolFree > 0
+						);
 
 				  --and ShortName = 'XS1634369067'
-
+--return
 ---------------------запускаем обновление справочника DepoLite--------------
 		exec QORT_ARM_SUPPORT.dbo.ReconcilAssetsDepoliteEmail
 -------------------------------------------------------------------------
 
-       
- -- Обработка и фильтрация данных из временной таблицы ##f в #t
+
+        -- Обработка и фильтрация данных из временной таблицы ##f в #t
         SELECT
               LEFT(Code, 12) AS ISIN
             , isnull(DX657,Security_NAME) AS ViewName
             , Par_Amt AS Nominal
-            , Long_Company_Name_Realtime AS Issuer
- 
-           , IIF(Sectoral_Sanctioned_Security = 'y' OR OFAC_Sanctioned_Security = 'y' OR EU_SAnctioned_Security = 'y' OR UK_Sanctioned_Security = 'y', 'y', 'n') AS Sanction
-            , TRY_CONVERT(VARCHAR(8), DATEADD(MINUTE, CAST(Issue_dt AS bigint)/600
-00, '1970-01-01'), 112) AS Issue_date
+            , Long_Company_Name_Realtime AS 
+Issuer
+            , IIF(Sectoral_Sanctioned_Security = 'y' OR OFAC_Sanctioned_Security = 'y' OR EU_SAnctioned_Security = 'y' OR UK_Sanctioned_Security = 'y', 'y', 'n') AS Sanction
+            , TRY_CONVERT(VARCHAR(8), DATEADD(MINUTE, CAST(Issue_dt AS big
+int)/60000, '1970-01-01'), 112) AS Issue_date
 			, TRY_CONVERT(VARCHAR(8), DATEADD(MINUTE, CAST(Nxt_Cpn_Dt AS bigint)/60000, '1970-01-01'), 112) AS Nxt_Cpn_Dt
 
 			, TRY_CONVERT(VARCHAR(8), DATEADD(MINUTE, CAST(Maturity AS bigint)/60000, '1970-01-01'), 112) AS Maturity_date

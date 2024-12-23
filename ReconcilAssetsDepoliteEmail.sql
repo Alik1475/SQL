@@ -146,9 +146,12 @@ SELECT
 
             + CASE 
 
-                WHEN sec.kind = 2 and sec.closedate > @todayDate AND ass.AssetClass_Const NOT IN (6)  and ass.AssetSort_Const not IN (3) and ass.COUNTRY COLLATE SQL_Latin1_General_CP1_CI_AS not IN ('Armenia') THEN 
+              -- причина - тип минфин не работает в деполайт WHEN sec.kind = 2 and sec.closedate > @todayDate AND ass.AssetClass_Const NOT IN (6)  and ass.AssetSort_Const not IN (3) and ass.COUNTRY COLLATE SQL_Latin1_General_CP1_CI_AS not IN ('Armenia') T
+HEN 
 
-                    ', KIND: ' + sec.num + type.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' '
+		       WHEN sec.kind not in (5) AND ass.AssetClass_Const IN (6)  and ass.AssetSort_Const IN (3) and ass.COUNTRY COLLATE SQL_Latin1_General_CP1_CI_AS IN ('Armenia') THEN 
+
+             ', KIND: ' + sec.num + type.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' '
 
                 ELSE ''
 

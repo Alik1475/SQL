@@ -2,7 +2,7 @@
 
  
 
--- exec QORT_ARM_SUPPORT.dbo.upload_MarketInfo @ip = '192.168.13.80',	@IsinCode = 'AMACBAB28ER5 CORP'
+-- exec QORT_ARM_SUPPORT.dbo.upload_MarketInfo @ip = '192.168.13.80',	@IsinCode = null 'US0378331005 EQUITY'
 
 
 
@@ -22,7 +22,7 @@ BEGIN
 
     BEGIN TRY
 
-        DECLARE @WaitCount INT;
+        DECLARE @WaitCount INT = 20;
 
         DECLARE @Message VARCHAR(1024);
 
@@ -468,7 +468,7 @@ and ISNULL(pr1.Value, 0) <> 1
 
 		where BLP.security_Name is not null  AND RIGHT(BLP.Code,4) = 'CORP' AND isnull(BLP.Int_Acc,0) <> 0
 
-		and BLP.date = @todayInt
+		and BLP.date = @todayInt and ass.ShortName is not null
 
 		--and ass.ShortName = 'SQBNZU 5.75 12/02/24'
 
@@ -613,6 +613,206 @@ while @n >= @ytdDateintS
     set @n = @n - 1
 
 end
+
+
+
+----------------------------------определение lastprice-----------------------------
+
+		while (@WaitCount > 0 and exists (select top 1 1 from QORT_BACK_TDB.dbo.ImportMarketInfo t with (nolock) where t.IsProcessed in (1,2)))
+
+		begin
+
+			waitfor delay '00:00:03'
+
+			set @WaitCount = @WaitCount - 1
+
+		end
+
+		/*
+
+        DECLARE @WaitCount INT = 20;
+
+        DECLARE @Message VARCHAR(1024);
+
+        DECLARE @todayDate DATE = GETDATE() -- DATEADD(DAY, -1, GETDATE())--;
+
+        DECLARE @todayInt INT = CAST(CONVERT(VARCHAR, @todayDate, 112) AS INT);
+
+        DECLARE @n INT = 0;
+
+        DECLARE @ytdDate DATE;
+
+		        SET @ytdDate = (DATEADD(DAY, -1-@n, @todayDate)) -- определили вчерашний бизнес день
+
+        DECLARE @ytdDateint INT = CAST(CONVERT(VARCHAR, @ytdDate, 112) AS INT);
+
+        declare @ytdDatevarch varchar(32) = CONVERT(VARCHAR, @ytdDate, 112);
+
+		--*/
+
+IF OBJECT_ID('tempdb..#t1', 'U') IS NOT NULL DROP TABLE #t1;
+
+WITH RankedAssets AS (
+
+    SELECT 
+
+        m.Asset_ID,
+
+        m.ClosePrice,
+
+        m.MarketPrice,
+
+        m.MarketPrice2,
+
+        m.SettlePrice,
+
+		iif(ass2.AssetClass_Const IN (6), null, ass1.ShortName) as PriceAsset,
+
+		ts.name as Tssection,
+
+		 ass2.shortname,
+
+        CASE
+
+			--WHEN ass2.AssetClass_Const IN (6) THEN 100 -- облигации по номиналу
+
+            WHEN m.ClosePrice != 0 THEN m.ClosePrice
+
+            WHEN m.MarketPrice != 0 THEN m.MarketPrice
+
+            WHEN m.MarketPrice2 != 0 THEN m.MarketPrice2
+
+            WHEN m.SettlePrice != 0 THEN m.SettlePrice
+
+            ELSE null
+
+        END AS NonZeroPrice,
+
+        ROW_NUMBER() OVER (PARTITION BY m.Asset_ID ORDER BY 
+
+            CASE
+
+				--WHEN ass2.AssetClass_Const IN (6) THEN 100 -- облигации по номиналу
+
+                WHEN m.ClosePrice != 0 THEN m.ClosePrice
+
+                WHEN m.MarketPrice != 0 THEN m.MarketPrice
+
+                WHEN m.MarketPrice2 != 0 THEN m.MarketPrice2
+
+                WHEN m.SettlePrice != 0 THEN m.SettlePrice
+
+                ELSE null
+
+            END DESC) AS RowNum
+
+    FROM 
+
+        QORT_BACK_DB.dbo.MarketInfoHist m
+
+		left outer join QORT_BACK_DB.dbo.Assets ass1 on ass1.id = m.PriceAsset_ID
+
+		full OUTER join QORT_BACK_DB.dbo.Assets ass2 on ass2.id = m.Asset_ID and ass2.Enabled = 0 
+
+		left outer join QORT_BACK_DB.dbo.TSSections ts on ts.id = ass2.PricingTSSection_ID
+
+		
+
+    WHERE 
+
+        isnull(m.Date, @ytdDateint) = @ytdDateint and ass2.AssetClass_Const in (5,6,11,16,18)
+
+)
+
+SELECT 
+
+    isnull(r.Asset_ID, a.id) Asset_ID,
+
+    r.ClosePrice,
+
+   r.MarketPrice,
+
+    r.MarketPrice2,
+
+    r.SettlePrice,
+
+    iif(isnull(r.NonZeroPrice,0) = 0, iif(a.assetClass_const in (6),  100 , a.basevalue) , r.NonZeroPrice) NonZeroPrice
+
+	, isnull(r.PriceAsset, ass3.ShortName) PriceAsset
+
+	, isnull(r.Tssection, ts1.Name) Tssection
+
+	, isnull(r.shortname, a.ShortName) shortname
+
+	into #t1
+
+FROM 
+
+    RankedAssets r
+
+	full outer join QORT_BACK_DB.dbo.Assets a on a.id = r.Asset_ID 
+
+	left outer join QORT_BACK_DB.dbo.Assets ass3 on ass3.id = a.BaseCurrencyAsset_ID
+
+	left outer join QORT_BACK_DB.dbo.TSSections ts1 on ts1.id = a.PricingTSSection_ID
+
+WHERE 
+
+ a.Enabled = 0 and a.AssetClass_Const in (5,6,11,16,18) and a.IsTrading = 'y' and
+
+    isnull(RowNum,1) = 1
+
+	--and isnull(r.shortname, a.ShortName) = 'ARMB'
+
+	order by Asset_ID
+
+
+
+	SELECT * FROM #t1
+
+	--/*
+
+			  INSERT INTO QORT_BACK_TDB..ImportMarketInfo (IsProcessed
+
+          , OldDate
+
+          , TSSection_Name
+
+		  , LastPrice
+
+          , Asset_ShortName
+
+          , PriceAsset_ShortName
+
+		 
+
+        )
+
+		--*/
+
+		select 1 as isprocessed,
+
+		@ytdDateint as olddate,
+
+		Tssection as TSSection_Name,
+
+		nonZeroPrice as LastPrice,
+
+		ShortName as Asset_ShortName,
+
+		PriceAsset as PriceAsset_ShortName 
+
+		from #t1
+
+		--WHERE nonZeroPrice = 0
+
+--------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
 
 
 

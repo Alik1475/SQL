@@ -20,7 +20,7 @@ BEGIN
 
 
 
-		WAITFOR DELAY '00:01:00';
+		WAITFOR DELAY '00:02:00';
 
 
 
@@ -1206,7 +1206,7 @@ WHERE ISNULL(lt01.[F14], '0') <> '0';
 
 							)
 
-				WHEN t.CP = 'Glocal'
+				WHEN t.CP = 'Glocal USD'
 
 					THEN (
 
@@ -1215,6 +1215,18 @@ WHERE ISNULL(lt01.[F14], '0') <> '0';
 							FROM QORT_BACK_DB..Firms
 
 							WHERE BOCode = '00362'
+
+							)
+
+				WHEN t.CP = 'Glocal AMD'
+
+					THEN (
+
+							SELECT FirmShortName
+
+							FROM QORT_BACK_DB..Firms
+
+							WHERE BOCode = '00360'
 
 							)
 
@@ -1386,7 +1398,9 @@ WHERE ISNULL(lt01.[F14], '0') <> '0';
 
 				)
 
-		ORDER BY AgreeNum --return
+		ORDER BY AgreeNum 
+
+		--return
 
 
 
@@ -1517,6 +1531,7 @@ WHERE ISNULL(lt01.[F14], '0') <> '0';
 			,tt.Rate QtyAfter
 
 			,trad.shortname
+
 		INTO #t9
 
 		FROM #t tt

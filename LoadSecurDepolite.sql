@@ -154,31 +154,31 @@ if (@OWNER is null) begin print 'Problem OWNER' return end
 				left(ass.Name + ' ' + ass.ISIN + ' ' + fir.Name,49) AS SECUR, -- SECUR
 				CASE 
 					WHEN ass.COUNTRY COLLATE SQL_Latin1_General_CP1_CI_AS NOT IN ('Armenia') THEN 4 -- KIND
-					WHEN ass.AssetClass_Const IN (6) AND ass.Ass
-etSort_Const IN (3) THEN 2 -- Depolie(MinFin)
+					--WHEN ass.AssetClass_Const IN (6) AND ass.A
+ssetSort_Const IN (3) THEN 2 -- Depolie(MinFin)
 					WHEN ass.AssetClass_Const IN (6) AND ass.AssetSort_Const NOT IN (3) THEN 3 -- Depolie(CorpBonds)
 					ELSE 5 -- Depolite (other)
 				END AS KIND,
 				CASE 
-					WHEN ass.AssetClass_Const IN (18) THEN 5 --
- TYPE
+					WHEN ass.AssetClass_Const IN (18) THEN 5 
+-- TYPE
 					WHEN ass.AssetClass_Const IN (16) THEN 6
 					WHEN ass.AssetClass_Const IN (6, 7, 9) AND ass.IsCouponed = 'n' THEN 1
 					WHEN ass.AssetClass_Const IN (6, 7, 9) AND ass.IsCouponed = 'y' THEN 2
-					WHEN ass.AssetClass_Const IN (8, 5) AND ass.As
-setSort_Const IN (1) THEN 3
+					WHEN ass.AssetClass_Const IN (8, 5) AND ass.
+AssetSort_Const IN (1) THEN 3
 					WHEN ass.AssetClass_Const IN (8, 5) AND ass.AssetSort_Const IN (2, 78) THEN 4
 					ELSE 8
 				END AS TYPE,
 				1 AS RERATE, -- RERATE
 				ass.BaseValue AS MINAMNT, -- MINAMNT
-				CONVERT(DATETIME, CONVERT(VARCHAR(8), IIF(a
-ss.EmitDate = 0, null, ass.EmitDate), 112)) AS OPENDATE, -- OPENDATE
+				CONVERT(DATETIME, CONVERT(VARCHAR(8), IIF
+(ass.EmitDate = 0, null, ass.EmitDate), 112)) AS OPENDATE, -- OPENDATE
 				CONVERT(DATETIME, CONVERT(VARCHAR(8), IIF(ass.CancelDate = 0, null, ass.CancelDate), 112)) AS CLOSEDATE, -- CLOSEDATE
 				0 AS PERIOD, -- PERIOD
 				NULL AS NOTE, -- NOTE
-				isnull(
-cp.cpn,0) AS YRATE, -- YRATE
+				isnul
+l(cp.cpn,0) AS YRATE, -- YRATE
 				1 AS STATE, -- STATE
 				@todayDate AS TSTIME, -- TSTIME
 				@OWNER AS OWNER, -- OWNER
@@ -186,16 +186,16 @@ cp.cpn,0) AS YRATE, -- YRATE
 				@ISINCode AS NUM, -- NUM
 				NULL AS REGNUM, -- REGNUM
 				assC.Name AS SCUR -- SCUR
-			FROM QO
-RT_BACK_DB.dbo.Assets ass
+			FROM 
+QORT_BACK_DB.dbo.Assets ass
 			LEFT OUTER JOIN QORT_BACK_DB.dbo.Assets assC 
 				ON assC.id = ass.BaseCurrencyAsset_ID
 			LEFT OUTER JOIN QORT_BACK_DB.dbo.Firms fir 
 				ON fir.ID = ass.EmitentFirm_ID
 			OUTER APPLY (
 				SELECT TOP 1 Cpn AS cpn 
-				FROM Q
-ORT_ARM_SUPPORT.dbo.BloombergData 
+				FROM
+ QORT_ARM_SUPPORT.dbo.BloombergData 
 				WHERE LEFT(code, 12) = @ISINCode
 				ORDER BY DATE DESC
 			) AS Cp
@@ -204,8 +204,8 @@ ORT_ARM_SUPPORT.dbo.BloombergData
 			  AND ass.IsTrading = 'y'
 			  AND NOT EXISTS (
 				  SELECT 1
-				  FROM [192.168.13.8].
-[Depositary].[dbo].[SECURKIND] g
+				  FROM [192.168.13.8
+].[Depositary].[dbo].[SECURKIND] g
 				  WHERE g.num = @ISINCode
 			  );
 
@@ -243,7 +243,7 @@ SET
 
             WHEN R.COUNTRY COLLATE SQL_Latin1_General_CP1_CI_AS NOT IN ('Armenia') THEN 4  -- depolite(not Armenia securities)
 
-            WHEN r.AssetClass_Const IN (6) AND r.AssetSort_Const IN (3) THEN 2 -- Depolie(MinFin)
+           -- WHEN r.AssetClass_Const IN (6) AND r.AssetSort_Const IN (3) THEN 2 -- Depolie(MinFin)
 
             WHEN r.AssetClass_Const IN (6) AND r.AssetSort_Const NOT IN (3) THEN 3 -- Depolie(CorpBonds)
 

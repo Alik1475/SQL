@@ -85,7 +85,7 @@ BEGIN
 
 					end
 
-			if (isnull((select top 1 LastPrice from QORT_BACK_DB..MarketInfoHist where modified_date = @todayInt and Asset_ID = 217 and TSSection_ID = 154 and OldDate = @ytdDateint),0) > 0) begin
+			if (isnull((select top 1 ClosePrice from QORT_BACK_DB..MarketInfoHist where modified_date = @todayInt and Asset_ID = 217 and TSSection_ID = 154 and OldDate = @ytdDateint),0) > 0) begin
 
 				exec QORT_ARM_SUPPORT.dbo.upload_MarketInfo @IP, @IsinCode = NULL -- загрузка котировок из Блумберга в Qort
 
