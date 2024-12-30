@@ -22,6 +22,8 @@ BEGIN
 
 		EXEC QORT_ARM_SUPPORT.dbo.UpdateTokensFromAPI -- обновление токенов Райффайзен
 
+		EXEC QORT_ARM_SUPPORT.dbo.UPDATE_SUBACC_forQUIK -- обновление параметров субсчетов для QUIK
+
 			--exec QORT_ARM_SUPPORT.dbo.UpdateCouponForREPO -- обнуление ставки и объема купоня для заведения пролонгации РЕПО
 
 			--exec QORT_ARM_SUPPORT.dbo.DepoReconcil @sendmail = 1 -- сверка клиентских позиций с отправкой уведомления

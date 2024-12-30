@@ -54,8 +54,8 @@ BEGIN
 
 		declare @Message varchar(1024)
 
-		declare @NotifyEmail varchar(1024) = 'araksya.harutyunyan@armbrok.am;arevik.petrosyan@armbrok.am;QORT@armbrok.am'--'aleksandr.mironov@armbrok.am'--;armine.khachatryan@armbrok.am';sona.nalbandyan@armbrok.am;Hayk.Manaselyan@armbrok.am;compliance@armbrok.a
-m;armine.khachatryan@armbrok.am'
+		declare @NotifyEmail varchar(1024) = 'depo@armbrok.am;araksya.harutyunyan@armbrok.am;arevik.petrosyan@armbrok.am;QORT@armbrok.am'--'aleksandr.mironov@armbrok.am'--;armine.khachatryan@armbrok.am';sona.nalbandyan@armbrok.am;Hayk.Manaselyan@armbrok.am;comp
+liance@armbrok.am;armine.khachatryan@armbrok.am'
 
 		declare @WaitCount int
 
@@ -101,7 +101,9 @@ m;armine.khachatryan@armbrok.am'
 
 	and ass.AssetType_Const = 1 -- type Securities only
 
-	and sub.SubAccCode not in ('AS_test');
+	and sub.SubAccCode not in ('AS_test')
+
+	and left(dep.depocode,2) not in ('78');-- исключил счета, которых невидно в Депенд, но на которые зачислили бумаги
 
 	----------------------------удаляем строки с одинаковым субконтоКорт которые образуются когда у клиента несколько счетов ДЕПО------------------
 
@@ -129,11 +131,19 @@ WHERE RowNum > 1;
 
 	from QORT_BACK_TDB..CheckPositions chk
 
-	left outer join QORT_BACK_DB..Assets asss on asss.ShortName = chk.Asset_ShortName and asss.IsTrading = 'y'
+	left outer join QORT_BACK_DB..Assets asss on asss.ShortName = chk.Asset_ShortName --and asss.IsTrading = 'y'
 
 	where chk.CheckDate = @ytdInt
 
-	
+	and chk.Asset_ShortName not in ('AssetNoQortAMWGMCS10ER5', 'AssetNoQortAMFMVCH01ER1') 
+
+	and chk.Asset_ShortName not like '%NONE-570%' --исключил мусорные бумаги из сверки с Depend
+
+	and chk.Subacc_Code not in ('AS1994') -- исключил позиции по счетам, которые закрыты
+
+
+
+
 
 	insert into #t1 --(subcontoOUT, Subacc_Code, Asset_ShortName
 
@@ -151,9 +161,9 @@ WHERE RowNum > 1;
 
 	from QORT_BACK_TDB..CheckPositions chk
 
-	left outer join QORT_BACK_DB..Assets asss on asss.ShortName = chk.Asset_ShortName and asss.IsTrading = 'y'
+	left outer join QORT_BACK_DB..Assets asss on asss.ShortName = chk.Asset_ShortName --and asss.IsTrading = 'y'
 
-	where chk.CheckDate = @ytdInt and isnull(chk.Volume,0) <> 0 
+	where chk.CheckDate = @ytdInt and isnull(chk.Volume,0) <> 0 and chk.Asset_ShortName not in ('AssetNoQortAMWGMCS10ER5', 'AssetNoQortAMFMVCH01ER1') and chk.Asset_ShortName not like '%NONE-570%'
 
 	
 
@@ -236,7 +246,7 @@ ull(t.Account, t1.Subacc_Code) = code collate Cyrillic_General_CS_AS))) -- мн�
 
 	full outer join #t1 t1 on t.subcontoQORT = t1.subcontoOUT
 
-	left outer join QORT_BACK_DB..Assets asse on asse.ShortName = t1.Asset_ShortName and asse.IsTrading = 'y'
+	left outer join QORT_BACK_DB..Assets asse on asse.ShortName = t1.Asset_ShortName --and asse.IsTrading = 'y'
 
 	--left outer join QORT_BACK_DB..FirmDEPOAccs fdep on fdep.Code collate Cyrillic_General_CS_AS = LEFT(t1.subcontoOUT,6) collate Cyrillic_General_CS_AS
 
@@ -246,7 +256,7 @@ ull(t.Account, t1.Subacc_Code) = code collate Cyrillic_General_CS_AS))) -- мн�
 
 	select * from #t3 order by Account 
 
-	
+	--return
 
 
 
@@ -284,7 +294,7 @@ ull(t.Account, t1.Subacc_Code) = code collate Cyrillic_General_CS_AS))) -- мн�
 
 	where t3.Result <> 0 and left(Account, 2) in ('AS', 'Cl', 'cl') and not (t3.ISIN = 'AMTLCLS10ER3' and left(Account, 2) in ('Cl', 'cl'))
 
-		or (left(Account, 2) in ('AR') and (DepoAccount = '7420000000011' or DepoAccount = '-') and t3.Result <> 0)
+		or (left(Account, 2) in ('AR') and (DepoAccount = '7420000000011' or DepoAccount = '-')  and t3.Result <> 0)
 
 	order by Account
 

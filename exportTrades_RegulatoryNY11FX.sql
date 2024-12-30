@@ -6,7 +6,7 @@
 
 
 
--- exec QORT_ARM_SUPPORT.dbo.exportTrades_RegulatoryNY11FX '20240115'
+-- exec QORT_ARM_SUPPORT.dbo.exportTrades_RegulatoryNY11FX '20241226'
 
 -- exec QORT_ARM_SUPPORT.dbo.exportTrades_RegulatoryNY11FX '20240627'
 
@@ -243,7 +243,7 @@ ar, getdate(), 108), ':', '') + '.xls'
 
 		left outer join @CurOrder co2 on co2.Currency = r.PayCur
 
-		where isnull(co2.OrderBy, 4) < isnull(co1.OrderBy, 4)
+		where isnull(co2.OrderBy, 5) < isnull(co1.OrderBy, 5)
 
 
 
@@ -283,7 +283,7 @@ ar, getdate(), 108), ':', '') + '.xls'
 
 
 
-		--select * from #r r
+		--select * from #r return
 
 
 

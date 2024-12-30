@@ -247,6 +247,10 @@ end --RETURN
 
 				THEN 18 --ETF(AC_ETF)
 
+				WHEN BL.DS306 = 'Y' 
+
+				THEN 19 --	Structured Finance Products (AC_STRUCT)
+
 				WHEN BL.DS122 = 'Corp' OR BL.DS122 = 'Govt' 
 
 				THEN 6 --	RF gov. bonds(AC_SNSEC)
@@ -276,6 +280,10 @@ end --RETURN
 				WHEN BL.DS122 = 'Equity' AND BL.DS674 = 'Mutual Fund'
 
 				THEN 84 --ETF(AC_ETF)
+
+				WHEN BL.DS306 = 'Y' 
+
+				THEN 85 --	Structured Finance Products (AS_STRUCT)
 
 				WHEN BL.DS122 = 'Govt' 
 

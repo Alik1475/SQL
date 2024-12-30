@@ -168,44 +168,45 @@ ssetSort_Const IN (3) THEN 2 -- Depolie(MinFin)
 					WHEN ass.AssetClass_Const IN (8, 5) AND ass.
 AssetSort_Const IN (1) THEN 3
 					WHEN ass.AssetClass_Const IN (8, 5) AND ass.AssetSort_Const IN (2, 78) THEN 4
+					WHEN ass.AssetClass_Const IN (19) AND ass.AssetSort_Const IN (2, 78) THEN 7
 					ELSE 8
 				END AS TYPE,
 				1 AS RERATE, -- RERATE
-				ass.BaseValue AS MINAMNT, -- MINAMNT
-				CONVERT(DATETIME, CONVERT(VARCHAR(8), IIF
-(ass.EmitDate = 0, null, ass.EmitDate), 112)) AS OPENDATE, -- OPENDATE
-				CONVERT(DATETIME, CONVERT(VARCHAR(8), IIF(ass.CancelDate = 0, null, ass.CancelDate), 112)) AS CLOSEDATE, -- CLOSEDATE
+				a
+ss.BaseValue AS MINAMNT, -- MINAMNT
+				CONVERT(DATETIME, CONVERT(VARCHAR(8), IIF(ass.EmitDate = 0, null, ass.EmitDate), 112)) AS OPENDATE, -- OPENDATE
+				CONVERT(DATETIME, CONVERT(VARCHAR(8), IIF(ass.CancelDate = 0, null, ass.CancelDate), 112)) AS CLOSE
+DATE, -- CLOSEDATE
 				0 AS PERIOD, -- PERIOD
 				NULL AS NOTE, -- NOTE
-				isnul
-l(cp.cpn,0) AS YRATE, -- YRATE
+				isnull(cp.cpn,0) AS YRATE, -- YRATE
 				1 AS STATE, -- STATE
 				@todayDate AS TSTIME, -- TSTIME
 				@OWNER AS OWNER, -- OWNER
 				NULL AS FIRSTDATE, -- FIRSTDATE
-				@ISINCode AS NUM, -- NUM
+				@ISINCode AS
+ NUM, -- NUM
 				NULL AS REGNUM, -- REGNUM
 				assC.Name AS SCUR -- SCUR
-			FROM 
-QORT_BACK_DB.dbo.Assets ass
+			FROM QORT_BACK_DB.dbo.Assets ass
 			LEFT OUTER JOIN QORT_BACK_DB.dbo.Assets assC 
 				ON assC.id = ass.BaseCurrencyAsset_ID
 			LEFT OUTER JOIN QORT_BACK_DB.dbo.Firms fir 
-				ON fir.ID = ass.EmitentFirm_ID
+				ON f
+ir.ID = ass.EmitentFirm_ID
 			OUTER APPLY (
 				SELECT TOP 1 Cpn AS cpn 
-				FROM
- QORT_ARM_SUPPORT.dbo.BloombergData 
+				FROM QORT_ARM_SUPPORT.dbo.BloombergData 
 				WHERE LEFT(code, 12) = @ISINCode
 				ORDER BY DATE DESC
 			) AS Cp
 			WHERE ass.isin = @ISINCode 
 			  AND ass.Enabled = 0 
-			  AND ass.IsTrading = 'y'
+			  AND 
+ass.IsTrading = 'y'
 			  AND NOT EXISTS (
 				  SELECT 1
-				  FROM [192.168.13.8
-].[Depositary].[dbo].[SECURKIND] g
+				  FROM [192.168.13.8].[Depositary].[dbo].[SECURKIND] g
 				  WHERE g.num = @ISINCode
 			  );
 

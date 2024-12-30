@@ -368,7 +368,11 @@ ms
 
 				, iif(left([Sec ISIN],4) = 'NONE', left([Sec ISIN],8),[Sec ISIN]) ISIN
 
-				, [Bal Free] Qty
+				, iif(a.isin in('AMGB1029A250', 'AMGB1029A276', 'AMGB1029A292', 'AMGB1129A316', 'AMGB1129A332', 'AMGB20072287', 'AMGB20172327', 'AMGB2029A366', 'AMGB2029A374', 'AMGB30163472', 'AMGB3029A522'
+
+				                 , 'AMGB3129A504', 'AMGN36294251', 'AMGN36294269', 'AMGN36294277', 'AMGN60294250', 'AMGN60294268', 'AMGN60294276'
+
+				                 , 'AMGN60294284', 'AMGN60294292'), [Bal Free] * a.BaseValue, [Bal Free]) as Qty
 
 				, [Bal Qty] Volume
 
@@ -390,7 +394,7 @@ ms
 
 			left outer join QORT_BACK_DB..FirmDEPOAccs  da on  da.DEPOCode = [A/c Ref] and da.DEPOCode <> ''
 
-			left outer join QORT_BACK_DB..Assets a on a.isin = iif(left([Sec ISIN],4) = 'NONE', left([Sec ISIN],8),[Sec ISIN]) and a.Enabled <> a.id and a.IsTrading = 'y'
+			left outer join QORT_BACK_DB..Assets a on a.isin = iif(left([Sec ISIN],4) = 'NONE', left([Sec ISIN],8),[Sec ISIN]) and a.Enabled <> a.id --and a.IsTrading = 'y'
 
 			left outer join QORT_ARM_SUPPORT..ClientNameTranslate cl on cl.account = [A/c Ref]
 
