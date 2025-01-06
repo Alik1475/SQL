@@ -14,19 +14,19 @@ sage VARCHAR(1024);
         DECLARE @SendMail BIT = 0;
         DECLARE @FileName VARCHAR(128) = '\\192.168.14.22\Exchange\QORT_Files\Assets\Assets_Bloomberg.xlsx';
 
-        DECLARE @NotifyEmail VARCHAR(1024) = 'backoffice@armbrok.am;depo@armbrok.am;QORT@
-armbrok.am;'--aleksandr.mironov@armbrok.am;sona.nalbandyan@armbrok.am;armine.khachatryan@armbrok.am';
+        DECLARE @NotifyEmail VARCHAR(1024) = 'aleksandr.mironov@armbrok.am'--aleksandr.mi
+ronov@armbrok.am;sona.nalbandyan@armbrok.am;armine.khachatryan@armbrok.am';
         DECLARE @Sheet1 VARCHAR(64) = 'Sheet1';
 		DECLARE @todayDate DATE = GETDATE()
-        DECLARE @todayInt INT = CAST(CONVERT(VARCHAR, @todayDate, 1
-12) AS INT)
-        DECLARE @sql VARCHAR(1024);
+        DECLARE @todayInt INT = CAST(CONVERT(VARCHAR, @todayDate, 112) AS INT)
+        DECLAR
+E @sql VARCHAR(1024);
 
         -- Очистка временных таблиц, если они существуют
         IF OBJECT_ID('tempdb..##f', 'U') IS NOT NULL DROP TABLE ##f;
         IF OBJECT_ID('tempdb..#t', 'U') IS NOT NULL DROP TABLE #t;
-        IF OB
-JECT_ID('tempdb..##resultT', 'U') IS NOT NULL DROP TABLE ##resultT;
+        IF OBJECT_ID('tempdb..##resultT
+', 'U') IS NOT NULL DROP TABLE ##resultT;
 
 -- обновление справочника про бумаги с истекшим сроком погашения--------------	
 				insert into QORT_BACK_TDB.dbo.Assets (ET_Const, IsProcessed, marking, IsTrading, IsDefault)  
@@ -196,25 +196,25 @@ pons couL
 e <> LEFT(q.ViewName, 30) AND t.ViewName <> '#N/A N/A', ', Ticker(ShortName)'+ cast(t.ViewName as varchar (12)) + '_Bloom/Qort_' + cast(q.ViewName as varchar(12)), '')
                     + IIF(t.Issue_date <> q.EmitDate AND t.Issue_date <> 0, ', Issuer_D
 ate:' + cast(t.Issue_date as varchar (12)) + '_Bloom/Qort_' + cast(q.EmitDate as varchar (12)), '')
- + IIF(ISNULL(t.Nominal, 0) <> ISNULL(q.BaseValue, 0) AND ISNULL(t.Nominal, 0) <> 0, ', Nominal', '')
-                    + IIF(t.Maturity_date <> q.Cancel
-Date AND t.Maturity_date <> 0, ', MaturityDate:'+ cast(t.Maturity_date as varchar (12)) + '_Bloom/Qort_' + cast(q.CancelDate as varchar (12)), '')
-					+ IIF((t.crncy <> isnull(iif(q.AssetClass_Const in(6), f1.Name, f.Name),'')) , ', Currency:'+ t.crncy+'
-_Bloom/Qort_'+ isnull(f.name,''), '')
-					+ IIF((cast(isnull(t.cpn , isnull(cou.Procent,0)) as float) <> iif(isnull(cou.Procent,0) = 0, iif(CHARINDEX('/', cou.Description) >0 ,cast(SUBSTRING(cou.Description, CHARINDEX('/', cou.Description, CHARINDEX('/',
- cou.Description) + 1) + 1, LEN(cou.Description)) as float),0), isnull(cou.Procent,0)) and (q.AssetClass_Const IN(6,7,9))) , ', Coupon%:'+cast(t.cpn AS varchar(16))+'_Q:'+cast(isnull(cou.Procent,0) as varchar(16)), '')
+                    + IIF(ISNULL(t.Nominal, 0) <> ISNULL(q.BaseValue, 0) AND ISNULL(t.Nominal, 0) <> 0, ', Nominal', '')
+                    + IIF(t.Maturi
+ty_date <> q.CancelDate AND t.Maturity_date <> 0, ', MaturityDate:'+ cast(t.Maturity_date as varchar (12)) + '_Bloom/Qort_' + cast(q.CancelDate as varchar (12)), '')
+					+ IIF((t.crncy <> isnull(iif(q.AssetClass_Const in(6), f1.Name, f.Name),'')) , ', Cu
+rrency:'+ t.crncy+'_Bloom/Qort_'+ isnull(f.name,''), '')
+					+ IIF((cast(isnull(t.cpn , isnull(cou.Procent,0)) as float) <> iif(isnull(cou.Procent,0) = 0, iif(CHARINDEX('/', cou.Description) >0 ,cast(SUBSTRING(cou.Description, CHARINDEX('/', cou.Descript
+ion, CHARINDEX('/', cou.Description) + 1) + 1, LEN(cou.Description)) as float),0), isnull(cou.Procent,0)) and (q.AssetClass_Const IN(6,7,9))) , ', Coupon%:'+cast(t.cpn AS varchar(16))+'_Q:'+cast(isnull(cou.Procent,0) as varchar(16)), '')
 					+ IIF(
-								(CAST(ISNULL(t.N
-xt_Cpn_Dt, 0) AS VARCHAR(16)) <> CAST(ISNULL(cou.EndDate, 0) AS VARCHAR(16))
+					
+			(CAST(ISNULL(t.Nxt_Cpn_Dt, 0) AS VARCHAR(16)) <> CAST(ISNULL(cou.EndDate, 0) AS VARCHAR(16))
 								and CAST(ISNULL(t.Nxt_Cpn_Dt, 0) AS VARCHAR(16)) <> CAST(ISNULL(couLL.EndDate, 0) AS VARCHAR(16)))
 								AND q.AssetClass_Const IN (6, 7, 9),
-								', DateNextCoupon:
-' + CAST(t.Nxt_Cpn_Dt AS VARCHAR(16)) + '_Q:' + CAST(ISNULL(cou.EndDate, 0) AS VARCHAR(16)),
+							
+	', DateNextCoupon:' + CAST(t.Nxt_Cpn_Dt AS VARCHAR(16)) + '_Q:' + CAST(ISNULL(cou.EndDate, 0) AS VARCHAR(16)),
 								''
 							)
-					 + IIF(t.Issuer_Bulk <> e.CBR_ShortName, ', ISSUE:' + ISNULL(t.Issuer_Bulk,'') + '_BLOOMBERG/QORT_'+ ISNULL(e.CBR_ShortName,'')  , '')
-		
-			 + CASE WHEN t.DS122 = 'Equity' AND (t.DS674 = 'Common Stock' OR t.DS674 = 'Preference') and q.AssetClass_Const not in (5,18,19,16,11)
+					 + IIF(t.Issuer_Bulk <> e.CBR_ShortName, ', ISSUE:' + ISNULL(t.Issuer_Bulk,'') + '_BLOOMBERG/QORT_'+ ISNULL(e.CBR_Shor
+tName,'')  , '')
+					 + CASE WHEN t.DS122 = 'Equity' AND (t.DS674 = 'Common Stock' OR t.DS674 = 'Preference') and q.AssetClass_Const not in (5,18,19,16,11)
 
 							THEN t.DS122 + t.DS674 + '_Bloom/Qort_' + 'NOT_Equity'
 
