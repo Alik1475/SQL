@@ -200,7 +200,7 @@ BEGIN
 
 			left outer join QORT_BACK_DB.dbo.TSSections ts on ts.id = ass.PricingTSSection_ID 
 
-			--WHERE t.isin IS NOT NULL and ass.ISIN is not null
+			WHERE t.isin IS NOT NULL and ass.ISIN is not null
 
 		
 

@@ -141,7 +141,7 @@ WHERE RowNum > 1;
 
 	and chk.Subacc_Code not in ('AS1994') -- исключил позиции по счетам, которые закрыты
 
-
+	and asss.AssetClass_Const not in(3,4) -- исключил опционы и фьючерсы
 
 
 
@@ -270,7 +270,7 @@ ull(t.Account, t1.Subacc_Code) = code collate Cyrillic_General_CS_AS))) -- мн�
 
     insert into @result (Data, ClientName, Account, Settlement, Asset_ShortName, ISIN, positionQort, DepoAccount, positionOUT, Result)
 
-	select @ytdInt as Data
+	select distinct @ytdInt as Data
 
 	 , IIF(t3.NameClient = '-', ISNULL((SELECT DISTINCT NAME_TRANSLATE FROM QORT_ARM_SUPPORT..ClientNameTranslate WHERE ACCOUNT = t3.DepoAccount collate Cyrillic_General_CS_AS), t3.NameClient),t3.NameClient) ClientName
 

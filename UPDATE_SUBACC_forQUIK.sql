@@ -19,7 +19,7 @@ yInt INT = CAST(CONVERT(VARCHAR, @todayDate, 112) AS INT)
 
 
 
-		insert into QORT_BACK_TDB.dbo.Subaccs (ET_Const, IsProcessed, Code, IsQUIK, FirmCode, TradeCode, MarketFirmCode)
+		insert into QORT_BACK_TDB.dbo.Subaccs (ET_Const, IsProcessed, Code, IsQUIK, FirmCode, TradeCode, MarketFirmCode, RPTACTION_Flags, RPTACTION_Period_Flags, IsIgnoreRules)
 
 		SELECT 4 as ET_Const, 1 as IsProcessed
 
@@ -32,6 +32,12 @@ yInt INT = CAST(CONVERT(VARCHAR, @todayDate, 112) AS INT)
 				, iif(sub1.IsQuikC is null, '', sub.SubAccCode) as TradeCode
 
 				, iif(sub1.IsQuikC is null, '', 'ARMBROK') as MarketFirmCode
+
+				, iif(sub1.IsQuikC is null, 0, null) as RPTACTION_Flags
+
+				, iif(sub1.IsQuikC is null, 0, null) as RPTACTION_Period_Flags
+
+				, iif(sub1.IsQuikC is null, 'n', null) as IsIgnoreRules
 
 				--, *
 
@@ -51,20 +57,33 @@ yInt INT = CAST(CONVERT(VARCHAR, @todayDate, 112) AS INT)
 
 	
 		where sub.Enabled = 0 and sub.IsAnalytic = 'n' 
-		and Iif(sub1.IsQuikC is null, 'n', 'y') <> sub.IsQUIK
+		and (Iif(sub1.IsQuikC is null, 'n', 'y') <> sub.IsQUIK or iif(sub1.IsQuikC is null, 0, sub.RPTACTION_Flags) <> sub.RPTACTION_Flags or iif(sub1.IsQuikC is null, 0, sub.RPTACTION_Period_Flags) <> sub.RPT
+ACTION_Period_Flags or iif(sub1.IsQuikC is null, 'n', sub.IsIgnoreRules) <> sub.IsIgnoreRules)
 		--and sub.SubAccCode = 'AS1388'
 
-    END TRY
+  --обновление справочника БП (всем признак не спамить, чтобы исключить случайную отправку сообщений
+
+
+   
+
+			insert into QORT_BACK_TDB.dbo.Firms (ET_Const, IsProcessed, BOCode, IsSpam)
+
+			select 4 as ET_Const, 1 as IsProcessed, f.BOCode, 'y' IsSpam
+
+			from QORT_BACK_DB.dbo.Firms f 
+
+			where IsSpam = 'n' and Enabled = 0 
+   
+   END TRY
     BEGIN CATCH
         -- Обработка исключений
         WHILE @@TRANCOUNT > 0 ROLLBACK TRAN
-        
-SET @Message = 'ERROR: ' + ERROR_MESSAGE(); 
-        -- Вставка сообщения об ошибке в таблицу uploadLogs
+        SET @Message = 'ERROR: ' + ERROR_MESSAGE(); 
+        -- Вставка сообщения об ошибке в таблицу uploadL
+ogs
         INSERT INTO QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) VALUES (@Message, 1001);
         -- Возвращаем сообщение об ошибке
-       
- SELECT @Message AS result, 'STATUS' AS defaultTask, 'red' AS color;
+        SELECT @Message AS result, 'STATUS' AS defaultTask, 'red' AS color;
     END CATCH
 
 END

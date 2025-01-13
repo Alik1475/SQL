@@ -174,7 +174,7 @@ select row_number() over(order by t.account) rn
 
 			left join QORT_BACK_DB..FirmDEPOAccs  da on  da.DEPODivisionCode = t.account
 
-			left outer join QORT_BACK_DB..Assets a on a.isin = t.num and a.IsTrading = 'y'
+			left outer join QORT_BACK_DB..Assets a on a.isin = t.num --and a.IsTrading = 'y'
 
 			left outer join QORT_ARM_SUPPORT..ClientNameTranslate cl on cl.account = t.account
 

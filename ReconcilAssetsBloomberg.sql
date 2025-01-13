@@ -14,19 +14,19 @@ sage VARCHAR(1024);
         DECLARE @SendMail BIT = 0;
         DECLARE @FileName VARCHAR(128) = '\\192.168.14.22\Exchange\QORT_Files\Assets\Assets_Bloomberg.xlsx';
 
-        DECLARE @NotifyEmail VARCHAR(1024) = 'aleksandr.mironov@armbrok.am'--aleksandr.mi
-ronov@armbrok.am;sona.nalbandyan@armbrok.am;armine.khachatryan@armbrok.am';
+        DECLARE @NotifyEmail VARCHAR(1024) = 'depo@armbrok.am;backoffice@armbrok.am;qort@
+armbrok.am'--aleksandr.mironov@armbrok.am;sona.nalbandyan@armbrok.am;armine.khachatryan@armbrok.am';
         DECLARE @Sheet1 VARCHAR(64) = 'Sheet1';
 		DECLARE @todayDate DATE = GETDATE()
-        DECLARE @todayInt INT = CAST(CONVERT(VARCHAR, @todayDate, 112) AS INT)
-        DECLAR
-E @sql VARCHAR(1024);
+        DECLARE @todayInt INT = CAST(CONVERT(VARCHAR, @todayDate, 11
+2) AS INT)
+        DECLARE @sql VARCHAR(1024);
 
         -- Очистка временных таблиц, если они существуют
         IF OBJECT_ID('tempdb..##f', 'U') IS NOT NULL DROP TABLE ##f;
         IF OBJECT_ID('tempdb..#t', 'U') IS NOT NULL DROP TABLE #t;
-        IF OBJECT_ID('tempdb..##resultT
-', 'U') IS NOT NULL DROP TABLE ##resultT;
+        IF OBJ
+ECT_ID('tempdb..##resultT', 'U') IS NOT NULL DROP TABLE ##resultT;
 
 -- обновление справочника про бумаги с истекшим сроком погашения--------------	
 				insert into QORT_BACK_TDB.dbo.Assets (ET_Const, IsProcessed, marking, IsTrading, IsDefault)  
@@ -35,27 +35,22 @@ E @sql VARCHAR(1024);
 						4 AS ET_Const,
 						1 AS IsProcessed,
 						Marking AS marking,
-						'n' AS IsTrading,
+						IIF(POSSESS.result is NOT NULL, 'y', 'n') AS IsTrading,
 						IIF(POSSESS.result is NOT NULL, 'y', null) as IsDefault
 					FROM QORT_BACK_DB.dbo.assets a
-					OUTER APPLY (SELECT TOP 1 1 AS Res
-ult
+	
+				OUTER APPLY (SELECT TOP 1 1 AS Result
 							FROM QORT_BACK_DB.dbo.Position po
 							WHERE po.Asset_ID = a.id 
-							  AND po.VolFree > 0) AS POSSESS
+							  AND po.VolFree > 0) AS POSSESS		
 					WHERE 
 						a.AssetClass_Const IN (6) 
 						AND a.CancelDate < @todayInt 
-						and a.CancelDate <> 0 --для бумаг без даты погашен
-ия
+						and a.Canc
+elDate <> 0 --для бумаг без даты погашения
 						AND a.Enabled = 0
-						AND a.IsTrading = 'y'
-					/*	AND NOT EXISTS (
-							SELECT TOP 1 1 
-							FROM QORT_BACK_DB.dbo.Position po
-							WHERE po.Asset_ID = a.id 
-							  AND po.VolFree > 0
-						);*/
+						AND (IIF(POSSESS.result is NOT NULL, 'y', 'n') <> a.IsTrading or IIF(POSSESS.result is NOT NULL, 'y', 'n') <> IsDefault)
+					
 
 				  --and ShortName = 'XS1634369067'
 --return
@@ -218,9 +213,13 @@ tName,'')  , '')
 
 							THEN t.DS122 + t.DS674 + '_Bloom/Qort_' + 'NOT_Equity'
 
-							WHEN t.DS122 = 'Equity' AND t.DS674 = 'Mutual Fund' and q.AssetClass_Const not in (18)
+							WHEN t.DS122 = 'Equity' AND t.DS674 = 'Mutual Fund' and Issuer_Bulk like '%ETF%'  and q.AssetClass_Const not in (18)
 
 							THEN t.DS674  + '_Bloom/Qort_' + 'NOT_ETF'
+
+							WHEN t.DS122 = 'Equity' AND t.DS674 = 'Mutual Fund' and Issuer_Bulk not like '%ETF%'  and q.AssetClass_Const not in (11)
+
+							THEN t.DS674  + '_Bloom/Qort_' + 'NOT_otherFund'
 
 							WHEN t.DS306 = 'Y' and q.AssetClass_Const not in (19)
 
@@ -250,9 +249,13 @@ tName,'')  , '')
 
 							THEN t.DS674  + 'Bloom/Qort_' + 'NOT_ADR' -- 		RDR(AS_RDR)
 
-							WHEN t.DS122 = 'Equity' AND t.DS674 = 'Mutual Fund' and q.AssetSort_Const not in (84)
+							WHEN t.DS122 = 'Equity' AND t.DS674 = 'Mutual Fund' and Issuer_Bulk like '%ETF%' and q.AssetSort_Const not in (84)
 
 							THEN t.DS674 + '_Bloom/Qort_' + 'NOT_ETF' --ETF(AC_ETF)
+
+							WHEN t.DS122 = 'Equity' AND t.DS674 = 'Mutual Fund' and Issuer_Bulk not like '%ETF%' and q.AssetSort_Const not in (14)
+
+							THEN t.DS674 + '_Bloom/Qort_' + 'NOT_otherFund' 
 
 							WHEN t.DS306 = 'Y' and q.AssetSort_Const not in (85)
 

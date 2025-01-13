@@ -74,7 +74,7 @@ left outer join  QORT_BACK_DB..Firms fr on sa.OwnerFirm_ID = fr.id
 
 left outer join QORT_BACK_DB..Firms frS on fr.Sales_ID = frS.id
 
-where sa.Enabled <> sa.id and sa.OwnerFirm_ID > 0 and fr.Sales_ID > 0 and sa.ACSTAT_Const = 5 -- только активные субсчета
+where sa.Enabled <> sa.id and sa.OwnerFirm_ID > 0 and fr.Sales_ID > 0 --and sa.ACSTAT_Const = 5 -- только активные субсчета
 
 select * from #t1
 
