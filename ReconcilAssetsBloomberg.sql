@@ -97,38 +97,40 @@ Columns
 			 , DS306
 			 , DS122
 			 , DS674
+			 , FUND_TYP
+			 , DS004
 				INTO #t
 				FROM QORT_ARM_SUPPORT.dbo.BloombergData po
 				WHERE (po.name is not null or po.name <> 'Not Found') and po.date  = @todayInt
-		--and po.code = 'XS1936100483 CO
-RP'
+		--and
+ po.code = 'XS1936100483 CORP'
 
         SELECT * FROM #t;
 		--RETURN
         -- Вставка данных в основную таблицу Assets
         INSERT INTO QORT_BACK_TDB.dbo.Assets (
            IsProcessed, ET_Const, ISIN, IsInSanctionList, shortName, Marking, Comment)
+
         
-        SELECT DIS
-TINCT
+        SELECT DISTINCT
               1 AS IsProcessed
             , 4 AS ET_Const
             , CAST(t.ISIN AS VARCHAR(16)) AS ISIN
-            , IIF(ass.IsInSanctionList = 'n' AND t.Sanction = 'y', t.Sanction, ass.IsInSanctionList) AS IsInSanctionList
-            , ass.S
-hortName AS shortName
+            , IIF(ass.IsInSanctionList = 'n' AND t.Sanction = 'y', t.Sanction, ass.IsInSanctionList) AS IsInSanct
+ionList
+            , ass.ShortName AS shortName
             , ass.Marking AS Marking
 			, t.comment as COMMENT
         FROM #t t
         LEFT OUTER JOIN QORT_BACK_DB.dbo.Assets ass WITH (NOLOCK) ON ass.ISIN = t.ISIN
-        WHERE (ass.Enabled <> ass.id AND ass.IsInSanctionList <> 
-t.Sanction) OR (t.comment <> ass.Comment);
+        WHERE (ass.Enabled <> ass.id A
+ND ass.IsInSanctionList <> t.Sanction) OR (t.comment <> ass.Comment);
 
         -- Ожидание обновления данных
         SET @WaitCount = 1200;
-        WHILE (@WaitCount > 0 AND EXISTS (SELECT TOP 1 1 FROM QORT_BACK_TDB.dbo.Assets t WITH (NOLOCK) WHERE t.IsProcessed IN (1,2)))
-        
-BEGIN
+        WHILE (@WaitCount > 0 AND EXISTS (SELECT TOP 1 1 FROM QORT_BACK_TDB.dbo.Assets t WITH (NOLOCK) WHERE t.IsPr
+ocessed IN (1,2)))
+        BEGIN
             WAITFOR DELAY '00:00:03';
             SET @WaitCount = @WaitCount - 1;
         END;
@@ -136,88 +138,89 @@ BEGIN
         -- Обработка результатов сверки данных
         SELECT
               t.ISIN AS ISIN
-            , t.ViewName AS Ticker
-            , t.
-Nominal AS Nominal
+            , t.ViewName
+ AS Ticker
+            , t.Nominal AS Nominal
             , t.Issuer AS Issuer
             , t.Sanction AS Sanction
             , t.Issue_date AS Issue_date
             , t.Maturity_date AS Maturity_date
             , q.isin AS ISINQ
-            , q.ViewName AS AssetShortNameQ
-    
-        , q.BaseValue AS NominalQ
+            , q.ViewN
+ame AS AssetShortNameQ
+            , q.BaseValue AS NominalQ
             , e.FirmShortName AS IssuerQ
             , q.IsInSanctionList AS SanctionQ
             , q.EmitDate AS Issue_dateQ
             , q.CancelDate AS Maturity_dateQ
-            , s2.StatusTXT AS Result
-			, q.id as
- id
+            , s2.Statu
+sTXT AS Result
+			, q.id as id
 			, iif(q.AssetClass_Const in(6), f1.Name, f.Name)  curNAME -- валюту номинала из блумберг для бондов храним в бумаге, а для всех других под инструиентом
 			--, t.Issuer_Bulk Issuer_Bulk
 			, t.DS306 AS DS306
+			, t.FUND_TY
+P AS FUND_TYP
         INTO ##resultT
         FROM #t t
-
         FULL OUTER JOIN QORT_BACK_DB.dbo.Assets q ON t.ISIN = q.ISIN and q.Enabled <> q.id and q.IsTrading = 'y'
-        LEFT OUTER JOIN QORT_BACK_DB.dbo.Firms e WITH (NOLOCK) ON e.id = q.EmitentFirm_ID
-		left outer join QORT_BACK_DB.dbo.Securities s ON s
-.Asset_ID = q.id and s.TSSection_ID in (154) and s.Enabled <> s.id
+        LEFT OUTER JOIN QORT_BACK_DB.dbo.Firms e WITH (NOLOCK) ON e.id = q.EmitentFirm_
+ID
+		left outer join QORT_BACK_DB.dbo.Securities s ON s.Asset_ID = q.id and s.TSSection_ID in (154) and s.Enabled <> s.id
 		LEFT OUTER JOIN QORT_BACK_DB.dbo.Assets f WITH (NOLOCK) ON f.id = s.CurrPriceAsset_ID and f.id <> f.Enabled
-		LEFT OUTER JOIN QORT_BACK_DB.dbo.Assets f1 WITH (NOLOCK) ON f1.id = q.BaseCu
-rrencyAsset_ID and f1.id <> f1.Enabled
-		LEFT OUTER JOIN QORT_BACK_DB.dbo.Coupons cou WITH (NOLOCK) ON cou.Asset_ID = q.ID and cou.id <> cou.Enabled and cou.IsCanceled = 'n' and cou.BeginDate <= @todayInt and cou.EndDate > @todayInt
-		--LEFT OUTER JOIN QO
-RT_BACK_DB.dbo.Coupons couL WITH (NOLOCK) ON couL.Asset_ID = q.ID and q.id <> q.Enabled and coul.Description = cast(TRY_CAST(cou.Description as int) + 1 as varchar (12))
-        outer apply ( (select top 1 couL.EndDate as EndDate from QORT_BACK_DB.dbo.Cou
-pons couL 
+		LEFT OUTER JOIN QORT_
+BACK_DB.dbo.Assets f1 WITH (NOLOCK) ON f1.id = q.BaseCurrencyAsset_ID and f1.id <> f1.Enabled
+		LEFT OUTER JOIN QORT_BACK_DB.dbo.Coupons cou WITH (NOLOCK) ON cou.Asset_ID = q.ID and cou.id <> cou.Enabled and cou.IsCanceled = 'n' and cou.BeginDate <= @toda
+yInt and cou.EndDate > @todayInt
+		--LEFT OUTER JOIN QORT_BACK_DB.dbo.Coupons couL WITH (NOLOCK) ON couL.Asset_ID = q.ID and q.id <> q.Enabled and coul.Description = cast(TRY_CAST(cou.Description as int) + 1 as varchar (12))
+        outer apply ( (select 
+top 1 couL.EndDate as EndDate from QORT_BACK_DB.dbo.Coupons couL 
 				where couL.Asset_ID = q.ID and couL.id <> couL.Enabled and coul.Description = cast(TRY_CAST(cou.Description as int) + 1 as varchar (12)))
 			) as couLL
-		outer apply ( (select resDL.StatusTXT as StatusTXTdl from ##resultDepoliteAssets resDL
-
+		outer apply ( (select resDL.Sta
+tusTXT as StatusTXTdl from ##resultDepoliteAssets resDL
 				where isnull(resDL.ISIN,resDL.num)  = t.ISIN COLLATE Cyrillic_General_CI_AS)
 			) as STXT
        
 		
 		OUTER APPLY (
             SELECT CASE
-                WHEN t.ISIN IS NULL AND q.ISIN <> '' and q.IsTrading = 'y' THEN 'Asset not found in Bloomberg
-: ' + q.ISIN
+                WHEN t.ISIN IS NULL AND q.ISIN <> '' a
+nd q.IsTrading = 'y' THEN 'Asset not found in Bloomberg: ' + q.ISIN
                 WHEN q.ISIN IS NULL AND t.ISIN IS NOT NULL THEN 'Asset not found in Qort!!!' + t.ISIN
                 ELSE ''
-                    + IIF(t.Sanction <> q.IsInSanctionList, ', Sanction!!!', '')
-                    + IIF(t.ViewNam
-e <> LEFT(q.ViewName, 30) AND t.ViewName <> '#N/A N/A', ', Ticker(ShortName)'+ cast(t.ViewName as varchar (12)) + '_Bloom/Qort_' + cast(q.ViewName as varchar(12)), '')
-                    + IIF(t.Issue_date <> q.EmitDate AND t.Issue_date <> 0, ', Issuer_D
-ate:' + cast(t.Issue_date as varchar (12)) + '_Bloom/Qort_' + cast(q.EmitDate as varchar (12)), '')
-                    + IIF(ISNULL(t.Nominal, 0) <> ISNULL(q.BaseValue, 0) AND ISNULL(t.Nominal, 0) <> 0, ', Nominal', '')
-                    + IIF(t.Maturi
-ty_date <> q.CancelDate AND t.Maturity_date <> 0, ', MaturityDate:'+ cast(t.Maturity_date as varchar (12)) + '_Bloom/Qort_' + cast(q.CancelDate as varchar (12)), '')
-					+ IIF((t.crncy <> isnull(iif(q.AssetClass_Const in(6), f1.Name, f.Name),'')) , ', Cu
-rrency:'+ t.crncy+'_Bloom/Qort_'+ isnull(f.name,''), '')
-					+ IIF((cast(isnull(t.cpn , isnull(cou.Procent,0)) as float) <> iif(isnull(cou.Procent,0) = 0, iif(CHARINDEX('/', cou.Description) >0 ,cast(SUBSTRING(cou.Description, CHARINDEX('/', cou.Descript
-ion, CHARINDEX('/', cou.Description) + 1) + 1, LEN(cou.Description)) as float),0), isnull(cou.Procent,0)) and (q.AssetClass_Const IN(6,7,9))) , ', Coupon%:'+cast(t.cpn AS varchar(16))+'_Q:'+cast(isnull(cou.Procent,0) as varchar(16)), '')
+                    + IIF(t.Sanction <> q.IsInSanctionList, '
+, Sanction!!!', '')
+                    + IIF(t.ViewName <> LEFT(q.ViewName, 30) AND t.ViewName <> '#N/A N/A', ', Ticker(ShortName)'+ cast(t.ViewName as varchar (12)) + '_Bloom/Qort_' + cast(q.ViewName as varchar(12)), '')
+                    + IIF(t.Issu
+e_date <> q.EmitDate AND t.Issue_date <> 0, ', Issuer_Date:' + cast(t.Issue_date as varchar (12)) + '_Bloom/Qort_' + cast(q.EmitDate as varchar (12)), '')
+                    + IIF(ISNULL(t.Nominal, 0) <> ISNULL(q.BaseValue, 0) AND ISNULL(t.Nominal, 0) <>
+ 0, ', Nominal', '')
+                    + IIF(t.Maturity_date <> q.CancelDate AND t.Maturity_date <> 0, ', MaturityDate:'+ cast(t.Maturity_date as varchar (12)) + '_Bloom/Qort_' + cast(q.CancelDate as varchar (12)), '')
+					+ IIF((t.crncy <> isnull(iif(
+q.AssetClass_Const in(6), f1.Name, f.Name),'')) , ', Currency:'+ t.crncy+'_Bloom/Qort_'+ isnull(f.name,''), '')
+					+ IIF((cast(isnull(t.cpn , isnull(cou.Procent,0)) as float) <> iif(isnull(cou.Procent,0) = 0, iif(CHARINDEX('/', cou.Description) >0 ,cast
+(SUBSTRING(cou.Description, CHARINDEX('/', cou.Description, CHARINDEX('/', cou.Description) + 1) + 1, LEN(cou.Description)) as float),0), isnull(cou.Procent,0)) and (q.AssetClass_Const IN(6,7,9))) , ', Coupon%:'+cast(t.cpn AS varchar(16))+'_Q:'+cast(isnul
+l(cou.Procent,0) as varchar(16)), '')
 					+ IIF(
-					
-			(CAST(ISNULL(t.Nxt_Cpn_Dt, 0) AS VARCHAR(16)) <> CAST(ISNULL(cou.EndDate, 0) AS VARCHAR(16))
-								and CAST(ISNULL(t.Nxt_Cpn_Dt, 0) AS VARCHAR(16)) <> CAST(ISNULL(couLL.EndDate, 0) AS VARCHAR(16)))
+								(CAST(ISNULL(t.Nxt_Cpn_Dt, 0) AS VARCHAR(16)) <> CAST(ISNULL(cou.EndDate, 0) AS VARCHAR(16))
+								and CAST(ISNULL(t.Nxt_Cpn_Dt, 0) AS VARCHAR(16)) <> CAST(ISNULL(couLL.EndDate, 0) AS VARCHAR(16)
+))
 								AND q.AssetClass_Const IN (6, 7, 9),
-							
-	', DateNextCoupon:' + CAST(t.Nxt_Cpn_Dt AS VARCHAR(16)) + '_Q:' + CAST(ISNULL(cou.EndDate, 0) AS VARCHAR(16)),
+								', DateNextCoupon:' + CAST(t.Nxt_Cpn_Dt AS VARCHAR(16)) + '_Q:' + CAST(ISNULL(cou.EndDate, 0) AS VARCHAR(16)),
 								''
 							)
-					 + IIF(t.Issuer_Bulk <> e.CBR_ShortName, ', ISSUE:' + ISNULL(t.Issuer_Bulk,'') + '_BLOOMBERG/QORT_'+ ISNULL(e.CBR_Shor
-tName,'')  , '')
+					 + IIF(t.Issuer_Bulk <> e.CBR_ShortName, ', ISSUE:' + ISNULL(t.
+Issuer_Bulk,'') + '_BLOOMBERG/QORT_'+ ISNULL(e.CBR_ShortName,'')  , '')
 					 + CASE WHEN t.DS122 = 'Equity' AND (t.DS674 = 'Common Stock' OR t.DS674 = 'Preference') and q.AssetClass_Const not in (5,18,19,16,11)
 
 							THEN t.DS122 + t.DS674 + '_Bloom/Qort_' + 'NOT_Equity'
 
-							WHEN t.DS122 = 'Equity' AND t.DS674 = 'Mutual Fund' and Issuer_Bulk like '%ETF%'  and q.AssetClass_Const not in (18)
+							WHEN t.DS122 = 'Equity' AND t.DS674 = 'Mutual Fund' and FUND_TYP = 'ETF'  and q.AssetClass_Const not in (18)
 
-							THEN t.DS674  + '_Bloom/Qort_' + 'NOT_ETF'
+							THEN t.FUND_TYP  + '_Bloom/Qort_' + 'NOT_ETF'
 
-							WHEN t.DS122 = 'Equity' AND t.DS674 = 'Mutual Fund' and Issuer_Bulk not like '%ETF%'  and q.AssetClass_Const not in (11)
+							WHEN t.DS122 = 'Equity' AND t.DS674 = 'Mutual Fund' and isnull(FUND_TYP,'') <> 'ETF'  and q.AssetClass_Const not in (11)
 
 							THEN t.DS674  + '_Bloom/Qort_' + 'NOT_otherFund'
 
@@ -249,11 +252,11 @@ tName,'')  , '')
 
 							THEN t.DS674  + 'Bloom/Qort_' + 'NOT_ADR' -- 		RDR(AS_RDR)
 
-							WHEN t.DS122 = 'Equity' AND t.DS674 = 'Mutual Fund' and Issuer_Bulk like '%ETF%' and q.AssetSort_Const not in (84)
+							WHEN t.DS122 = 'Equity' AND t.DS674 = 'Mutual Fund' and FUND_TYP = 'ETF' and q.AssetSort_Const not in (84)
 
-							THEN t.DS674 + '_Bloom/Qort_' + 'NOT_ETF' --ETF(AC_ETF)
+							THEN t.FUND_TYP + '_Bloom/Qort_' + 'NOT_ETF' --ETF(AC_ETF)
 
-							WHEN t.DS122 = 'Equity' AND t.DS674 = 'Mutual Fund' and Issuer_Bulk not like '%ETF%' and q.AssetSort_Const not in (14)
+							WHEN t.DS122 = 'Equity' AND t.DS674 = 'Mutual Fund' and FUND_TYP <> 'ETF' and q.AssetSort_Const not in (14)
 
 							THEN t.DS674 + '_Bloom/Qort_' + 'NOT_otherFund' 
 

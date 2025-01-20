@@ -468,7 +468,7 @@ and ISNULL(pr1.Value, 0) <> 1
 
 		where BLP.security_Name is not null  AND RIGHT(BLP.Code,4) = 'CORP' AND isnull(BLP.Int_Acc,0) <> 0
 
-		and BLP.date = @todayInt and ass.ShortName is not null
+		and BLP.date = @todayInt and ass.ShortName is not null and BLP.DS027 is not null
 
 		--and ass.ShortName = 'SQBNZU 5.75 12/02/24'
 

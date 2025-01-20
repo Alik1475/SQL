@@ -6,7 +6,7 @@ CREATE PROCEDURE [dbo].[Alert_Negative_Client_balance] @SelectData BIT = 0
 
 	,@SendMail BIT = 1 -- включена отправка
 
-	,@NotifyEmail VARCHAR(1024) = 'qort@armbrok.am;samvel.sahakyan@armbrok.am;lida.tadeosyan@armbrok.am'
+	,@NotifyEmail VARCHAR(1024) = 'backoffice@armbrok.am;samvel.sahakyan@armbrok.am;lida.tadeosyan@armbrok.am;qort@armbrok.am;'
 
 	,@IsClient BIT = NULL
 

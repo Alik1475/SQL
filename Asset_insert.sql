@@ -243,11 +243,11 @@ end --RETURN
 
 				THEN 5 -- Equity RF(AC_SEC)
 
-				WHEN BL.DS122 = 'Equity' AND BL.DS674 = 'Mutual Fund' and bl.Issuer_Bulk like '%ETF%'
+				WHEN BL.DS122 = 'Equity' AND BL.DS674 = 'Mutual Fund' and bl.FUND_TYP = 'ETF'
 
 				THEN 18 --ETF(AC_ETF)
 
-				WHEN BL.DS122 = 'Equity' AND BL.DS674 = 'Mutual Fund' and bl.Issuer_Bulk not like '%ETF%'
+				WHEN BL.DS122 = 'Equity' AND BL.DS674 = 'Mutual Fund' and bl.FUND_TYP <> 'ETF'
 
 				THEN 11 --otherFund(AC_SHARE)
 
@@ -281,11 +281,11 @@ end --RETURN
 
 				THEN 32 -- 		RDR(AS_RDR)
 
-				WHEN BL.DS122 = 'Equity' AND BL.DS674 = 'Mutual Fund' and bl.Issuer_Bulk like '%ETF%'
+				WHEN BL.DS122 = 'Equity' AND BL.DS674 = 'Mutual Fund' and bl.FUND_TYP = 'ETF'
 
 				THEN 84 --ETF(AC_ETF)
 
-				WHEN BL.DS122 = 'Equity' AND BL.DS674 = 'Mutual Fund' and bl.Issuer_Bulk not like '%ETF%'
+				WHEN BL.DS122 = 'Equity' AND BL.DS674 = 'Mutual Fund' and bl.FUND_TYP <> 'ETF'
 
 				THEN 14 --otherFund(AS_SHARE)
 
