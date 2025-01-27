@@ -157,7 +157,7 @@ Country.NameU)), ''))
 
 			--, iif(a.BaseValueOrigin * t.QTY <> 0, QORT_ARM_SUPPORT.dbo.fFloatToCurrency(a.BaseValueOrigin * t.QTY), '') BaseValueVolume_I
 
-			, iif(a.BaseValueOrigin * t.QTY <> 0, cast(a.BaseValueOrigin * t.QTY as decimal(32,2)), NULL) BaseValueVolume_I -- Алик 04/03/2024 - поправил количество знаков после запятой на 2
+			, iif(a.BaseValue * t.QTY <> 0, cast(a.BaseValue * t.QTY as decimal(32,2)), NULL) BaseValueVolume_I -- Алик 04/03/2024 - поправил количество знаков после запятой на 2
 
 			--, QORT_ARM_SUPPORT.dbo.fFloatToCurrency5(t.Price) Price_J
 
@@ -167,7 +167,7 @@ Country.NameU)), ''))
 
 			, CASE WHEN a.ISIN = 'XS2080321198' THEN
 
-				cast(a.BaseValueOrigin * t.QTY as decimal(32,2))
+				cast(a.BaseValue * t.QTY as decimal(32,2))
 
 				ELSE
 

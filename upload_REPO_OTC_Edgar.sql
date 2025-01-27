@@ -1004,11 +1004,12 @@ WHERE ISNULL(lt01.[F14], '0') <> '0';
 
 			,isnull(sec.SecCode, 'unknow' + t.ISIN) Security_Code
 
-			,t.Qty / ISNULL(ASS.basevalue, 1) Qty
+			,t.Qty / IIF(ASS.AssetClass_Const in (6), ISNULL(ASS.basevalue, 1), 1) Qty
 
-			,t.Volume / isnull(t.Qty, 1) * 100 * iif(assBC.name = t.Currency, 1, IIF(assBC.BaseCurrencyAsset_ID = 17, 1, crsTr.Bid) / isnull(IIF(ass.BaseCurrencyAsset_ID = 17, 1, crsAS.Bid), 1)) Price
+			,IIF(ASS.AssetClass_Const in (6),t.Volume / isnull(t.Qty, 1) * 100 * iif(assBC.name = t.Currency, 1, IIF(assBC.BaseCurrencyAsset_ID = 17, 1, crsTr.Bid) / isnull(IIF(ass.BaseCurrencyAsset_ID = 17, 1, crsAS.Bid), 1)),t.Volume/t.Qty)  Price
 
-			,(t.Volume + t.VolPercent) / isnull(t.Qty, 1) * 100 * iif(assBC.name = t.Currency, 1, IIF(assBC.BaseCurrencyAsset_ID = 17, 1, crsTr.Bid) / isnull(IIF(ass.BaseCurrencyAsset_ID = 17, 1, crsAS.Bid), 1)) BackPrice
+			,IIF(ASS.AssetClass_Const in (6),(t.Volume + t.VolPercent) / isnull(t.Qty, 1) * 100 * iif(assBC.name = t.Currency, 1, IIF(assBC.BaseCurrencyAsset_ID = 17, 1, crsTr.Bid) / isnull(IIF(ass.BaseCurrencyAsset_ID = 17, 1, crsAS.Bid), 1)),(t.Volume + t.VolPer
+cent)/t.Qty ) BackPrice
 
 			,ROUND(t.Volume, 2) Volume1
 
@@ -1227,6 +1228,18 @@ WHERE ISNULL(lt01.[F14], '0') <> '0';
 							FROM QORT_BACK_DB..Firms
 
 							WHERE BOCode = '00360'
+
+							)
+
+				WHEN t.CP = 'Evgeniy Renge'
+
+					THEN (
+
+							SELECT FirmShortName
+
+							FROM QORT_BACK_DB..Firms
+
+							WHERE BOCode = '00789'
 
 							)
 

@@ -74,16 +74,48 @@ ACTION_Period_Flags or iif(sub1.IsQuikC is null, 'n', sub.IsIgnoreRules) <> sub.
 
 			where IsSpam = 'n' and Enabled = 0 
    
+
+
+
+
+-- Формирование и добавление логина для АПП
+
+
+
+		/*		--	insert into QORT_BACK_TDB.dbo.Firms (ET_Const, IsProcessed, BOCode, GenName)
+
+					select 4 as ET_Const, 1 as IsProcessed, f.BOCode, QORT_ARM_SUPPORT.dbo.fGetFirstEmail(f.Email) GenName
+
+					from QORT_BACK_DB.dbo.Firms f 
+
+					CROSS APPLY (
+								SELECT FlagName
+								FROM [dbo].[FTGetIncludedFlags](f.FT_Flags)
+							) IncludedFlags
+
+					where f.GenName = ''
+
+					and Enabled = 0 
+
+					and IncludedFlags.FlagName = 'FT_CLIENT'
+					and f.STAT_Const in (5) -- Active;
+
+					*/
+
+
+
+
    END TRY
     BEGIN CATCH
         -- Обработка исключений
         WHILE @@TRANCOUNT > 0 ROLLBACK TRAN
         SET @Message = 'ERROR: ' + ERROR_MESSAGE(); 
-        -- Вставка сообщения об ошибке в таблицу uploadL
-ogs
+
+        -- Вставка сообщения об ошибке в таблицу uploadLogs
         INSERT INTO QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) VALUES (@Message, 1001);
         -- Возвращаем сообщение об ошибке
-        SELECT @Message AS result, 'STATUS' AS defaultTask, 'red' AS color;
+        SELECT @Message AS result, 'STATUS' AS defau
+ltTask, 'red' AS color;
     END CATCH
 
 END
