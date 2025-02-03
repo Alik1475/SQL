@@ -224,7 +224,7 @@ BEGIN
 
 						,CashAccountRef NVARCHAR(50)
 
-						,Symbol NVARCHAR(10)
+						,Symbol NVARCHAR(50)
 
 						,Exchange NVARCHAR(10)
 
@@ -232,19 +232,19 @@ BEGIN
 
 						,Statement NVARCHAR(20)
 
-						,NetHoldings DECIMAL(18, 2)
+						,NetHoldings NVARCHAR(20)
 
-						,NetSettle DECIMAL(18, 2)
+						,NetSettle NVARCHAR(20)
 
-						,CumHoldings DECIMAL(18, 2)
+						,CumHoldings NVARCHAR(20)
 
-						,AvgCost DECIMAL(18, 2)
+						,AvgCost NVARCHAR(20)
 
-						,SellPending DECIMAL(18, 2)
+						,SellPending NVARCHAR(20)
 
-						,BuyPending DECIMAL(18, 2)
+						,BuyPending NVARCHAR(20)
 
-						,PledgedQty DECIMAL(18, 2)
+						,PledgedQty NVARCHAR(20)
 
 						,CustomerName NVARCHAR(100)
 
@@ -252,9 +252,13 @@ BEGIN
 
 						,Narration NVARCHAR(255)
 
-						,EligibleShares DECIMAL(18, 2)
+						,EligibleShares NVARCHAR(20)
 
 						,MubasherOmnibus NVARCHAR(10)
+
+						--, ConvertedDate int
+
+						--, ConvertedTime int
 
 						);
 
@@ -371,6 +375,8 @@ BEGIN
 						'Buy'
 
 						,'Sell'
+
+						, 'Short Sell'
 
 						)
 
@@ -661,7 +667,7 @@ END TRY
 
 					,'USD' CurrPriceAsset_ShortName
 
-					,round(CONVERT(FLOAT, REVERSE(SUBSTRING(REVERSE(t.Narration), 1, CHARINDEX('@', REVERSE(t.Narration)) - 1))) * abs(t.NetHoldings) * 100, 0) / 100 Volume1
+					,round(CONVERT(FLOAT, REVERSE(SUBSTRING(REVERSE(t.Narration), 1, CHARINDEX('@', REVERSE(t.Narration)) - 1))) * abs(t.NetHoldings) * 100, 0) / 100 * IIF(TSS.NAME = 'OTC_Derivatives',TT.BaseAssetSize,1) AS Volume1
 
 					,CONVERT(FLOAT, REVERSE(SUBSTRING(REVERSE(t.Narration), 1, CHARINDEX('@', REVERSE(t.Narration)) - 1))) Price
 
@@ -695,7 +701,9 @@ END TRY
 
 				OUTER APPLY (
 
-					SELECT sec.SecCode AS SecCode
+					SELECT sec.SecCode AS SecCode,
+
+							Ass.BaseAssetSize AS BaseAssetSize
 
 					FROM QORT_BACK_DB.dbo.Assets Ass
 
@@ -861,7 +869,7 @@ END TRY
 
 						,TSSection_Name AS TSSection_Name
 
-						,iif(BUY_sell = 'Sell', 2, 1) AS BuySell
+						,iif(BUY_sell = 'Sell' or BUY_sell = 'Short Sell' , 2, 1) AS BuySell
 
 						,Security_Code AS Security_Code
 
@@ -879,7 +887,7 @@ END TRY
 
 						,PutPlannedDate PayPlannedDate
 
-						,'ARMBR_DEPO_GTN' PutAccount_ExportCode
+						,iif(TSSection_Name = 'OTC_Derivatives','ARMBR_DEPO_GTN_deriv', 'ARMBR_DEPO_GTN') as PutAccount_ExportCode
 
 						,'Armbrok_Mn_Client' PayAccount_ExportCode
 

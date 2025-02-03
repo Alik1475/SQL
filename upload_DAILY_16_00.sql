@@ -22,13 +22,31 @@ BEGIN
 
 		declare @Message varchar(1024)
 
+-----------------------------процедуры запускаемые по армянскому календарю праздников--------------------------------
+
+		  IF NOT EXISTS (
+    SELECT 1
+    FROM QORT_BACK_DB.dbo.CalendarDates
+    WHERE Date =  cast(convert(varchar, GETDATE(), 112) as int)
+)
+BEGIN
+
+exec QORT_ARM_SUPPORT.dbo.DepoReconcil @sendmail = 1 -- сверка клиентских позиций с отправкой уведомления
+
+EN
+D
+ELSE
+BEGIN
+    PRINT 'Сегодня праздник. Задание не будет выполняться.';
+END;
 
 
-		
 
-		exec QORT_ARM_SUPPORT.dbo.DepoReconcil @sendmail = 1 -- сверка клиентских позиций с отправкой уведомления
+------------------------------------------------------------------------------------------------------------------------------
 
 		exec QORT_ARM_SUPPORT.dbo.BirthdayClients -- рассылка сейлзам информации про дни рождения
+
+
 
 	end try
 

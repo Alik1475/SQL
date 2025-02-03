@@ -67,9 +67,31 @@ BEGIN
 
 		----------------------------------------------------------------------------------------------------------------------------------------
 
-		if (isnull((select top 1 found from QORT_ARM_SUPPORT.dbo.BloombergData where Date = @todayInt and Code = 'US0378331005 EQUITY'),0) = 1) begin
+		if(isnull((select top 1 found from QORT_ARM_SUPPORT.dbo.BloombergData where Date = @todayInt and Code = 'US0378331005 EQUITY'),0) = 1) begin
 
-			exec QORT_ARM_SUPPORT.dbo.ReconcilAssetsBloomberg -- сверка справочника ЦБ Qort и Bloomberg
+				-----------------------------процедуры запускаемые по армянскому календарю праздников--------------------------------
+
+						  IF NOT EXISTS (
+					SELECT 1
+					FROM QORT_BACK_DB.dbo.CalendarDates
+					WHERE Date =  cast(convert(varchar, GETDATE(), 112) as int)
+				)
+				BEGIN
+					
+				exec QORT_ARM_SUPPORT.dbo.ReconcilAssetsBloomberg -- сверка справочника ЦБ Qort и Blo
+omberg
+
+				END
+				ELSE
+				BEGIN
+					PRINT 'Сегодня праздник. Задание не будет выполняться.';
+				END;
+
+
+
+				------------------------------------------------------------------------------------------------------------------------------
+
+			
 
 			exec QORT_ARM_SUPPORT.dbo.upload_MarketInfo @IP, @IsinCode = 'US0378331005 EQUITY'
 

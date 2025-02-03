@@ -24,9 +24,33 @@ BEGIN
 
 
 
+		-----------------------------процедуры запускаемые по армянскому календарю праздников--------------------------------
+
+						  IF NOT EXISTS (
+					SELECT 1
+					FROM QORT_BACK_DB.dbo.CalendarDates
+					WHERE Date =  cast(convert(varchar, GETDATE(), 112) as int)
+				)
+				BEGIN
+				
+				exec QORT_ARM_SUPPORT.dbo.DepoReconcil @sendmail = 1 -- сверка клиентских позиций с от
+правкой уведомления
+
+				END
+				ELSE
+				BEGIN
+					PRINT 'Сегодня праздник. Задание не будет выполняться.';
+				END;
+
+
+
+------------------------------------------------------------------------------------------------------------------------------
+
+
+
 		--exec QORT_ARM_SUPPORT.dbo.UpdateCouponForREPO -- обнуление ставки и объема купоня для заведения пролонгации РЕПО после доработкт Аркой не используется
 
-		exec QORT_ARM_SUPPORT.dbo.DepoReconcil @sendmail = 1 -- сверка клиентских позиций с отправкой уведомления
+		
 
 		exec QORT_ARM_SUPPORT.dbo.CheckRepoFor7daysCoupon @sendmail = 1 -- уведомление за 7 дней до выплаты купонов по открытым сделкам РЕПО + OPTIONS
 
