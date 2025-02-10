@@ -78,44 +78,76 @@ ACTION_Period_Flags or iif(sub1.IsQuikC is null, 'n', sub.IsIgnoreRules) <> sub.
 
 
 
--- Формирование и добавление логина для АПП
+-- update PayAccs
+
+--/*
+
+					insert into QORT_BACK_TDB.dbo.PayAccs (ET_Const, IsProcessed, Subacc_Code, PutAccount_ExportCode, PayAccount_ExportCode)
+
+					SELECT 2 as ET_Const, 1 as IsProcessed
+
+					, su.SubAccCode as Subacc_Code
+
+					--, acc.ExportCode as PutAccount_TradeCode
+
+					, acc.ExportCode as PutAccount_ExportCode
+
+					, 'Armbrok_Mn_Client' as PayAccount_ExportCode
+
+				FROM QORT_BACK_DB.dbo.Subaccs su 
 
 
 
-		/*		--	insert into QORT_BACK_TDB.dbo.Firms (ET_Const, IsProcessed, BOCode, GenName)
+				CROSS JOIN (
 
-					select 4 as ET_Const, 1 as IsProcessed, f.BOCode, QORT_ARM_SUPPORT.dbo.fGetFirstEmail(f.Email) GenName
+				  SELECT * 
 
-					from QORT_BACK_DB.dbo.Firms f 
+				  FROM QORT_BACK_DB.dbo.Accounts acc
 
-					CROSS APPLY (
-								SELECT FlagName
-								FROM [dbo].[FTGetIncludedFlags](f.FT_Flags)
-							) IncludedFlags
+				  WHERE acc.IsTrade = 'y' 
 
-					where f.GenName = ''
+					AND acc.Enabled = 0
 
-					and Enabled = 0 
+					AND acc.AssetType IN (1) -- Securities
 
-					and IncludedFlags.FlagName = 'FT_CLIENT'
-					and f.STAT_Const in (5) -- Active;
+					AND acc.TS_ID > 0
 
-					*/
+					AND acc.IsExportToNTO = 'y'
+
+				) acc
+
+				where su.ACSTAT_Const = 5 --Active
+
+					   and su.Enabled = 0
+
+					   and LEFT(su.subAccCode,6) in ('AS1105', 'AS1031','AS1509','AS1815') --and LEFT(su.subAccCode,2) in ('AS', 'AR') 
+
+					   and su.IsQUIK = 'y'
+
+						 AND NOT EXISTS (
+					  SELECT 1 
+					  FROM QORT_BACK_DB.dbo.PayAccs pa 
+					  WHERE pa.Subacc_ID = su.id
+						AND pa.PutAccount_ID = acc.ID
+						AND pa.PayAccount_ID = 3 --'Armbrok_Mn_Client'
+				  );
+
+					--*/
 
 
 
 
    END TRY
     BEGIN CATCH
+
         -- Обработка исключений
         WHILE @@TRANCOUNT > 0 ROLLBACK TRAN
         SET @Message = 'ERROR: ' + ERROR_MESSAGE(); 
-
         -- Вставка сообщения об ошибке в таблицу uploadLogs
-        INSERT INTO QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) VALUES (@Message, 1001);
+        INSERT INTO QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, e
+rrorLevel) VALUES (@Message, 1001);
         -- Возвращаем сообщение об ошибке
-        SELECT @Message AS result, 'STATUS' AS defau
-ltTask, 'red' AS color;
+        SELECT @Message AS result, 'STATUS' AS defaultTask, 'red' AS color;
     END CATCH
 
 END

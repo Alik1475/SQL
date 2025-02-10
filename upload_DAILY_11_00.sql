@@ -58,6 +58,10 @@ BEGIN
 
 		exec QORT_ARM_SUPPORT.dbo.SalesUpdate -- обновление справочника "сейлзы для клиента"(аналитические субсчета для разграничения прав)
 
+		exec QORT_ARM_SUPPORT.dbo.Alert_TerminationDate -- уведомление о закрытии счета через 3 рабочих дня
+
+		exec QORT_ARM_SUPPORT.dbo.Alert_POA_DateEnd -- уведомление об окончании срока дествия доверенностей за 3 рабочих дня
+
 	end try
 
 	begin catch

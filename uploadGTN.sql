@@ -378,6 +378,8 @@ BEGIN
 
 						, 'Short Sell'
 
+						, 'Buy To Cover'
+
 						)
 
 					OR Statement IS NULL
@@ -939,7 +941,7 @@ END TRY
 
 				END
 
-
+--return
 
 				--/*
 
