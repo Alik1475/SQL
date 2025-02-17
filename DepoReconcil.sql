@@ -264,7 +264,7 @@ ull(t.Account, t1.Subacc_Code) = code collate Cyrillic_General_CS_AS))) -- мн�
 
 	-- блок формирования уведомления--------------------------------------------------------------------------------------------------
 
-			declare @result table (Data int, ClientName varchar(128), Account varchar(128), Settlement varchar(128)
+			declare @result table (Data int, ClientName varchar(250), Account varchar(128), Settlement varchar(128)
 
 				, Asset_ShortName varchar (128), ISIN varchar (16), positionQort float, DepoAccount varchar(128), positionOUT float, Result float)
 

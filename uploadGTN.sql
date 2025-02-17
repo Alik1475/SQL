@@ -587,11 +587,13 @@ END TRY
 
 					WHERE left(ass.viewName, len(ttt.symbol)) = ttt.symbol
 
+						AND ASS.AssetClass_Const IN (5) -- Equity only
+
 					) AS tt
 
 				WHERE tt.Enabled = 0
 
-					AND tt.id IS NOT NULL
+					AND tt.id IS NOT NULL			
 
 					AND NOT EXISTS (
 
@@ -604,6 +606,8 @@ END TRY
 							AND tt.Enabled = 0
 
 							AND a.TSSection_ID = tss.id
+
+							
 
 						)
 

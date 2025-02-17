@@ -64,7 +64,7 @@ BEGIN
 
 		--DECLARE @sql VARCHAR(1024)
 
-		DECLARE @n INT = 1
+		DECLARE @n INT = 0
 
 
 

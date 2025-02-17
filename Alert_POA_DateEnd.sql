@@ -68,7 +68,7 @@ BEGIN
 
 		--DECLARE @sql VARCHAR(1024)
 
-		DECLARE @n INT = 1
+		DECLARE @n INT = 0
 
 
 
@@ -93,6 +93,8 @@ BEGIN
 
 
 	set @BdayInt_3 = CAST(CONVERT(VARCHAR, DATEADD(DAY, @n, @todayDate), 112) AS INT)
+
+	--print @BdayInt_3 return
 
 	CREATE TABLE #TempRoles (
 
@@ -224,7 +226,7 @@ BEGIN
 
 		        (
 
-            SELECT STRING_AGG(CAST(FCT.Description AS NVARCHAR(32)), ',') AS FCT
+    SELECT STRING_AGG(CAST(FCT.Description AS NVARCHAR(32)), ',') AS FCT
 
             FROM QORT_BACK_DB.dbo.FirmContacts con
 
@@ -384,7 +386,7 @@ select * from #tk
 
             EXEC msdb.dbo.sp_send_dbmail
 
-                @profile_name = 'qort-sql-mail',--'qort-test-sql'
+             @profile_name = 'qort-sql-mail',--'qort-test-sql'
 
                 @recipients = @NotifyEmail,
 
