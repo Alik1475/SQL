@@ -202,6 +202,8 @@ MENIA. Исключение для гос.бумаг
 
 				   when tss.Name = 'LSE (XLON-LN)' then N'ÈáÝ¹áÝÇ ýáÝ¹³ÛÇÝ µáñë³' 
 
+				   when tss.Name = 'MOEX_Securities' then N'ØáëÏí³ÛÇ ýáÝ¹³ÛÇÝ µáñë³' 
+
 				   else isnull(fpts.NameU, '') end TradePlace_O
 
 			, left(QORT_ARM_SUPPORT.dbo.fIntToDateVarcharShort(t.TradeDate),6)+right(QORT_ARM_SUPPORT.dbo.fIntToDateVarcharShort(t.TradeDate),2) TradeDate_P
