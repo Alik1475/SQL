@@ -6,7 +6,7 @@
 
 
 
--- exec QORT_ARM_SUPPORT.dbo.exportTrades_RegulatoryNY06BuySellREPO '20241127'
+-- exec QORT_ARM_SUPPORT.dbo.exportTrades_RegulatoryNY06BuySellREPO '20250226'
 
 
 
@@ -58,7 +58,7 @@ BEGIN
 
 		declare @ResultFileName varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\Regulatory Reports\42000_NY06_'+cast(@TradeDateTo as varchar)+'.xls'*/
 
-		declare @TemplateFileName varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\Regulatory Reports\NY06_workTemplate\template\42000_NY06_workTemplate (2).xls'
+		declare @TemplateFileName varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\Regulatory Reports\NY06_workTemplate\template\42000_NY06_workTemplate (10).xls'
 
 		declare @TempFileName varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\Regulatory Reports\NY06_workTemplate\archive\42000_NY06_workTemplate_'+cast(@TradeDateTo as varchar) + '_at_' + convert(varchar, getdate(), 112) + '_' + replace(convert(varchar, g
 etdate(), 108), ':', '') + '.xls'
@@ -68,6 +68,8 @@ etdate(), 108), ':', '') + '.xls'
 		declare @Sheet1 varchar(32) = '1.buy-sell'
 
 		declare @Sheet2 varchar(32) = '2.repo-r.repo'
+
+		declare @Sheet10 varchar(32) = '10.OPTION (SEC)'
 
 
 
@@ -111,7 +113,7 @@ etdate(), 108), ':', '') + '.xls'
 
 		if OBJECT_ID('tempdb..##42000_NY06_workTemplate_02', 'U') is not null drop table ##42000_NY06_workTemplate_02
 
-
+		if OBJECT_ID('tempdb..##42000_NY06_workTemplate_10', 'U') is not null drop table ##42000_NY06_workTemplate_10
 
 
 
@@ -204,6 +206,8 @@ MENIA. Исключение для гос.бумаг
 
 				   when tss.Name = 'MOEX_Securities' then N'ØáëÏí³ÛÇ ýáÝ¹³ÛÇÝ µáñë³' 
 
+				   when tss.Name = 'OPRA' then N'úöÇ²ñ¾Û'
+
 				   else isnull(fpts.NameU, '') end TradePlace_O
 
 			, left(QORT_ARM_SUPPORT.dbo.fIntToDateVarcharShort(t.TradeDate),6)+right(QORT_ARM_SUPPORT.dbo.fIntToDateVarcharShort(t.TradeDate),2) TradeDate_P
@@ -255,6 +259,30 @@ MENIA. Исключение для гос.бумаг
 			, iif(tt.tt=2 and p.TransactionDate > 0, QORT_ARM_SUPPORT.dbo.fIntToDateVarcharShort(p.TransactionDate), '') TransactionDate_R_T
 
 			, pRepo1.PhaseTime
+
+			, fpo.NameU FNameU
+
+			, fo.INN FINN
+
+			, iif(t.BuySell = 2, N'ûåóÇáÝ í³×³éù', N'ûåóÇáÝ ³éù') OPT_Type
+
+			, iif(a.AssetSort_Const = 19, N'·ÝÙ³Ý ûåóÇáÝ', N'í³×³éùÇ ûåóÇáÝ') OPT_Sort -- 19 Options CALL
+
+			, iif(b.AssetClass_Const in(5), N'´³ÅÝ³ÛÇÝ', N'àã µ³ÅÝ³ÛÇÝ') OPT_BaseAssType -- 5	Equity RF
+
+			, b.ISIN as OPT_BaseISIN
+
+			, fEmitPropOPT.NameU as NameUEmitOPT
+
+			, a.OptionStrike as OPT_OptionStrik
+
+			, (a.OptionStrike * t.Qty * a.BaseAssetSize) as TotalOPT
+
+			, (t.Qty * a.BaseAssetSize) as TotalQtyOPT
+
+			, bC.ShortName as CurOPT
+
+			, left(QORT_ARM_SUPPORT.dbo.fIntToDateVarcharShort(a.CancelDate),6)+right(QORT_ARM_SUPPORT.dbo.fIntToDateVarcharShort(a.CancelDate),2) as CancelDateOPT
 
 			--, t.RepoTrade_ID
 
@@ -334,7 +362,11 @@ MENIA. Исключение для гос.бумаг
 
 		left outer join QORT_BACK_DB.dbo.Assets a with (nolock) on a.id = sec.Asset_ID
 
-		--left outer join QORT_BACK_DB.dbo.Firms fEmit with (nolock) on fEmit.id = a.EmitentFirm_ID
+		left outer join QORT_BACK_DB.dbo.Assets b with (nolock) on b.id = a.BaseAsset_ID
+
+		left outer join QORT_BACK_DB.dbo.Assets bC with (nolock) on bC.id = a.BaseCurrencyAsset_ID
+
+		left outer join QORT_BACK_DB.dbo.FirmProperties fEmitPropOPT with (nolock) on fEmitPropOPT.id = b.EmitentFirm_ID
 
 		left outer join QORT_BACK_DB.dbo.FirmProperties fEmitProp with (nolock) on fEmitProp.Firm_ID = a.EmitentFirm_ID
 
@@ -364,7 +396,13 @@ MENIA. Исключение для гос.бумаг
 
 
 
-		outer apply(select case when t.TT_Const in (1,5,7) then 1 when t.TT_Const in (3,6) then 2 end tt) tt
+		outer apply(select case when t.TT_Const in (1,5,7) then 1 
+
+								when t.TT_Const in (3,6) then 2 
+
+								when t.TT_Const in (11) AND t.TSSection_ID IN(167) then 3 --OTC_Derivatives
+
+								end tt) tt
 
 		outer apply(select top 1 p.PhaseDate TransactionDate from QORT_BACK_DB.dbo.Phases p with (nolock) where p.Trade_ID = t.RepoTrade_ID and p.IsCanceled = 'n' order by ID desc) p
 
@@ -373,20 +411,33 @@ MENIA. Исключение для гос.бумаг
 			where p.Trade_ID = t.RepoTrade_ID and p.IsCanceled = 'n' and p.PC_Const in (14) order by id desc) pRepo1
 
 			OUTER APPLY (
+
     SELECT TOP 1 p.BackDate as DateAfter2, p.id
+
     FROM QORT_BACK_DB.dbo.TradesHist p WITH (NOLOCK)
+
     WHERE 
+
         p.Founder_ID = t.RepoTrade_ID 
+
         AND p.id < (
+
             SELECT TOP 1 p1.id
-            FROM QORT_BACK_DB.dbo.T
-radesHist p1 WITH (NOLOCK)
+
+            FROM QORT_BACK_DB.dbo.TradesHist p1 WITH (NOLOCK)
+
             WHERE 
+
                 p1.Founder_ID = t.RepoTrade_ID 
+
                 AND p1.BackDate = pRepo1.DateAfter1
+
             ORDER BY p1.id asc
+
         )
+
     ORDER BY p.id DESC
+
 ) pRepo2
 
 		where /*t.TradeDate between @TradeDateFrom and @TradeDateTo
@@ -399,7 +450,7 @@ radesHist p1 WITH (NOLOCK)
 
 			--and t.TT_Const in (5) -- 	OTC buy/sell securities
 
-			and t.TT_Const in (1, 5, 3, 6 ,7) -- 5 - OTC buy/sell securities, 3,6 - Repo
+			and t.TT_Const in (1, 5, 3, 6 , 7, 11) -- 5 - OTC buy/sell securities, 3,6 - Repo, 11 - OTC derivatives market
 
 			and not (t.IsRepo2 = 'y') -- для РЕПО только 1-ая нога???
 
@@ -427,8 +478,8 @@ radesHist p1 WITH (NOLOCK)
 
 			, FORMAT(ROUND(r.Qty_K, 5), 'N5') Qty_L, FORMAT(ROUND(r.Volume_L, 5), 'N5')  Volume_M, r.PayCurrency_M PayCurrency_N, FORMAT(ROUND(r.RepoRate_R_O, 5), 'N5') + '%' RepoRate_R_O, dbo.fVarcharDateYYYYToVarcharDateYY(r.RepoBackDate_R_P) RepoBackDate_R_P
 
-			, RepoLocation_Q, /*r.TradeDate_P*/ dbo.fVarcharDateYYYYToVarcharDateYY(r.TradeDate_R_R) TradeDate_R, dbo.fVarcharDateYYYYToVarcharDateYY(r.TradeDate_R_R) TradeDate_R_R, dbo.fVarcharDateYYYYToVarcharDateYY(r.TransactionDate_R_T) TransactionDate_R_T -- 
-Алик 26/02/2024 поменял r.TradeDate2_R_S на r.TradeDate_R_R. выводим равное значение, до настройки механизма отражения РЕПО вендором
+			, RepoLocation_Q, /*r.TradeDate_P*/ dbo.fVarcharDateYYYYToVarcharDateYY(r.TradeDate_R_R) TradeDate_R, dbo.fVarcharDateYYYYToVarcharDateYY(r.TradeDate_R_R) TradeDate_R_R, dbo.fVarcharDateYYYYToVarcharDateYY(r.TransactionDate_R_T) TransactionDate_R_T --
+ Алик 26/02/2024 поменял r.TradeDate2_R_S на r.TradeDate_R_R. выводим равное значение, до настройки механизма отражения РЕПО вендором
 
 			, r.CPCode_R CPCode_U, r.ExternalBroker_S ExternalBroker_V
 
@@ -438,19 +489,43 @@ radesHist p1 WITH (NOLOCK)
 
 		where r.tt = 2
 
-		--print dbo.fVarcharDateYYYYToVarcharDateYY('02/10/2024')
+		--print dbo.fVarcharDateYYYYToVarcharDateYY('02/10/2024'), r.ISIN_G ISIN_I
 
+		
 
+		
 
-		/*
+		select r.Num_A,  r.Code_B, r.FNameU as FNameU_C, r.FINN as FINN_D, r.ArmCode_C as ArmCode_E, ' ' as column_F, ' ' as column_D, r.AgreeNum_R_D as AgreeNum_H, r.Time_D Time_I
 
-		select * from #r r
+			, r.OPT_Type as OPT_Type_J, r.OPT_Sort as OPT_Sort_K, N'Ýáñ ÏÝùí³Í'  as Typetrade_L, r.OPT_BaseAssType as OPT_BaseAssType_M, r.OPT_BaseISIN ISIN_N, r.NameUEmitOPT NameUEmitOPT_O
 
-		select * from ##42000_NY06_workTemplate_01
+			, FORMAT(ROUND(r.Qty_K, 5), 'N5') Qty_P, FORMAT(ROUND(r.OPT_OptionStrik, 5), 'N5') as OPT_OptionStrik_Q, FORMAT(ROUND(r.TotalQtyOPT, 5), 'N5') as TotalQtyOPT_R
 
-		select * from ##42000_NY06_workTemplate_02
+			, FORMAT(ROUND(r.TotalOPT, 5), 'N5') TotalOPT_S, r.CurOPT as CurOPT_T, ' ' Column_U, FORMAT(ROUND(r.Volume_L, 5), 'N5')  Volume_R, r.PayCurrency_M PayCurrency_W
 
-		return --*/
+			, dbo.fVarcharDateYYYYToVarcharDateYY(r.CancelDateOPT) CancelDateOPT_X, N'³é³ùáõÙ' asTyprExp_Y, dbo.fVarcharDateYYYYToVarcharDateYY(r.TradeDate_R_R) TradeDate_Z
+
+			, ' ' as Column_AA, N'áã é»½Ç¹»Ýï' as CP_Type_AB, ' ' as Column_AC, ' ' as Column_AD, ' ' as Column_AE, r.TradePlace_O as Place_Trade_AF, r.ExternalBroker_S ExternalBroker_AG
+
+			, ' ' as Column_AH,' ' as Column_AI, N'³é³Ýó ·ñ³íÇ' as Column_AJ, ' ' as Column_AK, ' ' as Column_AL, N'³Ù»ñÇÏÛ³Ý' as Column_AM, ' ' as Column_AN, ' ' as Column_AO, N'Ñ³Ù³Ó³ÛÝ ã»Ù' as Column_AP
+
+		into ##42000_NY06_workTemplate_10
+
+		from #r r
+
+		where r.tt = 3
+
+		--/*
+
+		--select * from #r r
+
+		--select * from ##42000_NY06_workTemplate_01
+
+	--	select * from ##42000_NY06_workTemplate_02
+
+		--select * from ##42000_NY06_workTemplate_10
+
+		--return --*/
 
 
 
@@ -521,6 +596,22 @@ radesHist p1 WITH (NOLOCK)
 			''SELECT * FROM [' + @Sheet2 + '$A8:V8]'')
 
 			select * from ##42000_NY06_workTemplate_02 order by Num_A'
+
+		print @sql
+
+		exec(@sql)
+
+
+
+		SET @sql = 'insert into OPENROWSET (
+
+			''Microsoft.ACE.OLEDB.12.0'',
+
+			''Excel 12.0; Database='+ @TempFileName + '; HDR=YES;IMEX=0'',
+
+			''SELECT * FROM [' + @Sheet10 + '$A9:AP9]'')
+
+			select * from ##42000_NY06_workTemplate_10 order by Num_A'
 
 		print @sql
 

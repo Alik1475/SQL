@@ -19,7 +19,7 @@ yInt INT = CAST(CONVERT(VARCHAR, @todayDate, 112) AS INT)
 
 
 
-		insert into QORT_BACK_TDB.dbo.Subaccs (ET_Const, IsProcessed, Code, IsQUIK, FirmCode, TradeCode, MarketFirmCode, RPTACTION_Flags, RPTACTION_Period_Flags, IsIgnoreRules)
+		insert into QORT_BACK_TDB.dbo.Subaccs (ET_Const, IsProcessed, Code, IsQUIK, FirmCode, TradeCode, MarketFirmCode, RPTACTION_Flags, RPTACTION_Period_Flags/*, IsIgnoreRules*/)
 
 		SELECT 4 as ET_Const, 1 as IsProcessed
 
@@ -29,15 +29,15 @@ yInt INT = CAST(CONVERT(VARCHAR, @todayDate, 112) AS INT)
 
 				, iif(sub1.IsQuikC is null, '', 'T0,T2,Tx') as FirmCode
 
-				, iif(sub1.IsQuikC is null, '', sub.SubAccCode) as TradeCode
+				, iif(sub1.IsQuikC is null, 'BLOCK', sub.SubAccCode) as TradeCode
 
 				, iif(sub1.IsQuikC is null, '', 'ARMBROK') as MarketFirmCode
 
-				, iif(sub1.IsQuikC is null, 0, null) as RPTACTION_Flags
+				, iif(sub1.IsQuikC is null, 0, 14) as RPTACTION_Flags
 
-				, iif(sub1.IsQuikC is null, 0, null) as RPTACTION_Period_Flags
+				, iif(sub1.IsQuikC is null, 0, 14) as RPTACTION_Period_Flags
 
-				, iif(sub1.IsQuikC is null, 'n', null) as IsIgnoreRules
+				--, iif(sub1.IsQuikC is null, 'n', null) as IsIgnoreRules
 
 				--, *
 
@@ -53,14 +53,28 @@ yInt INT = CAST(CONVERT(VARCHAR, @todayDate, 112) AS INT)
 
 						   and sub.Enabled = 0
 
-						   and LEFT(sub.subAccCode,2) in ('AS', 'AR')) as sub1
+						   and LEFT(sub.subAccCode,2) in ('AS', 'AR')
+
+						   AND sub.SubAccCode NOT IN (
+							SELECT su.SubAccCode
+							FROM [QORT_BACK_DB].[dbo].[Partners] pa
+							LEFT OUTER JOIN [QORT_BACK_DB].[dbo].[Subaccs] su
+								ON su.OwnerFirm_ID = pa.Partner_ID 
+								AND su.Enabled = 0
+							WHERE pa
+.PartnerGroup_ID IN (5))
+
+						   ) as sub1
 
 	
 		where sub.Enabled = 0 and sub.IsAnalytic = 'n' 
-		and (Iif(sub1.IsQuikC is null, 'n', 'y') <> sub.IsQUIK or iif(sub1.IsQuikC is null, 0, sub.RPTACTION_Flags) <> sub.RPTACTION_Flags or iif(sub1.IsQuikC is null, 0, sub.RPTACTION_Period_Flags) <> sub.RPT
-ACTION_Period_Flags or iif(sub1.IsQuikC is null, 'n', sub.IsIgnoreRules) <> sub.IsIgnoreRules)
+		and (Iif(sub1.IsQuikC is null, 'n', 'y') <> sub.IsQUIK or iif(sub1.IsQuikC is null, 0, 14) <> sub.RPTACTION_Flags or iif(sub1.IsQuikC is null, 0, 14) <> sub.RPTACTION_Period_Flags)-- or iif(sub1.IsQuik
+C is null, 'n', sub.IsIgnoreRules) <> sub.IsIgnoreRules)
 		--and sub.SubAccCode = 'AS1388'
+  
 
+
+--RETURN
   --обновление справочника БП (всем признак не спамить, чтобы исключить случайную отправку сообщений
 
 
