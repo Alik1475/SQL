@@ -37,6 +37,12 @@ SET NOCOUNT ON;
 
 		
 
+
+
+if LEN(@IsinCodes) < 21 begin
+
+
+
 				if EXISTS (select 1
 				from QORT_BACK_DB.dbo.Assets a
 
@@ -556,6 +562,12 @@ end --RETURN
 	exec QORT_ARM_SUPPORT.dbo.upload_MarketInfo @IP, @IsinCode = @IsinCodes
 
 	--------------------------------------------------------------------------------
+
+	end
+
+	else exec QORT_ARM_SUPPORT..BDP_FlaskRequestOPT @IP= '192.168.13.80', @IsinCode = @IsinCodes
+
+	
 
 
 

@@ -6,7 +6,7 @@
 
 
 
--- exec QORT_ARM_SUPPORT.dbo.exportTrades_RegulatoryNY06BuySellREPO '20250226'
+-- exec QORT_ARM_SUPPORT.dbo.exportTrades_RegulatoryNY06BuySellREPO '20250304'
 
 
 
@@ -400,7 +400,7 @@ MENIA. Исключение для гос.бумаг
 
 								when t.TT_Const in (3,6) then 2 
 
-								when t.TT_Const in (11) AND t.TSSection_ID IN(167) then 3 --OTC_Derivatives
+								when t.TT_Const in (11,4) AND t.TSSection_ID IN(167) then 3 --OTC_Derivatives
 
 								end tt) tt
 
@@ -450,7 +450,7 @@ MENIA. Исключение для гос.бумаг
 
 			--and t.TT_Const in (5) -- 	OTC buy/sell securities
 
-			and t.TT_Const in (1, 5, 3, 6 , 7, 11) -- 5 - OTC buy/sell securities, 3,6 - Repo, 11 - OTC derivatives market
+			and t.TT_Const in (1, 5, 4, 3, 6 , 7, 11) -- 5 - OTC buy/sell securities, 3,6 - Repo, 11,4 - OTC derivatives market
 
 			and not (t.IsRepo2 = 'y') -- для РЕПО только 1-ая нога???
 
