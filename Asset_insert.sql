@@ -472,7 +472,7 @@ end --RETURN
 
 			, 'OTC_Securities' as TSSection_Name
 
-			, s.ISIN  secCode
+			, s.ShortName  secCode
 
 			, s.ShortName Asset_ShortName
 

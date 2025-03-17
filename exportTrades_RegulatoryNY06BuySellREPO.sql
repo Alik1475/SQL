@@ -6,7 +6,7 @@
 
 
 
--- exec QORT_ARM_SUPPORT.dbo.exportTrades_RegulatoryNY06BuySellREPO '20250304'
+-- exec QORT_ARM_SUPPORT.dbo.exportTrades_RegulatoryNY06BuySellREPO '20250310'
 
 
 
@@ -163,7 +163,8 @@ Country.NameU)), ''))
 
 			--, QORT_ARM_SUPPORT.dbo.fFloatToCurrency5(t.Price) Price_J
 
-			, iif(t.PT_Const=2, cast(t.volume1/t.Qty as decimal(32,5)), cast(t.volume1/t.Qty as decimal(32,5))) Price_J -- 1 - %, 2 - abs --Alik 25/09/2024 add for abs - t.volume1/t.Qty; Алик 26/02/2024 если тип цены %, то вычисляем сумма/количество=цена
+			, iif(a.EmitentFirm_ID = 137 Or (a.Country = 'Armenia' and a.assetSort_Const in(3)) , NULL, iif(t.PT_Const=2, cast(t.volume1/t.Qty as decimal(32,5)), cast(t.volume1/t.Qty as decimal(32,5)))) Price_J -- 1 - %, 2 - abs --Alik 25/09/2024 add for abs - t.v
+olume1/t.Qty; Алик 26/02/2024 если тип цены %, то вычисляем сумма/количество=цена
 
 			--, iif(a.Country = 'Armenia', '', QORT_ARM_SUPPORT.dbo.fFloatToCurrency5(t.Qty)) [Qty_K]
 
@@ -478,8 +479,8 @@ MENIA. Исключение для гос.бумаг
 
 			, FORMAT(ROUND(r.Qty_K, 5), 'N5') Qty_L, FORMAT(ROUND(r.Volume_L, 5), 'N5')  Volume_M, r.PayCurrency_M PayCurrency_N, FORMAT(ROUND(r.RepoRate_R_O, 5), 'N5') + '%' RepoRate_R_O, dbo.fVarcharDateYYYYToVarcharDateYY(r.RepoBackDate_R_P) RepoBackDate_R_P
 
-			, RepoLocation_Q, /*r.TradeDate_P*/ dbo.fVarcharDateYYYYToVarcharDateYY(r.TradeDate_R_R) TradeDate_R, dbo.fVarcharDateYYYYToVarcharDateYY(r.TradeDate_R_R) TradeDate_R_R, dbo.fVarcharDateYYYYToVarcharDateYY(r.TransactionDate_R_T) TransactionDate_R_T --
- Алик 26/02/2024 поменял r.TradeDate2_R_S на r.TradeDate_R_R. выводим равное значение, до настройки механизма отражения РЕПО вендором
+			, RepoLocation_Q, /*r.TradeDate_P*/ dbo.fVarcharDateYYYYToVarcharDateYY(r.TradeDate_R_R) TradeDate_R, dbo.fVarcharDateYYYYToVarcharDateYY(r.TradeDate_R_R) TradeDate_R_R, dbo.fVarcharDateYYYYToVarcharDateYY(r.TransactionDate_R_T) TransactionDate_R_T -- 
+Алик 26/02/2024 поменял r.TradeDate2_R_S на r.TradeDate_R_R. выводим равное значение, до настройки механизма отражения РЕПО вендором
 
 			, r.CPCode_R CPCode_U, r.ExternalBroker_S ExternalBroker_V
 

@@ -17,22 +17,23 @@ BEGIN
       
   -- Основной запрос для выборки данных
         SELECT ASS.ID ASSID, ASS.shortname,
-		CASE WHEN ass.AssetClass_Const IN (6,7,9)
+		CASE WHEN ass.AssetClass_Const IN (6,7,9,19)
 		then cast(ass.ISIN as varchar(32))+' '+'CORP'
 		WHEN ass.AssetClass_Const IN (12)
-		then cast(ass.ISIN as varchar(32))+' '+'I
-NDEX'
+		then cast(ass.ISIN as varchar(32))+' '
++'INDEX'
 		else cast(ass.ISIN as varchar(32))+' '+'EQUITY' 
 		END code
 		into ##CodeAssets
 		from QORT_BACK_DB.dbo.Assets ass
 		where ass.Enabled = 0
 			and ass.AssetType_Const in (1,4) -- 	Securities (AT_SEC), Indices AT_IDX
-			and (ass.CancelDate >= @today
-Int or ass.CancelDate = 0)
+			and (ass.CancelDate >= @to
+dayInt or ass.CancelDate = 0)
 			and ass.IsTrading = 'y'
 			and ass.PricingTSSection_ID in (154, (-1)) -- 'OTC_Securities'
            -- and LEFT(ASS.ISIN,2) = 'AM'
+		 --  AND ass.AssetClass_Const = 19
 			DECLARE @JsonResult NVARCHAR(MAX);
 
 

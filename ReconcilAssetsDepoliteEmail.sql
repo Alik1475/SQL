@@ -112,8 +112,8 @@ print @n
     on ass.ISIN = Sec.num COLLATE SQL_Latin1_General_CP1_CI_AS
     and ass.Enabled = 0
     --and (ass.CancelDate > @todayInt or ass.CancelDate < 20001231)
-    and ass.AssetClass_Const in (5,6,11,16,18)
-
+    and ass.AssetClass_Const in (5,6,11,16,18,1
+9)
     and ass.IsTrading = 'y'
 
 	
@@ -132,11 +132,11 @@ SELECT
 
     CASE 
 
-        WHEN sec.num IS NULL and (ass.CancelDate > @todayInt or ass.CancelDate < 20001231) and ass.AssetClass_Const in (5,6,11,16,18) and ass.IsTrading = 'y' and ass.Enabled = 0 THEN 
+        WHEN sec.num IS NULL and (ass.CancelDate > @todayInt or ass.CancelDate < 20001231) and ass.AssetClass_Const in (5,6,11,16,18,19) and ass.IsTrading = 'y' and ass.Enabled = 0 THEN 
 
             'Missed In Depolite ' + ass.ISIN COLLATE SQL_Latin1_General_CP1_CI_AS
 
-        WHEN ass.ISIN IS NULL and sec.closedate > @todayDate and (ass.CancelDate > @todayInt or ass.CancelDate < 20001231) and ass.IsTrading = 'y' and ass.AssetClass_Const in (5,6,11,16,18) THEN 
+        WHEN ass.ISIN IS NULL and sec.closedate > @todayDate and (ass.CancelDate > @todayInt or ass.CancelDate < 20001231) and ass.IsTrading = 'y' and ass.AssetClass_Const in (5,6,11,16,18,19) THEN 
 
             'Missed In Qort ' + sec.num COLLATE SQL_Latin1_General_CP1_CI_AS
 
@@ -229,7 +229,7 @@ HEN
 
                     ', TYPE: ' + sec.num + '_'+ type.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' DEPOLITE/Qort-NOTcommon'
 
-				WHEN sec.type IN (8) AND ((ass.AssetClass_Const NOT IN (8,5,11) and ass.AssetSort_Const NOT IN (1, 14))) THEN 
+				WHEN sec.type IN (8) AND ((ass.AssetClass_Const NOT IN (8,5,11,19) and ass.AssetSort_Const NOT IN (1, 14))) THEN 
 
                     ', TYPE: ' + sec.num + '_'+ type.NAME_ARM COLLATE SQL_Latin1_General_CP1_CI_AS + ' DEPOLITE/Qort-NOTcommon'
 
