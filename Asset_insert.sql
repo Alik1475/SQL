@@ -460,6 +460,8 @@ end --RETURN
 
 			, CurrPriceAsset_ShortName
 
+			, IsPriority
+
 		) 
 
 		--*/
@@ -472,13 +474,13 @@ end --RETURN
 
 			, 'OTC_Securities' as TSSection_Name
 
-			, s.ShortName  secCode
+			, IIF(s.AssetClass_Const In (6,19), s.isin, s.shortname) secCode
 
 			, s.ShortName Asset_ShortName
 
 			, 1 QuoteList
 
-			, iif(s.AssetSort_Const in (6,3), 'y', NULL) IsProcent
+			, iif(s.AssetSort_Const in (6,3,85), 'y', NULL) IsProcent
 
 			, 1 LotSize
 
@@ -489,6 +491,8 @@ end --RETURN
 			, 8 Scale
 
 			, (SELECT TOP 1 crncy from QORT_ARM_SUPPORT.dbo.BloombergData where Code = @IsinCodes) CurrPriceAsset_ShortName
+
+			, 'y' as IsPriority
 
 		FROM QORT_BACK_DB.dbo.Assets s
 

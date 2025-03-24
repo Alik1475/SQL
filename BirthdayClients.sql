@@ -264,6 +264,8 @@ BEGIN
 
 		DECLARE @OutputParam1 FLOAT;
 
+		DECLARE @OutputParam2 FLOAT;
+
 		DECLARE @ID INT;-- предполагается, что в таблице #tk есть уникальный идентификатор ID для каждой строки
 
 
@@ -308,7 +310,9 @@ BEGIN
 
 				,@SubAccCode = @SubAccCode
 
-				,@OutputParam = @OutputParam1 OUTPUT;
+				,@OutputParam = @OutputParam1 OUTPUT
+
+				,@OutputParamCL = @OutputParam2 OUTPUT;
 
 
 

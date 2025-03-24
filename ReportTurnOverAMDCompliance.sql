@@ -1,4 +1,18 @@
-﻿
+﻿/*
+
+SELECT 
+
+    p.name AS ProcedureName, 
+
+    m.definition 
+
+FROM sys.procedures p
+
+JOIN sys.sql_modules m ON p.object_id = m.object_id
+
+WHERE m.definition LIKE '%exec QORT_ARM_SUPPORT.dbo.ReportTurnOverAMDCompliance%';
+
+*/
 
 
 
@@ -8,9 +22,11 @@
 
 	declare @OutputParam1 float
 
- exec QORT_ARM_SUPPORT.dbo.ReportTurnOverAMDCompliance @DataFrom = '2024-01-01', @DataTo = '2024-11-18', @SubAccCode = 'AS1105', @OutputParam = @OutputParam1 OUTPUT
+	declare @OutputParam2 float
 
-print @OutputParam1
+ exec QORT_ARM_SUPPORT.dbo.ReportTurnOverAMDCompliance @DataFrom = '2024-12-31', @DataTo = '2024-12-31', @SubAccCode = 'AS1105', @OutputParam = @OutputParam1 OUTPUT ,@OutputParamCL = @OutputParam2 OUTPUT
+
+print @OutputParam1 print @OutputParam2
 
 
 
@@ -26,9 +42,9 @@ CREATE PROCEDURE [dbo].[ReportTurnOverAMDCompliance]
 
 	  @SubAccCode varchar(50),
 
-	  @OutputParam float output 
+	  @OutputParam float output, 
 
-
+	  @OutputParamCL float output 
 
 AS
 
@@ -45,6 +61,8 @@ BEGIN
 		declare @DataToInt int = cast(convert(varchar, @DataTo, 112) as int)
 
 		declare @Message varchar(1024)
+
+		set @OutputParamCL = 0
 
 	----------------набираем сделки в сумме по контрагенту
 
@@ -199,30 +217,30 @@ UP BY
 																	(SELECT COALESCE(
     (
         SELECT TOP 1
-            IIF(isnull(mar.LastPrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0) = 0, NULL , isnull(mar.LastPrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0))  AS Rate
-   
-     FROM 
+          IIF(isnull(mar.LastPrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0) = 0, NULL , isnull(mar.LastPrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0))  AS Rate
+     
+   FROM 
             QORT_BACK_DB..MarketInfoHist mar
         OUTER APPLY (
             SELECT TOP 1 *
             FROM QORT_BACK_DB..CrossRatesHist crs 
             WHERE 
-          crs.TradeAsset_ID = mar.PriceAsset_ID
-                AND crs.OldDate 
-=  Cor.RegistrationDate
+                crs.TradeAsset_ID = mar.PriceAsset_ID
+                AND crs.OldD
+ate =  Cor.RegistrationDate
                 AND crs.PriceAsset_ID = 17
                 AND InfoSource = 'CBA'
         ) crsCrTra
         WHERE 
             mar.TSSection_ID = 154 -- 'OTC_Securities'
             AND mar.Asset_ID = cor.Asset_ID
-            AND 
-mar.OldDate = Cor.RegistrationDate
+            
+AND mar.OldDate = Cor.RegistrationDate
     ), 
     (
         SELECT TOP 1
-            IIF(isnull(mar.SettlePrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0) = 0, NULL , isnull(mar.SettlePrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0)) 
- AS Rate
+            IIF(isnull(mar.SettlePrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0) = 0, NULL , isnull(mar.SettlePrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 
+0))  AS Rate
         FROM 
             QORT_BACK_DB..MarketInfoHist mar
         OUTER APPLY (
@@ -230,16 +248,16 @@ mar.OldDate = Cor.RegistrationDate
             FROM QORT_BACK_DB..CrossRatesHist crs 
             WHERE 
                 crs.TradeAsset_ID = mar.PriceAsset_ID
-              
-  AND crs.OldDate = Cor.RegistrationDate
+          
+      AND crs.OldDate = Cor.RegistrationDate
                 AND crs.PriceAsset_ID = 17
                 AND InfoSource = 'CBA'
         ) crsCrTra
         WHERE 
             mar.TSSection_ID = 165 -- 'OTC_SWAP'
             AND mar.Asset_ID = cor.Asset_ID
-     
-       AND mar.OldDate = Cor.RegistrationDate
+ 
+           AND mar.OldDate = Cor.RegistrationDate
     )
 	, 
     (
@@ -247,16 +265,16 @@ mar.OldDate = Cor.RegistrationDate
         SELECT 
             asse.BaseValue * IIF(asse.BaseCurrencyAsset_ID = 17, 1, crsCrA.Bid) AS Rate
         FROM 
-            QORT_BACK_DB..Assets as
-se
+            QORT_BACK_DB..Asset
+s asse
         OUTER APPLY (
             SELECT TOP 1 *
             FROM QORT_BACK_DB..CrossRatesHist crs 
             WHERE 
                 crs.TradeAsset_ID = asse.BaseCurrencyAsset_ID
                 AND crs.OldDate = Cor.RegistrationDate
-                
-AND crs.PriceAsset_ID = 17
+            
+    AND crs.PriceAsset_ID = 17
                 AND InfoSource = 'CBA'
         ) crsCrA
         WHERE 
@@ -472,29 +490,29 @@ AND crs.PriceAsset_ID = 17
     (
         SELECT TOP 1
            IIF( isnull(mar.LastPrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0) = 0, NULL , isnull(mar.LastPrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0)) AS Rate
-    
-    FROM 
+   
+     FROM 
             QORT_BACK_DB..MarketInfoHist mar
         OUTER APPLY (
             SELECT TOP 1 *
             FROM QORT_BACK_DB..CrossRatesHist crs 
             WHERE 
                 crs.TradeAsset_ID = mar.PriceAsset_ID
-                AND crs.Old
-Date = Cor.RegistrationDate
+                AND crs.Ol
+dDate = Cor.RegistrationDate
                 AND crs.PriceAsset_ID = 17
                 AND InfoSource = 'CBA'
         ) crsCrTra
         WHERE 
             mar.TSSection_ID = 154 -- 'OTC_Securities'
             AND mar.Asset_ID = cor.Asset_ID
-            
-AND mar.OldDate = Cor.RegistrationDate
+           
+ AND mar.OldDate = Cor.RegistrationDate
     ), 
     (
         SELECT TOP 1
-            IIF(isnull(mar.SettlePrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0) = 0, NULL , isnull(mar.SettlePrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 
-0)) AS Rate
+            IIF(isnull(mar.SettlePrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid), 0) = 0, NULL , isnull(mar.SettlePrice * IIF(mar.LinkedCurrency_ID = 17, 1, crsCrTra.Bid),
+ 0)) AS Rate
         FROM 
             QORT_BACK_DB..MarketInfoHist mar
         OUTER APPLY (
@@ -502,16 +520,16 @@ AND mar.OldDate = Cor.RegistrationDate
             FROM QORT_BACK_DB..CrossRatesHist crs 
             WHERE 
                 crs.TradeAsset_ID = mar.PriceAsset_ID
-           
-     AND crs.OldDate = Cor.RegistrationDate
+          
+      AND crs.OldDate = Cor.RegistrationDate
                 AND crs.PriceAsset_ID = 17
                 AND InfoSource = 'CBA'
         ) crsCrTra
         WHERE 
             mar.TSSection_ID = 165 -- 'OTC_SWAP'
             AND mar.Asset_ID = cor.Asset_ID
-  
-          AND mar.OldDate = Cor.RegistrationDate
+ 
+           AND mar.OldDate = Cor.RegistrationDate
     )
 	, 
     (
@@ -519,16 +537,16 @@ AND mar.OldDate = Cor.RegistrationDate
         SELECT 
             asse.BaseValue * IIF(asse.BaseCurrencyAsset_ID = 17, 1, crsCrA.Bid) AS Rate
         FROM 
-            QORT_BACK_DB..Assets
- asse
+            QORT_BACK_DB..Asset
+s asse
         OUTER APPLY (
             SELECT TOP 1 *
             FROM QORT_BACK_DB..CrossRatesHist crs 
             WHERE 
                 crs.TradeAsset_ID = asse.BaseCurrencyAsset_ID
                 AND crs.OldDate = Cor.RegistrationDate
-             
-   AND crs.PriceAsset_ID = 17
+            
+    AND crs.PriceAsset_ID = 17
                 AND InfoSource = 'CBA'
         ) crsCrA
         WHERE 
@@ -795,6 +813,7 @@ AND mar.OldDate = Cor.RegistrationDate
 											QORT_BACK_DB.dbo.Assets asse ON asse.id = pos.Asset_ID
 
 										OUTER APPLY (
+
 											SELECT TOP 1 *
 
 											FROM QORT_BACK_DB..CrossRatesHist crs 
@@ -1368,7 +1387,22 @@ pe_ID IN (68)
 									SELECT TOP 1 bid 
 								
 	FROM QORT_BACK_DB.dbo.CrossRates 
-									WHERE InfoSource = 'MainCurBank' AND TradeAsset_ID = 2
+									WHERE InfoSource = 'MainCurBank' AND TradeAsset_ID = 17
+								) b
+								WHERE SubAccCode = @SubAccCode
+							);
+
+
+
+								SET @OutputParamCL = (
+								SELECT TOP 1 
+									iif(@DataToInt = @DataFromint, volume_AMD_CurrentPosition , Volume_AMD_Cl) * b.Bid
+								FROM ##t
+								OUTER APPLY (
+									SELECT TOP 1 bid 
+									FROM QORT_BACK_DB.dbo.CrossRatesHis
+t 
+									WHERE InfoSource = 'MainCurBank' AND TradeAsset_ID = 17 and Date = @DataToInt
 								) b
 								WHERE SubAccCode = @SubAccCode
 							);

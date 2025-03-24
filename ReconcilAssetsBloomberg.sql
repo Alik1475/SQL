@@ -191,27 +191,27 @@ nd q.IsTrading = 'y' THEN 'Asset not found in Bloomberg: ' + q.ISIN
                 ELSE ''
                     + IIF(t.Sanction <> q.IsInSanctionList, '
 , Sanction!!!', '')
-                    + IIF(t.ViewName <> LEFT(q.ViewName, 30) AND t.ViewName <> '#N/A N/A', ', Ticker(ShortName)'+ cast(t.ViewName as varchar (12)) + '_Bloom/Qort_' + cast(q.ViewName as varchar(12)), '')
-                    + IIF(t.Issu
-e_date <> q.EmitDate AND t.Issue_date <> 0, ', Issuer_Date:' + cast(t.Issue_date as varchar (12)) + '_Bloom/Qort_' + cast(q.EmitDate as varchar (12)), '')
-                    + IIF(ISNULL(t.Nominal, 0) <> ISNULL(q.BaseValue, 0) AND ISNULL(t.Nominal, 0) <>
- 0, ', Nominal', '')
+                    + IIF(t.ViewName <> LEFT(TRIM(q.ViewName), 30) AND t.ViewName <> '#N/A N/A', ', Ticker(ShortName)'+ cast(t.ViewName as varchar (12)) + '_Bloom/Qort_' + cast(q.ViewName as varchar(12)), '')
+                    + IIF(
+t.Issue_date <> q.EmitDate AND t.Issue_date <> 0, ', Issuer_Date:' + cast(t.Issue_date as varchar (12)) + '_Bloom/Qort_' + cast(q.EmitDate as varchar (12)), '')
+                    + IIF(ISNULL(t.Nominal, 0) <> ISNULL(q.BaseValue, 0) AND ISNULL(t.Nominal,
+ 0) <> 0, ', Nominal', '')
                     + IIF(t.Maturity_date <> q.CancelDate AND t.Maturity_date <> 0, ', MaturityDate:'+ cast(t.Maturity_date as varchar (12)) + '_Bloom/Qort_' + cast(q.CancelDate as varchar (12)), '')
-					+ IIF((t.crncy <> isnull(iif(
-q.AssetClass_Const in(6), f1.Name, f.Name),'')) , ', Currency:'+ t.crncy+'_Bloom/Qort_'+ isnull(f.name,''), '')
-					+ IIF((cast(isnull(t.cpn , isnull(cou.Procent,0)) as float) <> iif(isnull(cou.Procent,0) = 0, iif(CHARINDEX('/', cou.Description) >0 ,cast
-(SUBSTRING(cou.Description, CHARINDEX('/', cou.Description, CHARINDEX('/', cou.Description) + 1) + 1, LEN(cou.Description)) as float),0), isnull(cou.Procent,0)) and (q.AssetClass_Const IN(6,7,9))) , ', Coupon%:'+cast(t.cpn AS varchar(16))+'_Q:'+cast(isnul
-l(cou.Procent,0) as varchar(16)), '')
+					+ IIF((t.crncy <> isnul
+l(iif(q.AssetClass_Const in(6), f1.Name, f.Name),'')) , ', Currency:'+ t.crncy+'_Bloom/Qort_'+ isnull(f.name,''), '')
+					+ IIF((cast(isnull(t.cpn , isnull(cou.Procent,0)) as float) <> iif(isnull(cou.Procent,0) = 0, iif(CHARINDEX('/', cou.Description) >0
+ ,cast(SUBSTRING(cou.Description, CHARINDEX('/', cou.Description, CHARINDEX('/', cou.Description) + 1) + 1, LEN(cou.Description)) as float),0), isnull(cou.Procent,0)) and (q.AssetClass_Const IN(6,7,9))) , ', Coupon%:'+cast(t.cpn AS varchar(16))+'_Q:'+cast
+(isnull(cou.Procent,0) as varchar(16)), '')
 					+ IIF(
 								(CAST(ISNULL(t.Nxt_Cpn_Dt, 0) AS VARCHAR(16)) <> CAST(ISNULL(cou.EndDate, 0) AS VARCHAR(16))
-								and CAST(ISNULL(t.Nxt_Cpn_Dt, 0) AS VARCHAR(16)) <> CAST(ISNULL(couLL.EndDate, 0) AS VARCHAR(16)
-))
+								and CAST(ISNULL(t.Nxt_Cpn_Dt, 0) AS VARCHAR(16)) <> CAST(ISNULL(couLL.EndDate, 0) AS VARCH
+AR(16)))
 								AND q.AssetClass_Const IN (6, 7, 9),
 								', DateNextCoupon:' + CAST(t.Nxt_Cpn_Dt AS VARCHAR(16)) + '_Q:' + CAST(ISNULL(cou.EndDate, 0) AS VARCHAR(16)),
 								''
 							)
-					 + IIF(t.Issuer_Bulk <> e.CBR_ShortName, ', ISSUE:' + ISNULL(t.
-Issuer_Bulk,'') + '_BLOOMBERG/QORT_'+ ISNULL(e.CBR_ShortName,'')  , '')
+					 + IIF(t.Issuer_Bulk <> e.CBR_ShortName, ', ISSUE:' + ISN
+ULL(t.Issuer_Bulk,'') + '_BLOOMBERG/QORT_'+ ISNULL(e.CBR_ShortName,'')  , '')
 					 + CASE WHEN t.DS122 = 'Equity' AND (t.DS674 = 'Common Stock' OR t.DS674 = 'Preference') and q.AssetClass_Const not in (5,18,19,16,11)
 
 							THEN t.DS122 + t.DS674 + '_Bloom/Qort_' + 'NOT_Equity'
@@ -228,7 +228,7 @@ Issuer_Bulk,'') + '_BLOOMBERG/QORT_'+ ISNULL(e.CBR_ShortName,'')  , '')
 
 							THEN 'SFP'+ '_Bloom/Qort_' + 'NOT_SFP'	--Structured Finance Products (AC_STRUCT)
 
-							WHEN (t.DS122 = 'Corp' OR t.DS122 = 'Govt') and q.AssetClass_Const not in (6)
+							WHEN (t.DS122 = 'Corp' OR t.DS122 = 'Govt') and q.AssetClass_Const not in (6,19)
 
 							THEN t.DS122  + '_Bloom/Qort_' + 'NOT_Bond'
 
@@ -268,7 +268,7 @@ Issuer_Bulk,'') + '_BLOOMBERG/QORT_'+ ISNULL(e.CBR_ShortName,'')  , '')
 
 							THEN t.DS122 +  '_Bloom/Qort_' + 'NOT_GOVT' --	Federal loan bonds(AS_OFZ)
 
-							WHEN t.DS122 = 'Corp'  and q.AssetSort_Const not in (6)
+							WHEN t.DS122 = 'Corp'  and q.AssetSort_Const not in (6,85)
 
 							THEN t.DS122 +  '_Bloom/Qort_' + 'NOT_CORP' --	Corporate bonds(AS_CORP)
 

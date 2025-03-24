@@ -534,7 +534,7 @@ ation: Bearer ' + @AccessToken + '" ' + '--header "Accept: application/json" ' +
 
 	INSERT INTO QORT_ARM_SUPPORT.dbo.IntradayOperationId (IntradayOperationId)
 
-	SELECT IntradayOperationId
+	SELECT distinct IntradayOperationId
 
 	FROM #ParsedResults par1
 
@@ -960,7 +960,7 @@ ation: Bearer ' + @AccessToken + '" ' + '--header "Accept: application/json" ' +
 
 			,isnull(cast(users.first_name + users.last_name AS VARCHAR(32)), '') User_Created
 
-			,IIF(ISNULL(fir.Sales_ID, 1) < 0, 1, ISNULL(fir.Sales_ID, 1)) salesID
+			,IIF(sub.SubAccCode IN ('AS1474','AS1529'), 77777 ,IIF(ISNULL(fir.Sales_ID, 1) < 0, 1, ISNULL(fir.Sales_ID, 1))) salesID
 
 			,pars.IntradayOperationId AS IntradayOperationId
 
@@ -1086,7 +1086,7 @@ ation: Bearer ' + @AccessToken + '" ' + '--header "Accept: application/json" ' +
 
 			BEGIN
 
-				SET @salesName = CAST((
+				SET @salesName = ISNULL(CAST((
 
 							SELECT name
 
@@ -1094,7 +1094,7 @@ ation: Bearer ' + @AccessToken + '" ' + '--header "Accept: application/json" ' +
 
 							WHERE id = @salesID
 
-							) AS VARCHAR(250))
+							) AS VARCHAR(250)), 'Tigran Gevorgyan/Elena Voronova')
 
 				SET @NotifyEmail1 = cast(isnull((
 
@@ -1108,7 +1108,7 @@ ation: Bearer ' + @AccessToken + '" ' + '--header "Accept: application/json" ' +
 
 									AND fct_const = 2
 
-								), '') AS VARCHAR(1024)) + ';backoffice@armbrok.am;accounting@armbrok.am;QORT@armbrok.am;'
+								), 'tigran.gevorgyan@armbrok.am;elena.voronova@armbrok.am') AS VARCHAR(1024)) + ';backoffice@armbrok.am;accounting@armbrok.am;QORT@armbrok.am;'
 
 				SET @NotifyMessage1 = cast((
 
@@ -1271,7 +1271,9 @@ anizationName' + '</td><td>Purpose' + '</td><td>ValuationDate' + '</td><td>Opera
 
 			SET @NotifyTitle = 'Raiffeisen Account Alert: Account Changes Noticed'
 
+			PRINT @NotifyEmail
 
+--/*
 
 			EXEC msdb.dbo.sp_send_dbmail @profile_name = 'qort-sql-mail' --'qort-test-sql'--
 
@@ -1286,6 +1288,8 @@ anizationName' + '</td><td>Purpose' + '</td><td>ValuationDate' + '</td><td>Opera
 
 
 			--, @file_attachments = @fileReport
+
+			--*/
 
 			SET @n = @n - 1
 
