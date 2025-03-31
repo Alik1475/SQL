@@ -541,7 +541,7 @@ END TRY
 
 					,tss.Name AS TSSection_Name
 
-					,tt.ISIN secCode
+					,tt.shortname secCode
 
 					,tt.ShortName Asset_ShortName
 

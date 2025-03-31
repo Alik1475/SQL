@@ -70,7 +70,37 @@ BEGIN
 
 		ELSE
 
+		begin
+
 			PRINT 'dont connect server'
+
+
+
+			--/*
+
+		  -- Отправка email
+
+            EXEC msdb.dbo.sp_send_dbmail
+
+                @profile_name = 'qort-sql-mail',--'qort-test-sql'
+
+                @recipients = 'aleksandr.mironov@armbrok.am',
+
+                @subject = 'THE SERVER 192.168.13.80 IS NOT WORKING',
+
+                @BODY_FORMAT = 'HTML',
+
+                @body = 'THE SERVER 192.168.13.80 IS NOT WORKING'
+
+                --@file_attachments = @fileReport;
+
+				--*/
+
+		end
+
+
+
+
 
 				---------------------------------------------------------------------------------------------------------------------------
 

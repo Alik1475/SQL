@@ -2,7 +2,7 @@
 
  
 
--- exec QORT_ARM_SUPPORT.dbo.upload_MarketInfo @ip = '192.168.13.80',	@IsinCode = null 'US0378331005 EQUITY'
+-- exec QORT_ARM_SUPPORT.dbo.upload_MarketInfo @ip = '192.168.13.80',	@IsinCode =  'US0378331005 EQUITY'null
 
 
 
@@ -720,7 +720,7 @@ WITH RankedAssets AS (
 
     WHERE 
 
-        isnull(m.Date, @ytdDateint) = @ytdDateint and ass2.AssetClass_Const in (5,6,11,16,18)
+        isnull(m.OldDate, @ytdDateint) = @ytdDateint and ass2.AssetClass_Const in (5,6,11,16,18,19)
 
 )
 
@@ -758,7 +758,7 @@ FROM
 
 WHERE 
 
- a.Enabled = 0 and a.AssetClass_Const in (5,6,11,16,18) and a.IsTrading = 'y' and
+ a.Enabled = 0 and a.AssetClass_Const in (5,6,11,16,18,19) and a.IsTrading = 'y' and
 
     isnull(RowNum,1) = 1
 
