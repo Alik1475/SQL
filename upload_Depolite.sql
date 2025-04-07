@@ -1,6 +1,6 @@
 ﻿
 
---exec QORT_ARM_SUPPORT.dbo.upload_Depolite @QueryDate = '20241202'
+--exec QORT_ARM_SUPPORT.dbo.upload_Depolite @QueryDate = '20250403'
 
 
 
@@ -152,6 +152,8 @@ select row_number() over(order by t.account) rn
 
 					WHEN 'MAREX PRIME SERVICES LIMITED' THEN 'ARMBR_DEPO_MAREX'
 
+					WHEN 'ALOR' THEN 'ARMBR_DEPO_ALOR+'
+
 					ELSE 
 
 					iif(left(t.account,14) = '42000116594323', 'GX2IN_ARMBR_DEPO_'+cast(right(t.account,4) as varchar(128)),
@@ -184,7 +186,7 @@ select row_number() over(order by t.account) rn
 
 			select * from #comms 
 
-
+--return
 
 			DELETE from QORT_BACK_TDB..CheckPositions -- удаляем значения перед загрузкой новых.
 

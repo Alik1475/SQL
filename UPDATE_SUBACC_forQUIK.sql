@@ -45,7 +45,7 @@ yInt INT = CAST(CONVERT(VARCHAR, @todayDate, 112) AS INT)
 
         FROM QORT_BACK_DB.dbo.Subaccs sub
 
-		outer apply (select 'y' as IsQuik, sub1.IsQuik as IsQuikC from QORT_BACK_DB.dbo.Subaccs sub1
+		outer apply (select 'y' as IsQuik, sub1.IsQuik as IsQuikC, sub1.SubAccCode as SubAccCode from QORT_BACK_DB.dbo.Subaccs sub1
 
 						WHERE  sub1.id = sub.id
 
@@ -68,14 +68,15 @@ yInt INT = CAST(CONVERT(VARCHAR, @todayDate, 112) AS INT)
 
 	
 		where sub.Enabled = 0 and sub.IsAnalytic = 'n' 
-		and (Iif(sub1.IsQuikC is null, 'n', 'y') <> sub.IsQUIK or iif(sub1.IsQuikC is null, 0, 14) <> sub.RPTACTION_Flags or iif(sub1.IsQuikC is null, 0, 14) <> sub.RPTACTION_Period_Flags)-- or iif(sub1.IsQuik
-C is null, 'n', sub.IsIgnoreRules) <> sub.IsIgnoreRules)
+		and (Iif(sub1.IsQuikC is null, 'n', 'y') <> sub.IsQUIK or Iif(sub1.IsQuikC is null, 'BLOCK', sub1.SubAccCode) <> sub.TradeCode or iif(sub1.IsQuikC is null, 0, 14) <> sub.RPTACTION_Flags or iif(sub1.IsQ
+uikC is null, 0, 14) <> sub.RPTACTION_Period_Flags)-- or iif(sub1.IsQuikC is null, 'n', sub.IsIgnoreRules) <> sub.IsIgnoreRules)
 		--and sub.SubAccCode = 'AS1388'
   
 
 
 --RETURN
-  --обновление справочника БП (всем признак не спамить, чтобы исключить случайную отправку сообщений
+  --обновление справочника БП (всем признак не спамить, чтобы исключить случай
+ную отправку сообщений
 
 
    

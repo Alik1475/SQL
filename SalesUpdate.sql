@@ -190,7 +190,7 @@ BEGIN
 
         from #t3 t3
 
-		where NOT (t3.SubAccCodeAN in ('AS1474','AS1529') AND t3.fatherID = '72')
+		where NOT (t3.SubAccCodeAN in ('AS1474','AS1529','AS1854') AND t3.fatherID = '72')
 
 	
 

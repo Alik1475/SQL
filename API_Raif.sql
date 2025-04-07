@@ -960,7 +960,7 @@ ation: Bearer ' + @AccessToken + '" ' + '--header "Accept: application/json" ' +
 
 			,isnull(cast(users.first_name + users.last_name AS VARCHAR(32)), '') User_Created
 
-			,IIF(sub.SubAccCode IN ('AS1474','AS1529'), 77777 ,IIF(ISNULL(fir.Sales_ID, 1) < 0, 1, ISNULL(fir.Sales_ID, 1))) salesID
+			,IIF(sub.SubAccCode IN ('AS1474','AS1529','AS1854'), 77777 ,IIF(ISNULL(fir.Sales_ID, 1) < 0, 1, ISNULL(fir.Sales_ID, 1))) salesID
 
 			,pars.IntradayOperationId AS IntradayOperationId
 

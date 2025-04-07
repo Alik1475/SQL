@@ -1209,15 +1209,15 @@ GROUP BY SubAccID;
 
 					IF OBJECT_ID('tempdb..##t', 'U') IS NOT NULL DROP TABLE ##t
 
-					select fir.Name BPName
+					select iif(fir.Name COLLATE Cyrillic_General_CI_AS in ('Armbrok OJSC') , sub.SubAccCode COLLATE Cyrillic_General_CI_AS, fir.Name ) BPName
 
 					, cl.DateSign DateSign
 
-					, cl.DateCreate DateCreate
+					, cl.DateCreate DateCreate				
 
-					
+					, (case when sub.SubAccCode COLLATE Cyrillic_General_CI_AS = 'Onderka Eduard' then 'AS1616'
 
-					, sub.SubAccCode
+							else sub.SubAccCode COLLATE Cyrillic_General_CI_AS  end) as SubAccCode
 
 					, fir.IsFirm IsLegal_y
 

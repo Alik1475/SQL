@@ -673,7 +673,7 @@ END TRY
 
 					,'USD' CurrPriceAsset_ShortName
 
-					,round(CONVERT(FLOAT, REVERSE(SUBSTRING(REVERSE(t.Narration), 1, CHARINDEX('@', REVERSE(t.Narration)) - 1))) * abs(t.NetHoldings) * 100, 0) / 100 * IIF(TSS.NAME = 'OTC_Derivatives',TT.BaseAssetSize,1) AS Volume1
+					,round(CONVERT(FLOAT, REVERSE(SUBSTRING(REVERSE(t.Narration), 1, CHARINDEX('@', REVERSE(t.Narration)) - 1))) * abs(t.NetHoldings) * 100, 0) / 100 * IIF(TSS.NAME = 'OPRA',TT.BaseAssetSize,1) AS Volume1
 
 					,CONVERT(FLOAT, REVERSE(SUBSTRING(REVERSE(t.Narration), 1, CHARINDEX('@', REVERSE(t.Narration)) - 1))) Price
 
@@ -998,7 +998,6 @@ END TRY
 			PRINT 'No files found';
 
 		END;
-
 	END TRY
 
 

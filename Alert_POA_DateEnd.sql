@@ -22,19 +22,19 @@ BEGIN
 
 		DECLARE @todayInt INT = CAST(CONVERT(VARCHAR, @todayDate, 112) AS INT)
 
-		DECLARE @BdayInt_3 int 
+		DECLARE @BdayInt_1 int 
 
 		DECLARE @WaitCount INT = 0
 
 		DECLARE @Message VARCHAR(1024)
 
-		DECLARE @NotifyEmail VARCHAR(max) = 'backoffice@armbrok.am;onboarding@armbrok.am;qort@armbrok.am'
+		DECLARE @NotifyEmail VARCHAR(max) = 'backoffice@armbrok.am;onboarding@armbrok.am;qort@armbrok.am'-- 'Aleksandr.mironov@armbrok.am'--
 
 		DECLARE @NotifyMessage1 VARCHAR(2000) = '<p><strong>Dear Colleagues,</strong></p>
 
 
 
-<p>This is a reminder that the power of attorney for the authorized representative is set to expire in <strong>three business days</strong> days.</p>
+<p>This is a reminder that the power of attorney for the authorized representative is set to expire <strong> tomorrow (in one business day)</strong>.</p>
 
 
 
@@ -72,7 +72,7 @@ BEGIN
 
 
 
-		WHILE @WaitCount < 3
+		WHILE @WaitCount < 1
 
 			BEGIN
 
@@ -92,9 +92,9 @@ BEGIN
 
 
 
-	set @BdayInt_3 = CAST(CONVERT(VARCHAR, DATEADD(DAY, @n, @todayDate), 112) AS INT)
+	set @BdayInt_1 = CAST(CONVERT(VARCHAR, DATEADD(DAY, @n, @todayDate), 112) AS INT)
 
-	--print @BdayInt_3 return
+	--print @BdayInt_1 return
 
 	CREATE TABLE #TempRoles (
 
@@ -226,7 +226,7 @@ BEGIN
 
 		        (
 
-    SELECT STRING_AGG(CAST(FCT.Description AS NVARCHAR(32)), ',') AS FCT
+            SELECT STRING_AGG(CAST(FCT.Description AS NVARCHAR(32)), ',') AS FCT
 
             FROM QORT_BACK_DB.dbo.FirmContacts con
 
@@ -240,7 +240,7 @@ BEGIN
 
         ) as con
 
-			where ADocs.ADocDateEnd = @BdayInt_3
+			where ADocs.ADocDateEnd = @BdayInt_1
 
 			and ADocs.ADocDateEnd > 0
 
@@ -384,9 +384,9 @@ select * from #tk
 
 		  -- Отправка email
 
-            EXEC msdb.dbo.sp_send_dbmail
+      EXEC msdb.dbo.sp_send_dbmail
 
-             @profile_name = 'qort-sql-mail',--'qort-test-sql'
+                @profile_name = 'qort-sql-mail',--'qort-test-sql'
 
                 @recipients = @NotifyEmail,
 

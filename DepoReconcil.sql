@@ -206,9 +206,13 @@ WHERE RowNum > 1;
 t.DepoAccount,(select top 1 frm.DepoCode from QORT_BACK_DB..FirmDEPOAccs frm where isnull(t.Account, t1.Subacc_Code) = frm.code collate Cyrillic_General_CS_AS)), isnull(t.DepoAccount,(select top 1 DepodivisionCode from QORT_BACK_DB..FirmDEPOAccs where isn
 ull(t.Account, t1.Subacc_Code) = code collate Cyrillic_General_CS_AS))) -- много написано, но это всего лишь IIF
 
-			when 'AB' then iif(left(isnull (t.Settlement,SUBSTRING(t1.subcontoOUT, CHARINDEX('/', t1.subcontoOUT) + 1, CHARINDEX('/', t1.subcontoOUT, CHARINDEX('/', t1.subcontoOUT) + 1) - CHARINDEX('/', t1.subcontoOUT) - 1
-							)),14) = 'CLIENT_CDA_Own', '742000
-0000011', '42000012000070')
+			when 'On' then iif(left(isnull (t.Settlement,SUBSTRING(t1.subcontoOUT, CHARINDEX('/', t1.subcontoOUT) + 1, CHARINDEX('/', t1.subcontoOUT, CHARINDEX('/', t1.subcontoOUT) + 1) - CHARINDEX('/', t1.subcontoOUT) - 1
+							)),14) = 'CLIENT_CDA_Own', isnull(
+t.DepoAccount,(select top 1 frm.DepoCode from QORT_BACK_DB..FirmDEPOAccs frm where isnull(t.Account, t1.Subacc_Code) = frm.code collate Cyrillic_General_CS_AS)), isnull(t.DepoAccount,(select top 1 DepodivisionCode from QORT_BACK_DB..FirmDEPOAccs where isn
+ull(t.Account, t1.Subacc_Code) = code collate Cyrillic_General_CS_AS))) -- много написано, но это всего лишь IIF
+			when 'AB' then iif(left(isnull (t.Settlement,SUBSTRING(t1.subcontoOUT, CHARINDEX('/', t1.subcontoOUT) + 1, CHARINDEX('/', t1.subcontoOUT, C
+HARINDEX('/', t1.subcontoOUT) + 1) - CHARINDEX('/', t1.subcontoOUT) - 1
+							)),14) = 'CLIENT_CDA_Own', '7420000000011', '42000012000070')
 
 			else iif(CHARINDEX('74', t1.Subacc_Code) > 0,SUBSTRING(t1.Subacc_Code, CHARINDEX('74', t1.Subacc_Code), 13)
 
@@ -292,7 +296,7 @@ ull(t.Account, t1.Subacc_Code) = code collate Cyrillic_General_CS_AS))) -- мн�
 
 	from #t3 t3
 
-	where t3.Result <> 0 and left(Account, 2) in ('AS', 'Cl', 'cl') and not (t3.ISIN = 'AMTLCLS10ER3' and left(Account, 2) in ('Cl', 'cl'))
+	where t3.Result <> 0 and left(Account, 2) in ('AS', 'Cl', 'cl', 'On') and not (t3.ISIN = 'AMTLCLS10ER3' and left(Account, 2) in ('Cl', 'cl'))
 
 		or (left(Account, 2) in ('AR') and (DepoAccount = '7420000000011' or DepoAccount = '-')  and t3.Result <> 0)
 
