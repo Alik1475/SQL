@@ -8,9 +8,9 @@
 
 
 
--- exec QORT_ARM_SUPPORT.dbo.DRAFT1 @DateFromD = '2025-04-03', @DateToD ='2025-04-03', @BOCode = null '00028'
+-- exec QORT_ARM_SUPPORT.dbo.DRAFT1 @DateFromD = '2023-04-03', @DateToD ='2023-04-03', @BOCode = null '00028'
 
-CREATE PROCEDURE [dbo].[DRAFT1]
+CREATE PROCEDURE [dbo].[ReportTurnOverAMD]
 
 	  @DateFromD date,
 

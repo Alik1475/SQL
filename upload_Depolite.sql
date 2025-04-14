@@ -154,6 +154,8 @@ select row_number() over(order by t.account) rn
 
 					WHEN 'ALOR' THEN 'ARMBR_DEPO_ALOR+'
 
+					WHEN 'TFI SECURITIES AND FUTURES LIMITED' THEN 'ARMBR_DEPO_TFI'
+
 					ELSE 
 
 					iif(left(t.account,14) = '42000116594323', 'GX2IN_ARMBR_DEPO_'+cast(right(t.account,4) as varchar(128)),

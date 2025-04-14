@@ -232,7 +232,7 @@ BEGIN
 
 			left outer join #TempRoles FCT on FCT.Value = con.FCT_Const
 
-            WHERE  con.IsCancel = 'n' and
+            WHERE  /*con.IsCancel = 'n' and*/
 
                  ((ADocs.Afirm_id < 0 and con.Contact_ID = ADocs.firm_id and con.Firm_ID = ADocs.CpFirm_ID) 
 
@@ -384,7 +384,7 @@ select * from #tk
 
 		  -- Отправка email
 
-      EXEC msdb.dbo.sp_send_dbmail
+          EXEC msdb.dbo.sp_send_dbmail
 
                 @profile_name = 'qort-sql-mail',--'qort-test-sql'
 
