@@ -40,8 +40,7 @@ armbrok.am'--;qortsupport@armbrok.am;
 
 	--exec master.dbo.xp_cmdshell @cmd, no_output
 
-	declare @NotifyEmail1 varchar(1024) --='aleksandr.mironov@armbrok.am;ashot.minasyan@armbrok.am;elena.voronova@armbrok.am;maria.bulkova@armbrok.am;tigran.gevorgyan@armbrok.am;viktor.dolzhenko@armbrok.am;sona.nalbandyan@armbrok.am;aleksandr.mironov@armbrok
-.am;'
+	declare @NotifyEmail1 varchar(1024) --='aleksandr.mironov@armbrok.am;ashot.minasyan@armbrok.am;tigran.gevorgyan@armbrok.am;viktor.dolzhenko@armbrok.am;sona.nalbandyan@armbrok.am;aleksandr.mironov@armbrok.am;'
 
 
 

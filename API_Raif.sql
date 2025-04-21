@@ -1108,7 +1108,7 @@ ation: Bearer ' + @AccessToken + '" ' + '--header "Accept: application/json" ' +
 
 									AND fct_const = 2
 
-								), 'tigran.gevorgyan@armbrok.am;elena.voronova@armbrok.am') AS VARCHAR(1024)) + ';backoffice@armbrok.am;accounting@armbrok.am;QORT@armbrok.am;'
+								), 'tigran.gevorgyan@armbrok.am;lilit.paronyan@armbrok.am') AS VARCHAR(1024)) + ';backoffice@armbrok.am;accounting@armbrok.am;QORT@armbrok.am;'
 
 				SET @NotifyMessage1 = cast((
 
