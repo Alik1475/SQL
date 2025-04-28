@@ -54,7 +54,7 @@ armbrok.am'--;qortsupport@armbrok.am;
 
 	declare @ReportDateInt int = cast(convert(varchar, @ReportDate, 112) as int)
 
-	declare @MaxDaysPercent int = 28
+	declare @MaxDaysPercent int = 60
 
 	declare @NotifyMessage varchar(max)
 
@@ -192,7 +192,9 @@ armbrok.am'--;qortsupport@armbrok.am;
 
 	order by DaysDelayed desc, t.AgreeNum, isnull(tp.ExternalNum, ''), tt.tradeId
 
+	select *
 
+		from ##opened_otc2
 
 	delete t
 
@@ -518,7 +520,13 @@ armbrok.am'--;qortsupport@armbrok.am;
 
 
 
-		
+		if isnull(@NotifyMessage,'') = '' begin set @NotifyMessage = '<html><body><p>'
+
+		+ 'All Trades Delivered on Time</p>'
+
+			+ '</body></html>'
+
+			end
 
 
 

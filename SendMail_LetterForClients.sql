@@ -8,7 +8,7 @@ CREATE PROCEDURE [dbo].[SendMail_LetterForClients]
 
 	@SendMail bit,
 
-	@SendText varchar(1024) ,
+	@SendText varchar(3000) ,
 
 	@SendSubject varchar(1024)
 
@@ -40,7 +40,7 @@ declare @Message varchar (1024)
 
 declare @NotifyEmail varchar(1024) 
 
-declare @NotifyMessage varchar(1024)
+declare @NotifyMessage varchar(3000)
 
 
 
@@ -189,7 +189,7 @@ if @SendMail = 1 begin
 
 	   set @subaccode = cast((select SubAccCode from #result where Num = @n) as varchar(1024))
 
-	 -- /* 
+	  /* 
 
 	  set @NotifyMessage = ' Dear client,<br/> 
 	  We hope this message finds you well. <br/>

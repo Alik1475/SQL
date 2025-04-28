@@ -84,15 +84,55 @@ BEGIN
 
                 @profile_name = 'qort-sql-mail',--'qort-test-sql'
 
-                @recipients = 'aleksandr.mironov@armbrok.am',
+                @recipients = 'QORT@armbrok.am',
 
                 @subject = 'THE SERVER 192.168.13.80 IS NOT WORKING',
 
                 @BODY_FORMAT = 'HTML',
 
-                @body = 'THE SERVER 192.168.13.80 IS NOT WORKING'
+                @body = '
 
-                --@file_attachments = @fileReport;
+							<html>
+
+							<head>
+
+							  <style>
+
+								body { font-family: Arial, sans-serif; color: #333; }
+
+								.highlight { color: red; font-weight: bold; }
+
+							  </style>
+
+							</head>
+
+							<body>
+
+							  <p>Здравствуйте!</p>
+
+
+
+							  <p>Вы получили это письмо, так как <span class="highlight">на компьютере Ашота не запустилось обновление справочников</span>.</p>
+
+
+
+							  <p>Пожалуйста, <strong>до 09:45 утра</strong> выполните запуск вручную.  
+
+							  В противном случае данные <strong>не будут сверены к 10:00</strong>, и это может повлиять на работу торгового дня.</p>
+
+
+
+							  <p>Пошаговая инструкция находится в прикреплённом файле <strong>Instruct.docx</strong> (см. вложение).</p>
+
+
+
+							  <p>Спасибо!</p>
+
+							</body>
+
+							</html>',
+
+                @file_attachments = 'C:\Users\aleksandr.mironov\Documents\Instruct.docx';
 
 				--*/
 
