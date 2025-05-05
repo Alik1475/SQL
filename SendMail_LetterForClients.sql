@@ -1,6 +1,6 @@
 ﻿/*
 
-exec QORT_ARM_SUPPORT.dbo.SendMail_LetterForClients @sendmail = 1 , @SendText = '', @SendSubject = 'ARMBROK Non-Working Day on 28/01/2025'
+exec QORT_ARM_SUPPORT.dbo.SendMail_LetterForClients @sendmail = 1 , @SendText = '', @SendSubject = 'ARMBROK Non-Working Day on 28/01/2025', @SubAccCode = 'VICTOR'
 
 */
 
@@ -10,7 +10,9 @@ CREATE PROCEDURE [dbo].[SendMail_LetterForClients]
 
 	@SendText varchar(3000) ,
 
-	@SendSubject varchar(1024)
+	@SendSubject varchar(1024),
+
+	@SubAccCode varchar(32)
 
 AS
 
@@ -42,7 +44,9 @@ declare @NotifyEmail varchar(1024)
 
 declare @NotifyMessage varchar(3000)
 
+declare @copy_recipients varchar(1024) 
 
+declare @profile_name varchar(1024) 
 
 select @NotifyMessage = bulkColumn 
 
@@ -96,13 +100,23 @@ if OBJECT_ID('tempdb..#RESULT', 'U') is not null drop table #RESULT
 
  where LEFT(subaccCode,2) ='AS' and s.Enabled <> s.ID and ACSTAT_Const = 5 and f.STAT_Const = 5 
 
-  --and s.SubAccCode in ('AS1935')
+  and (
 
---and f.Sales_ID in(273)
+        @SubAccCode = 'ALL'
+
+        or (@SubAccCode = 'VICTOR' and f.Sales_ID = 618)
+
+        or (s.SubAccCode in (@SubAccCode) and @SubAccCode not in ('ALL', 'VICTOR'))
+
+      )
+
+ -- and s.SubAccCode in ('AS1935')
 
   order by SubAccCode asc
 
 
+
+  --SELECT * from #result return
 
 
 
@@ -246,13 +260,37 @@ Armbrok Team <br/><br/>
 
 	print @NotifyEmail
 
+
+
+			IF @SubAccCode = 'VICTOR' 
+
+			BEGIN 
+
+				SET @profile_name = 'Viktor.Dolzhenko'; 
+
+				SET @copy_recipients = '' --'lilit.paronyan@armbrok.am'; 
+
+			END
+
+			ELSE
+
+			BEGIN
+
+				SET @profile_name = 'onboarding-sql'; 
+
+				SET @copy_recipients = '';
+
+			END
+
 	--/*
 
 	EXEC msdb.dbo.sp_send_dbmail
 
-			@profile_name =  'onboarding-sql'--'onboarding-test-sql'--
+			@profile_name =  @profile_name --'Viktor.Dolzhenko' --'onboarding-sql'--'onboarding-test-sql'-- 
 
 			, @recipients = @NotifyEmail
+
+			, @copy_recipients = @copy_recipients
 
 			, @subject = @NotifyTitle
 
