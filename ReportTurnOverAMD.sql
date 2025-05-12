@@ -8,7 +8,7 @@
 
 
 
--- exec QORT_ARM_SUPPORT.dbo.DRAFT1 @DateFromD = '2023-04-03', @DateToD ='2023-04-03', @BOCode = null '00028'
+-- exec QORT_ARM_SUPPORT.dbo.ReportTurnOverAMD @DateFromD = '2025-04-03', @DateToD ='2025-04-03', @BOCode = null '00404'  
 
 CREATE PROCEDURE [dbo].[ReportTurnOverAMD]
 
@@ -81,25 +81,37 @@ NULL(countA.Name, 'Unfilled') AS ResidentDoc,
 				WHEN COALESCE(fh.CRS_Const, fir.CRS_Const) = 2 THEN 'Active NonFinancial Entity'
 				WHEN COALESCE(fh.CRS_Const, fir.CRS_Const) = 3 THEN 'Passive NonFinancial Entity'
 				ELSE 'Not chosen'
-			END AS CRS_sta
-tus,
+			END + '  ' + C
+ONVERT(VARCHAR(10), CAST(CONVERT(CHAR(8), @DateTo) AS DATE), 104) AS CRS_status,
 			CASE 
 				WHEN COALESCE(fh.RiskLevel, fir.RiskLevel) = 2 THEN 'Medium'
 				WHEN COALESCE(fh.RiskLevel, fir.RiskLevel) = 3 THEN 'Low'
-				WHEN COALESCE(fh.RiskLevel, fir.RiskLevel) = 4 THEN 'High'
-				WHEN COALESCE(fh.RiskLevel, fir.RiskLevel) = 5 
-THEN 'Medium Low'
+				WHEN COALESCE(fh.RiskLevel, fir.Ri
+skLevel) = 4 THEN 'High'
+				WHEN COALESCE(fh.RiskLevel, fir.RiskLevel) = 5 THEN 'Medium Low'
 				WHEN COALESCE(fh.RiskLevel, fir.RiskLevel) = 6 THEN 'Automatic High'
 				WHEN COALESCE(fh.RiskLevel, fir.RiskLevel) = 7 THEN 'Extreme'
-				WHEN COALESCE(fh.RiskLevel, fir.RiskLevel) = 8 THEN 'Initial'
+				WHEN COALESCE(fh.R
+iskLevel, fir.RiskLevel) = 8 THEN 'Initial'
 				ELSE 'N/A'
-			END AS RiskLev
-el,
-			IIF(ISNULL(ass.ISIN, '') = '', isnull(ass.ShortName, '-'), ass.ISIN) AS ISIN,
+			END + '  ' + CONVERT(VARCHAR(10), CAST(CONVERT(CHAR(8), @DateTo) AS DATE), 104) AS RiskLevel,
+			isnull(fh.IsResident,'unknow') + '  ' + CONVERT(VARCHAR(10), CAST(CONVERT(CHAR(8), @DateTo) AS D
+ATE), 104) as IsResident_on_date,
+			isnull(fh.IsTaxResident,'unknow') + '  ' + CONVERT(VARCHAR(10), CAST(CONVERT(CHAR(8), @DateTo) AS DATE), 104) as IsTaxResident_on_date,
+			fir.LatAddrJu as LatAddrJu,
+			Fir.INN as INN,
+			iif(fir.DateOfBirth = 0, '-',
+ CONVERT(VARCHAR(10), CAST(CONVERT(CHAR(8),fir.DateOfBirth) AS DATE), 104)) as Date_Of_Birth,
+			FirmP.PlaceOfBirth as Place_Of_Birth,
+			isnull(Sales.Name, '-') as Sales,
+			isnull(sub.MarginEMail,'-') as MarginEMail,
+			fir.Phones as Phones,		
+			IIF(IS
+NULL(ass.ISIN, '') = '', isnull(ass.ShortName, '-'), ass.ISIN) AS ISIN,
 			ISNULL(t.Turnover_Trade_deliveries, 0) AS Turnover_Trade_deliveries,
 			ISNULL(t.Turnover_Trade_payments, 0) AS Turnover_Trade_payments,
-			ISNULL(t.Turnover_NONTrade,
- 0) AS Turnover_NONTrade,
+			ISNULL(t.Turnover_NONTrade, 0) AS Turnov
+er_NONTrade,
 			ISNULL(t.Total_Client_value, 0) AS Total_Client_value,
 			t.Armbrok_Mn_Client,
 			t.ARMBR_MONEY_BLOCK,
@@ -108,9 +120,9 @@ el,
 			t.ARMBR_DEPO_BTA,
 			t.ARMBR_DEPO_MAREX,
 			t.ARMBR_DEPO,
-			t.ARMBR_DE
-PO_GTN,
-			t.ARMBR_DEPO_MAD,
+			t.ARMBR_DEPO_GTN,
+			t.
+ARMBR_DEPO_MAD,
 			t.ARMBR_DEPO_AIX,
 			t.ARMBR_DEPO_RON,
 			t.ARMBR_DEPO_MTD,
@@ -120,40 +132,42 @@ PO_GTN,
 			t.ARMBR_DEPO_RAI,
 			t.ARMBR_DEPO_TFI,
 			ISNULL(t.OTHER, 0) AS OTHER
-		FROM QORT_BACK_DB.d
-bo.Firms fir WITH (NOLOCK)
-		OUTER APPLY (SELECT TOP 1 fh.RiskLevel, fh.CRS_Const FROM QORT_BACK_DB.dbo.FirmsHist fh WITH (NOLOCK) WHERE fh.Founder_ID = fir.ID AND fh.Founder_Date <= @DateTo ORDER BY fh.Founder_Date DESC) fh
-		OUTER APPLY (SELECT TOP 1 Fl
-agName FROM dbo.FTGetIncludedFlags(fir.FT_Flags) WHERE FlagName = 'FT_CLIENT') fClient
+		FROM QORT_BACK_DB.dbo.Firms fir 
+WITH (NOLOCK)
+		OUTER APPLY (SELECT TOP 1 fh.RiskLevel, fh.CRS_Const, fh.IsTaxResident, fh.IsResident FROM QORT_BACK_DB.dbo.FirmsHist fh WITH (NOLOCK) WHERE fh.Founder_ID = fir.ID AND fh.Founder_Date <= @DateTo ORDER BY fh.Founder_Date DESC) fh
+		OUTER AP
+PLY (SELECT TOP 1 FlagName FROM dbo.FTGetIncludedFlags(fir.FT_Flags) WHERE FlagName = 'FT_CLIENT') fClient
 		OUTER APPLY (SELECT TOP 1 FlagName FROM dbo.FFGetIncludedFlags(fir.FF_Flags) WHERE FlagName = 'FF_PEP') fPEP
-		LEFT JOIN QORT_BACK_DB.dbo.FirmProperties FirmP ON Firm
-P.Firm_ID = fir.ID
+		LEFT JOIN QORT_BACK_DB.dbo.FirmProp
+erties FirmP ON FirmP.Firm_ID = fir.ID
 		LEFT JOIN QORT_BACK_DB.dbo.Countries countR ON countR.ID = FirmP.TaxResidentCountry_ID
 		LEFT JOIN QORT_BACK_DB.dbo.Countries countA ON countA.ID = fir.Country_ID
-		LEFT JOIN QORT_BACK_DB.dbo.OrgCathegories org ON org.ID = fir.OrgCath
-egoriy_ID
+		LEFT JOIN QORT_BACK_DB.dbo.OrgCathegories org ON 
+org.ID = fir.OrgCathegoriy_ID
+		LEFT JOIN QORT_BACK_DB.dbo.Firms Sales ON Sales.ID = fir.Sales_ID
 		CROSS APPLY (SELECT * FROM QORT_ARM_SUPPORT.dbo.fn_Trade_FirmID(fir.ID, @DateFrom, @DateTo)) f
-		CROSS APPLY (SELECT * FROM QORT_ARM_SUPPORT.dbo.fn_Turnover_AMD(fir.ID, f.AssetID, @DateFrom, @DateTo)) t
-		OUTER APPLY (SELECT TOP 1 sub.SubAccCo
-de, sub.OwnerFirm_ID, sub.ACSTAT_Const, sub.StatusChangeDate FROM QORT_BACK_DB.dbo.Subaccs sub WITH (NOLOCK) WHERE sub.ID = t.SubAccID AND sub.Enabled = 0 AND LEFT(ISNULL(sub.SubAccCode, '2'), 2) NOT IN ('AA', 'AB', '00', 'AR') AND ISNULL(sub.OwnerFirm_ID
-, 0) NOT IN (3,5)) sub
-		OUTER APPLY (SELECT TOP 1 cl.DateSign, cl.DateCreate FROM QORT_BACK_DB.dbo.ClientAgrees cl WITH (NOLOCK) WHERE cl.SubAcc_ID = t.SubAccID AND cl.Enabled = 0 AND cl.ClientAgreeType_ID IN (68,20,22) AND ISNULL(cl.DateSign, 0) <> 0) c
-l
+		CROSS APPLY (SELECT * FROM QORT_ARM_SUPPORT.dbo.fn_Turnove
+r_AMD(fir.ID, f.AssetID, @DateFrom, @DateTo)) t
+		OUTER APPLY (SELECT TOP 1 sub.SubAccCode, sub.OwnerFirm_ID, sub.ACSTAT_Const, sub.StatusChangeDate, sub.MarginEMail FROM QORT_BACK_DB.dbo.Subaccs sub WITH (NOLOCK) WHERE sub.ID = t.SubAccID AND sub.Enabled
+ = 0 AND LEFT(ISNULL(sub.SubAccCode, '2'), 2) NOT IN ('AA', 'AB', '00', 'AR') AND ISNULL(sub.OwnerFirm_ID, 0) NOT IN (3,5)) sub
+		OUTER APPLY (SELECT TOP 1 cl.DateSign, cl.DateCreate FROM QORT_BACK_DB.dbo.ClientAgrees cl WITH (NOLOCK) WHERE cl.SubAcc_ID =
+ t.SubAccID AND cl.Enabled = 0 AND cl.ClientAgreeType_ID IN (68,20,22) AND ISNULL(cl.DateSign, 0) <> 0) cl
 
 		LEFT JOIN QORT_BACK_DB.dbo.Assets ass ON ass.ID = f.AssetID
 		WHERE fir.Enabled = 0
 		  AND fir.ID NOT IN (2)
-		  AND (@FirmID IS NULL OR fir.ID = @FirmID)
+		  AND (@FirmID IS NULL OR fir.ID 
+= @FirmID)
 		ORDER BY BPName
 
 	END TRY
 	BEGIN CATCH
 		WHILE @@TRANCOUNT > 0 ROLLBACK TRANSACTION
-		SET @M
-essage = 'ERROR: ' + ERROR_MESSAGE()
+		SET @Message = 'ERROR: ' + ERROR_MESSAGE()
 		INSERT INTO QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) VALUES (@Message, 1001)
 		PRINT @Message
-		SELECT @Message AS Result, 'red' AS ResultColor
+		
+SELECT @Message AS Result, 'red' AS ResultColor
 	END CATCH
 END
 

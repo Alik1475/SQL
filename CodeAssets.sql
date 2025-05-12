@@ -26,12 +26,26 @@ BEGIN
 		END code
 		into ##CodeAssets
 		from QORT_BACK_DB.dbo.Assets ass
+		OUTER APPLY (
+
+			SELECT TOP 1 *
+
+			FROM QORT_BACK_DB.dbo.AssetsHist ah
+
+			WHERE ah.Founder_ID = ass.ID
+
+			  AND ah.user_modified = 9 and isnull(ass.EmitentFirm_ID, -1)  < 0
+
+			ORDER BY ah.Founder_Date DESC, ah.Founder_Time DESC
+
+		) AS ah
 		where ass.Enabled = 0
 			and ass.AssetType_Const in (1,4) -- 	Securities (AT_SEC), Indices AT_IDX
-			and (ass.CancelDate >= @to
-dayInt or ass.CancelDate = 0)
+			and (ass.CancelDate >= @todayInt or ass.CancelDate = 0)
 			and ass.IsTrading = 'y'
-			and ass.PricingTSSection_ID in (154, (-1)) -- 'OTC_Securities'
+			and ass.PricingTSSection_ID in (154, (-1)) -- 'OTC_Secur
+ities'
+
            -- and LEFT(ASS.ISIN,2) = 'AM'
 		 --  AND ass.AssetClass_Const = 19
 			DECLARE @JsonResult NVARCHAR(MAX);
