@@ -6,7 +6,7 @@
 
 
 
--- exec QORT_ARM_SUPPORT.dbo.exportTrades_RegulatoryNY06BuySellREPO '20250310'
+-- exec QORT_ARM_SUPPORT.dbo.exportTrades_RegulatoryNY06BuySellREPO '20250502'
 
 
 
@@ -401,7 +401,7 @@ MENIA. Исключение для гос.бумаг
 
 								when t.TT_Const in (3,6) then 2 
 
-								when t.TT_Const in (11,4) AND t.TSSection_ID IN(167) then 3 --OTC_Derivatives
+								when t.TT_Const in (11,4) AND t.TSSection_ID IN(167) and t.FunctionType not IN(7,8,9) then 3 --t.TSSection_ID IN(167)-OTC_Derivatives; t.FunctionType not IN(7,8,9)-for revers trades
 
 								end tt) tt
 
@@ -479,8 +479,8 @@ MENIA. Исключение для гос.бумаг
 
 			, FORMAT(ROUND(r.Qty_K, 5), 'N5') Qty_L, FORMAT(ROUND(r.Volume_L, 5), 'N5')  Volume_M, r.PayCurrency_M PayCurrency_N, FORMAT(ROUND(r.RepoRate_R_O, 5), 'N5') + '%' RepoRate_R_O, dbo.fVarcharDateYYYYToVarcharDateYY(r.RepoBackDate_R_P) RepoBackDate_R_P
 
-			, RepoLocation_Q, /*r.TradeDate_P*/ dbo.fVarcharDateYYYYToVarcharDateYY(r.TradeDate_R_R) TradeDate_R, dbo.fVarcharDateYYYYToVarcharDateYY(r.TradeDate_R_R) TradeDate_R_R, dbo.fVarcharDateYYYYToVarcharDateYY(r.TransactionDate_R_T) TransactionDate_R_T -- 
-Алик 26/02/2024 поменял r.TradeDate2_R_S на r.TradeDate_R_R. выводим равное значение, до настройки механизма отражения РЕПО вендором
+			, RepoLocation_Q, /*r.TradeDate_P*/ dbo.fVarcharDateYYYYToVarcharDateYY(r.TradeDate_R_R) TradeDate_R, dbo.fVarcharDateYYYYToVarcharDateYY(r.TradeDate_R_R) TradeDate_R_R, dbo.fVarcharDateYYYYToVarcharDateYY(r.TransactionDate_R_T) TransactionDate_R_T --
+ Алик 26/02/2024 поменял r.TradeDate2_R_S на r.TradeDate_R_R. выводим равное значение, до настройки механизма отражения РЕПО вендором
 
 			, r.CPCode_R CPCode_U, r.ExternalBroker_S ExternalBroker_V
 
@@ -515,6 +515,8 @@ MENIA. Исключение для гос.бумаг
 		from #r r
 
 		where r.tt = 3
+
+		
 
 		--/*
 

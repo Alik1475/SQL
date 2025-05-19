@@ -1,6 +1,6 @@
 ﻿
 
---exec QORT_ARM_SUPPORT.dbo.upload_Depolite @QueryDate = '20250403'
+--exec QORT_ARM_SUPPORT.dbo.upload_Depolite @QueryDate = '20250512'
 
 
 
@@ -164,7 +164,7 @@ select row_number() over(order by t.account) rn
 
 					
 
-				, isnull(da.Code,isnull(cast(t.account+'_'+isnull(Cl.NAME_Translate,'ClientNameNotFound') as varchar),'ClientNameNotFound')) code
+				, isnull(trim(da.Code),isnull(cast(t.account+'_'+isnull(Cl.NAME_Translate,'ClientNameNotFound') as varchar),'ClientNameNotFound')) code
 
 				, isnull(a.ShortName,'AssetNoQort'+t.num) Asset_ShortName
 
@@ -176,7 +176,7 @@ select row_number() over(order by t.account) rn
 
 			from QORT_ARM_SUPPORT..Rp_cur5992_Result t
 
-			left join QORT_BACK_DB..FirmDEPOAccs  da on  da.DEPODivisionCode = t.account
+			left join QORT_BACK_DB..FirmDEPOAccs  da on  trim(da.DEPOCode) = t.account and da.DEPOCode <> '' and TRIM (da.Name) = 'Armbrok_DepoLite'
 
 			left outer join QORT_BACK_DB..Assets a on a.isin = t.num --and a.IsTrading = 'y'
 

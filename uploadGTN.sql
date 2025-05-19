@@ -717,7 +717,23 @@ END TRY
 
 						AND sec.TSSection_ID = tss.id
 
-					WHERE left(ass.viewName, len(t.symbol)) = t.symbol
+					WHERE 	(
+
+								CHARINDEX('\', t.symbol) > 0 
+
+								AND LEFT(Ass.viewName, LEN(t.symbol)) = t.symbol -- если содержит /
+
+							)
+
+							OR (
+
+								CHARINDEX('\', t.symbol) = 0 
+
+								AND Ass.AssetClass_Const IN (5) 
+
+								AND LEFT(Ass.viewName, LEN(t.symbol)) = t.symbol -- если не содержит /
+
+							)
 
 					) AS tt
 
@@ -998,6 +1014,7 @@ END TRY
 			PRINT 'No files found';
 
 		END;
+
 	END TRY
 
 

@@ -81,7 +81,7 @@ liance@armbrok.am;armine.khachatryan@armbrok.am'
 
 	select sub.SubaccName NameClient, sub.SubAccCode Account, acc.Name Settlement, ass.ISIN ISIN, pos.VolFree PositionQort
 
-	, IIF(acc.Name in ('CLIENT_CDA_OWN', 'CLIENT_CDA_Own_ Frozen'), dep.depocode, dep.DepodivisionCode) DepoAccount
+	, IIF(acc.Name in ('CLIENT_CDA_OWN', 'CLIENT_CDA_Own_ Frozen'), depend.depocode, depolite.depocode) DepoAccount
 
 	, CAST((cast(isnull(sub.SubAccCode,'') as varchar(128))+'/'+cast(isnull(acc.Name,'') collate Cyrillic_General_CS_AS as varchar(128))+'/'+cast(isnull(ass.ISIN,'') as varchar(128))) as varchar(128)) subcontoQORT
 
@@ -95,7 +95,25 @@ liance@armbrok.am;armine.khachatryan@armbrok.am'
 
 	left outer join QORT_BACK_DB..Assets ass on pos.Asset_ID = ass.id 
 
-	left outer join QORT_BACK_DB..FirmDEPOAccs dep on sub.SubAccCode = dep.Code collate Cyrillic_General_CS_AS	
+	OUTER APPLY (
+
+    SELECT TOP 1 dep.DEPOCode as DEPOCode
+
+    FROM QORT_BACK_DB..FirmDEPOAccs dep
+
+    WHERE sub.SubAccCode = TRIM(dep.Code) COLLATE Cyrillic_General_CS_AS and trim(dep.Name) = 'Armbrok_DepoLite' COLLATE Cyrillic_General_CS_AS
+
+) AS depolite	
+
+	OUTER APPLY (
+
+    SELECT TOP 1 dep.DEPOCode as DEPOCode
+
+    FROM QORT_BACK_DB..FirmDEPOAccs dep
+
+    WHERE sub.SubAccCode = TRIM(dep.Code) COLLATE Cyrillic_General_CS_AS and trim(dep.Name) = 'Armbrok_Depend' COLLATE Cyrillic_General_CS_AS
+
+) AS depend
 
 	where OldDate = @ytdInt and pos.VolFree <> 0
 
@@ -103,7 +121,7 @@ liance@armbrok.am;armine.khachatryan@armbrok.am'
 
 	and sub.SubAccCode not in ('AS_test')
 
-	and left(dep.depocode,2) not in ('78');-- исключил счета, которых невидно в Депенд, но на которые зачислили бумаги
+	and left(IIF(acc.Name in ('CLIENT_CDA_OWN', 'CLIENT_CDA_Own_ Frozen'), depend.depocode, depolite.depocode),2) not in ('78');-- исключил счета, которых невидно в Депенд, но на которые зачислили бумаги
 
 	----------------------------удаляем строки с одинаковым субконтоКорт которые образуются когда у клиента несколько счетов ДЕПО------------------
 
@@ -204,14 +222,14 @@ WHERE RowNum > 1;
 			when 'AS' then iif(left(isnull (t.Settlement,SUBSTRING(t1.subcontoOUT, CHARINDEX('/', t1.subcontoOUT) + 1, CHARINDEX('/', t1.subcontoOUT, CHARINDEX('/', t1.subcontoOUT) + 1) - CHARINDEX('/', t1.subcontoOUT) - 1
 							)),14) = 'CLIENT_CDA_Own', isnull(
 t.DepoAccount,(select top 1 frm.DepoCode from QORT_BACK_DB..FirmDEPOAccs frm where isnull(t.Account, t1.Subacc_Code) = frm.code collate Cyrillic_General_CS_AS)), isnull(t.DepoAccount,(select top 1 DepodivisionCode from QORT_BACK_DB..FirmDEPOAccs where isn
-ull(t.Account, t1.Subacc_Code) = code collate Cyrillic_General_CS_AS))) -- много написано, но это всего лишь IIF
+ull(t.Account, t1.Subacc_Code) = trim(code) collate Cyrillic_General_CS_AS))) -- много написано, но это всего лишь IIF
 
 			when 'On' then iif(left(isnull (t.Settlement,SUBSTRING(t1.subcontoOUT, CHARINDEX('/', t1.subcontoOUT) + 1, CHARINDEX('/', t1.subcontoOUT, CHARINDEX('/', t1.subcontoOUT) + 1) - CHARINDEX('/', t1.subcontoOUT) - 1
 							)),14) = 'CLIENT_CDA_Own', isnull(
 t.DepoAccount,(select top 1 frm.DepoCode from QORT_BACK_DB..FirmDEPOAccs frm where isnull(t.Account, t1.Subacc_Code) = frm.code collate Cyrillic_General_CS_AS)), isnull(t.DepoAccount,(select top 1 DepodivisionCode from QORT_BACK_DB..FirmDEPOAccs where isn
-ull(t.Account, t1.Subacc_Code) = code collate Cyrillic_General_CS_AS))) -- много написано, но это всего лишь IIF
-			when 'AB' then iif(left(isnull (t.Settlement,SUBSTRING(t1.subcontoOUT, CHARINDEX('/', t1.subcontoOUT) + 1, CHARINDEX('/', t1.subcontoOUT, C
-HARINDEX('/', t1.subcontoOUT) + 1) - CHARINDEX('/', t1.subcontoOUT) - 1
+ull(t.Account, t1.Subacc_Code) = trim(code) collate Cyrillic_General_CS_AS))) -- много написано, но это всего лишь IIF
+			when 'AB' then iif(left(isnull (t.Settlement,SUBSTRING(t1.subcontoOUT, CHARINDEX('/', t1.subcontoOUT) + 1, CHARINDEX('/', t1.subconto
+OUT, CHARINDEX('/', t1.subcontoOUT) + 1) - CHARINDEX('/', t1.subcontoOUT) - 1
 							)),14) = 'CLIENT_CDA_Own', '7420000000011', '42000012000070')
 
 			else iif(CHARINDEX('74', t1.Subacc_Code) > 0,SUBSTRING(t1.Subacc_Code, CHARINDEX('74', t1.Subacc_Code), 13)

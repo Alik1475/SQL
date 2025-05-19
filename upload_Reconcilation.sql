@@ -234,7 +234,7 @@ BEGIN
 
 			from ##comms t
 
-			left join QORT_BACK_DB..FirmDEPOAccs  da on  da.DEPODivisionCode = [F8]
+			left join QORT_BACK_DB..FirmDEPOAccs  da on  trim(da.DEPOCode) = [F8]  and da.DEPOCode <> '' and TRIM (da.Name) = 'Armbrok_DepoLite'
 
 			left outer join QORT_BACK_DB..Assets a on a.isin = [F11] and a.IsTrading = 'y'
 
@@ -382,7 +382,7 @@ ms
 
 				, 'CLIENT_CDA_Own' Depository
 
-				, isnull(da.Code,isnull(cast(cast([A/c Ref] as nvarchar(32))+'_'+iif(Cl.NAME_Translate = '',Cl.NAME_TranslateU, Cl.NAME_Translate)  as nvarchar(32)),CAST('ClientNameNotFound'+cast([A/c Ref] as nvarchar(32)) as nvarchar(32)))) code 
+				, isnull(trim(da.Code),isnull(cast(cast([A/c Ref] as nvarchar(32))+'_'+iif(Cl.NAME_Translate = '',Cl.NAME_TranslateU, Cl.NAME_Translate)  as nvarchar(32)),CAST('ClientNameNotFound'+cast([A/c Ref] as nvarchar(32)) as nvarchar(32)))) code 
 
 				, isnull(a.ShortName,'AssetNoQort'+[Sec ISIN]) Asset_ShortName
 
@@ -394,7 +394,7 @@ ms
 
 			from ##comms t
 
-			left outer join QORT_BACK_DB..FirmDEPOAccs  da on  da.DEPOCode = [A/c Ref] and da.DEPOCode <> ''
+			left outer join QORT_BACK_DB..FirmDEPOAccs  da on  trim(da.DEPOCode) = [A/c Ref] and da.DEPOCode <> '' and TRIM (da.Name) = 'Armbrok_Depend'
 
 			left outer join QORT_BACK_DB..Assets a on a.isin = iif(left([Sec ISIN],4) = 'NONE', left([Sec ISIN],8),[Sec ISIN]) and a.Enabled <> a.id --and a.IsTrading = 'y'
 
