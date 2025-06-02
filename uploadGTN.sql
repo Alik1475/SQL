@@ -587,7 +587,7 @@ END TRY
 
 					WHERE left(ass.viewName, len(ttt.symbol)) = ttt.symbol
 
-						AND ASS.AssetClass_Const IN (5) -- Equity only
+						AND ASS.AssetClass_Const IN (5,18,16) -- Equity only
 
 					) AS tt
 
@@ -729,7 +729,7 @@ END TRY
 
 								CHARINDEX('\', t.symbol) = 0 
 
-								AND Ass.AssetClass_Const IN (5) 
+								AND Ass.AssetClass_Const IN (5,18,16) 
 
 								AND LEFT(Ass.viewName, LEN(t.symbol)) = t.symbol -- если не содержит /
 

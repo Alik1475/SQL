@@ -97,19 +97,97 @@ uikC is null, 0, 14) <> sub.RPTACTION_Period_Flags)-- or iif(sub1.IsQuikC is nul
 
 --/*
 
-					insert into QORT_BACK_TDB.dbo.PayAccs (ET_Const, IsProcessed, Subacc_Code, PutAccount_ExportCode, PayAccount_ExportCode)
+					insert into QORT_BACK_TDB.dbo.PayAccs (ET_Const, IsProcessed, Subacc_Code, TSSection_Name, PutAccount_ExportCode, PayAccount_ExportCode)
 
 					SELECT 2 as ET_Const, 1 as IsProcessed
 
 					, su.SubAccCode as Subacc_Code
 
-					--, acc.ExportCode as PutAccount_TradeCode
+					, ts.Name as TSSection_Name
 
-					, acc.ExportCode as PutAccount_ExportCode
+					, accc.ExportCode as PutAccount_ExportCode
 
 					, 'Armbrok_Mn_Client' as PayAccount_ExportCode
 
 				FROM QORT_BACK_DB.dbo.Subaccs su 
+
+				CROSS JOIN (
+
+				  SELECT * 
+
+				  FROM QORT_BACK_DB.dbo.PayAccs acc
+
+						
+
+				  WHERE  acc.Enabled = 0
+
+					AND acc.SubAcc_ID =  110 -- здесь образец взят субсчета AS1105
+
+				) acc
+
+				left outer join QORT_BACK_DB.dbo.Accounts accc on accc.ID = acc.PutAccount_ID
+
+				left outer join QORT_BACK_DB.dbo.TSSections ts on ts.ID = acc.TSSection_ID
+
+				where su.ACSTAT_Const = 5 --Active
+
+					   and su.Enabled = 0
+
+					-- and LEFT(su.subAccCode,6) not in ('AS1105', 'AS1031') --,'AS1509','AS1815') --and LEFT(su.subAccCode,2) in ('AS', 'AR') 
+
+					   and su.IsQUIK = 'y'
+
+						 AND NOT EXISTS (
+					  SELECT 1 
+					  FROM QORT_BACK_DB.dbo.PayAccs pa 
+					  WHERE pa.Subacc_ID = su.id
+						AND pa.PutAccount_ID = accc.ID
+						AND pa.PayAccount_ID = 3 --'Armbrok_Mn_Client'
+						and pa.Enabled = 0
+				  );
+
+					--*/
+
+
+-- update 0-limit
+
+--/*
+
+					
+
+				INSERT INTO QORT_BACK_TDB.dbo.QUIKDefaultAccs (
+
+					ET_Const,
+
+					IsProcessed,
+
+					Account_ExportCode,
+
+					IsAnalytic,
+
+					SubAccCode,
+
+					Security_Code,
+
+					TSSection_Name
+
+				)
+
+				   select 2 AS ET_Const,
+
+							1 AS IsProcessed,
+
+							acc.ExportCode AS Account_ExportCode,
+
+							sub.IsAnalytic,
+
+							sub.SubAccCode,
+
+							IIF(acc.assettype = 3, 'AMD', 'AAPL') AS Security_Code,
+
+							IIF(acc.assettype = 3, 'OTC_FX', 'OTC_Securities') AS TSSection_Name
+
+				FROM QORT_BACK_DB.dbo.Subaccs sub 
 
 
 
@@ -123,44 +201,45 @@ uikC is null, 0, 14) <> sub.RPTACTION_Period_Flags)-- or iif(sub1.IsQuikC is nul
 
 					AND acc.Enabled = 0
 
-					AND acc.AssetType IN (1) -- Securities
-
 					AND acc.TS_ID > 0
 
-					AND acc.IsExportToNTO = 'y'
+					AND acc.ExportCode in('ARMBR_DEPO','ARMBR_DEPO_AIX','ARMBR_DEPO_BTA','ARMBR_DEPO_GTN','ARMBR_DEPO_TFI', 'Armbrok_Mn_Client')
 
 				) acc
 
-				where su.ACSTAT_Const = 5 --Active
+				where sub.ACSTAT_Const = 5 --Active
 
-					   and su.Enabled = 0
+					   and sub.Enabled = 0
 
-					   and LEFT(su.subAccCode,6) in ('AS1105', 'AS1031','AS1509','AS1815') --and LEFT(su.subAccCode,2) in ('AS', 'AR') 
+					  -- and LEFT(sub.subAccCode,6) in ('AS1105', 'AS1031','AS1509','AS1815') --and LEFT(su.subAccCode,2) in ('AS', 'AR') 
 
-					   and su.IsQUIK = 'y'
+					   and sub.IsQUIK = 'y'
 
 						 AND NOT EXISTS (
-					  SELECT 1 
-					  FROM QORT_BACK_DB.dbo.PayAccs pa 
-					  WHERE pa.Subacc_ID = su.id
-						AND pa.PutAccount_ID = acc.ID
-						AND pa.PayAccount_ID = 3 --'Armbrok_Mn_Client'
-				  );
+
+							  SELECT 1
+
+							  FROM QORT_BACK_DB.dbo.QUIKDefaultAccs q
+
+							  WHERE q.Account_ID = acc.ID
+
+								AND q.SubAcc_ID = sub.id
+
+
+
+      );
 
 					--*/
 
 
-
-
    END TRY
     BEGIN CATCH
-
         -- Обработка исключений
         WHILE @@TRANCOUNT > 0 ROLLBACK TRAN
         SET @Message = 'ERROR: ' + ERROR_MESSAGE(); 
         -- Вставка сообщения об ошибке в таблицу uploadLogs
-        INSERT INTO QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, e
-rrorLevel) VALUES (@Message, 1001);
+        INSERT IN
+TO QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) VALUES (@Message, 1001);
         -- Возвращаем сообщение об ошибке
         SELECT @Message AS result, 'STATUS' AS defaultTask, 'red' AS color;
     END CATCH
