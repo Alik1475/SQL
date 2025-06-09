@@ -269,7 +269,7 @@ MENIA. Исключение для гос.бумаг
 
 			, iif(a.AssetSort_Const = 19, N'·ÝÙ³Ý ûåóÇáÝ', N'í³×³éùÇ ûåóÇáÝ') OPT_Sort -- 19 Options CALL
 
-			, iif(b.AssetClass_Const in(5), N'´³ÅÝ³ÛÇÝ', N'àã µ³ÅÝ³ÛÇÝ') OPT_BaseAssType -- 5	Equity RF
+			, iif(b.AssetClass_Const not in (6,19), N'´³ÅÝ³ÛÇÝ', N'àã µ³ÅÝ³ÛÇÝ') OPT_BaseAssType -- 5	Equity RF
 
 			, b.ISIN as OPT_BaseISIN
 
