@@ -24,7 +24,7 @@ BEGIN
 
 	begin try
 
-		declare @FilePath varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\PRODUCTION\AIX'
+		declare @FilePath varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\PRODUCTION\AIX\'
 
 		declare @Sheet varchar(16) 
 
@@ -187,18 +187,35 @@ EXEC master.dbo.xp_cmdshell @cmd;
 
 			select row_number() over(order by [F1]) rn
 
-			   , CONVERT(INT, CONVERT(VARCHAR, [Trade Time], 112)) AS TradeDate
+			   , ISNULL(
 
-			   , CAST(RIGHT('0' + CAST(DATEPART(HOUR, [Trade Time]) AS VARCHAR), 2) + 
-					  RIGHT('0' + CAST(DATEPART(MINUTE, [Trade Time]) AS VARCHAR), 2) + 
-				      RIGHT('0' + CAST(DATEPART(SECOND, [Trade Time]) AS VARCHAR), 2) + 
-				      RIGHT('00' + CAS
-T(DATEPART(MILLISECOND, [Trade Time]) AS VARCHAR), 3) 
-				   AS INT) AS TimeInt
+					TRY_CAST(CONVERT(VARCHAR, [TradeTime_NOT_AIX], 112) AS INT),
+
+					TRY_CAST(CONVERT(VARCHAR, [Trade Time], 112) AS INT)
+
+				) AS TradeDate
+
+				, CAST(
+
+					RIGHT('0' + CAST(DATEPART(HOUR, ISNULL([TradeTime_NOT_AIX], [Trade Time])) AS VARCHAR), 2) +
+
+					RIGHT('0' + CAST(DATEPART(MINUTE, ISNULL([TradeTime_NOT_AIX], [Trade Time])) AS VARCHAR), 2) +
+
+					RIGHT('0' + CAST(DATEPART(SECOND, ISNULL([TradeTime_NOT_AIX], [Trade Time])) AS VARCHAR), 2) +
+
+					RIGHT('00' + CAST(DATEPART(MILLISECOND, ISNULL([TradeTime_NOT_AIX], [Trade Time])) AS VARCHAR), 3)
+
+				AS INT) AS TimeInt
 
 				, [F1] SubAcc
 
 				, [F2] Comment
+
+				, [Account] ACC_ExportCode
+
+				, [TSSection_Name] TSS_name
+
+				, [TradeTime_NOT_AIX] TradeTime_NOT_AIX
 
 				, [ISIN] Security_Code
 
@@ -230,7 +247,7 @@ T(DATEPART(MILLISECOND, [Trade Time]) AS VARCHAR), 3)
 
 			from ##comms
 
-			where LEFT([F1],2) = 'AS'
+			where isnull(LEFT([F1],2),'') = 'AS'
 
 			select * from #comms 
 
@@ -316,23 +333,31 @@ T(DATEPART(MILLISECOND, [Trade Time]) AS VARCHAR), 3)
 
 			select 1 as IsProcessed, 2 as ET_Const, 'y' as IsDraft
 
-			, TradeDate as TradeDate, TimeIntUpdate TradeTime, 'AIX_Securities' TSSection_Name
+			, TradeDate as TradeDate
+
+			, isnull(com.TimeIntUpdate, com.TimeInt) TradeTime
+
+			, com.TSS_name TSSection_Name
 
 			, iif(BUY = '-', 2, 1) as BuySell
 
-			, Security_Code as Security_Code, Qty as Qty, Price as Price
+			, sec.SecCode as Security_Code, Qty as Qty, Price as Price
 
 			, Volume as Volume
 
-			, CurrPriceAsset_ShortName as CurrPriceAsset_ShortName, PutPlannedDate PutPlannedDate, PutPlannedDate PayPlannedDate
+			, CurrPriceAsset_ShortName as CurrPriceAsset_ShortName
 
-			, 'ARMBR_DEPO_AIX' PutAccount_ExportCode, 'Armbrok_Mn_Client' PayAccount_ExportCode, SubAcc as SubAcc_Code
+			, isnull(com.PutPlannedDate, com.TradeDate) PutPlannedDate			
+
+			, isnull(com.PutPlannedDate, com.TradeDate) PayPlannedDate
+
+			, ACC_ExportCode PutAccount_ExportCode, 'Armbrok_Mn_Client' PayAccount_ExportCode, SubAcc as SubAcc_Code
 
 		--	, AgreeNum
 
-			, 7 as TT_Const --TT_M_FORWARD(Exchange forward)
+			, tss.tt_const as TT_Const --TT_M_FORWARD(Exchange forward)
 
-			, Comment
+			, com.Comment as Comment
 
 			--, AgreePlannedDate, Accruedint
 
@@ -364,9 +389,45 @@ T(DATEPART(MILLISECOND, [Trade Time]) AS VARCHAR), 3)
 
 			--, '00001' CpFirm_BOCode
 
-			from #comms
+					from #comms com
 
-			where rn = @n
+					outer apply (
+
+						select top 1 *
+
+						from QORT_BACK_DB.dbo.TSSections tss
+
+						where tss.Name = com.TSS_name COLLATE Cyrillic_General_CI_AS
+
+					) tss
+
+					outer apply (
+
+						select top 1 *
+
+						from QORT_BACK_DB.dbo.Assets ass
+
+						where ass.ISIN = com.Security_Code COLLATE Cyrillic_General_CI_AS
+
+						  and ass.Enabled = 0
+
+					) ass
+
+					outer apply (
+
+						select top 1 *
+
+						from QORT_BACK_DB.dbo.Securities sec
+
+						where sec.Asset_ID = ass.id
+
+						  and sec.TSSection_ID = tss.id
+
+						  and sec.IsTrading = 'y'
+
+					) sec
+
+					where com.rn = @n and sec.SecCode is not null
 
 
 
@@ -392,13 +453,13 @@ T(DATEPART(MILLISECOND, [Trade Time]) AS VARCHAR), 3)
 
 			--select @NewFileName, @cmd
 
-
+--*/
 
 			SET @rowsInFile = @rowsInFile - 1
 
 			PRINT @rowsInFile
 
---*/
+
 
 		end
 
