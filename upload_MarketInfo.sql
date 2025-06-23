@@ -2,7 +2,7 @@
 
  
 
--- exec QORT_ARM_SUPPORT.dbo.upload_MarketInfo @ip = '192.168.13.80',	@IsinCode =  'US0378331005 EQUITY'null
+-- exec QORT_ARM_SUPPORT.dbo.upload_MarketInfo @ip = '192.168.13.80',	@IsinCode = null 'XS2340149439 CORP' null
 
 
 
@@ -84,17 +84,21 @@ BEGIN
 
         INSERT INTO @CodeAssets (ASSID, Asset_ShortName, Code)
 
-        SELECT ca1.assid, ca1.ShortName, ca1.code FROM ##CodeAssets ca1
+        SELECT ca1.ASSID, ca1.ShortName, ca1.code 
+
+		
+
+		FROM ##CodeAssets ca1
 
 		OUTER APPLY(
 
-			SELECT top 1 PR.Value FROM QORT_BACK_DB.dbo.Assets ass1-- WHERE LEFT(CA1.CODE,12) = ass1.ISIN
+			SELECT top 1 PR.Value, ass1.id AS ID FROM QORT_BACK_DB.dbo.Assets ass1-- WHERE LEFT(CA1.CODE,12) = ass1.ISIN
 
 			LEFT OUTER JOIN QORT_BACK_DB.dbo.AssetProperties PR ON PR.Asset_ID = ass1.ID
 
 			WHERE PR.AssetOption_ID = 2 AND LEFT(ca1.code ,12) = ass1.ISIN) pr1
 
-		where NOT EXISTS (
+		where EXISTS (
 
 		 select 1 
 
@@ -104,15 +108,23 @@ BEGIN
 
 			
 
-		 where ass.ISIN = left(ca1.code,12) and olddate = @ytdDateint and (isnull(ClosePrice,0) <> 0 OR isnull(MarketPrice,0) <> 0) and m.TSSection_ID = 154
+		 where ass.ISIN = left(ca1.code,12) and m.olddate = @ytdDateint and (isnull(ClosePrice,0) <> 0 OR isnull(MarketPrice,0) <> 0) and m.TSSection_ID = 154
 
 )
 
-and ISNULL(pr1.Value, 0) <> 1
+and  ISNULL(pr1.Value, 0) <> 1
+
+--and ca1.CODE = 'XS2340149439 CORP'
 
 
 
-		--and ca1.CODE = 'XS2010043904 CORP'
+SELECT * FROM @CodeAssets 
+
+		
+
+		
+
+		--return
 
 			end
 
@@ -126,7 +138,9 @@ and ISNULL(pr1.Value, 0) <> 1
 
         
 
-	VALUES (0, (select top 1 shortname from QORT_BACK_DB.dbo.Assets where ISIN = LEFT(@IsinCode,12)), @IsinCode)
+	VALUES ((select top 1 id from QORT_BACK_DB.dbo.Assets where ISIN = LEFT(@IsinCode,12) and Enabled = 0), (select top 1 shortname from QORT_BACK_DB.dbo.Assets where ISIN = LEFT(@IsinCode,12) and Enabled = 0), @IsinCode)
+
+SELECT * FROM @CodeAssets 
 
 	end
 
@@ -180,7 +194,7 @@ and ISNULL(pr1.Value, 0) <> 1
 
             Cass.ASSID,
 
-            CASE WHEN RIGHT(Cass.Code, 4) = 'CORP' THEN 'y' ELSE 'n' END AS IsProcent,
+            IIF( asss.AssetClass_Const IN (6,19), 'y', 'n') AS IsProcent,
 
             0 AS ClosePrice,
 
@@ -194,9 +208,9 @@ and ISNULL(pr1.Value, 0) <> 1
 
             CASE
 
-				WHEN RIGHT(Cass.Code, 4) = 'CORP' 
+				WHEN asss.AssetClass_Const IN (6,19)
 
-					THEN NULL 
+					THEN ass.Name
 
 				ELSE ass.ShortName END AS PriceAsset_ShortName
 
@@ -210,7 +224,9 @@ and ISNULL(pr1.Value, 0) <> 1
 
 		left outer join QORT_BACK_DB.dbo.Assets ass on ass.id = sec.CurrPriceAsset_ID
 
-		--select * from #t return
+		left outer join QORT_BACK_DB.dbo.Assets asss on asss.id = sec.Asset_ID
+
+		select * from #t --return
 
         DECLARE @MaxIsProcessed INT;
 

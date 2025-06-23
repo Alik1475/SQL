@@ -247,7 +247,7 @@ EXEC master.dbo.xp_cmdshell @cmd;
 
 			from ##comms
 
-			where isnull(LEFT([F1],2),'') = 'AS'
+			where [Trade Value] is not null
 
 			select * from #comms 
 
@@ -351,7 +351,7 @@ EXEC master.dbo.xp_cmdshell @cmd;
 
 			, isnull(com.PutPlannedDate, com.TradeDate) PayPlannedDate
 
-			, ACC_ExportCode PutAccount_ExportCode, 'Armbrok_Mn_Client' PayAccount_ExportCode, SubAcc as SubAcc_Code
+			, ACC_ExportCode PutAccount_ExportCode, 'Armbrok_Mn_Client' PayAccount_ExportCode, sub.SubAccCode as SubAcc_Code
 
 		--	, AgreeNum
 
@@ -381,9 +381,7 @@ EXEC master.dbo.xp_cmdshell @cmd;
 
 			, cast(
 
-				(cast(
-
-						right(SubAcc,4) as varchar(8))+cast(isnull((select max(ID) from QORT_BACK_DB.dbo.Trades with (nolock))+1,0) as varchar(8))) as int) TradeNum
+				(cast(isnull(Sub.id,'') as varchar(8))+cast(isnull((select max(ID) from QORT_BACK_DB.dbo.Trades with (nolock))+1,0) as varchar(8))) as int) TradeNum
 
 			, Ref as OrdExchCode
 
@@ -426,6 +424,18 @@ EXEC master.dbo.xp_cmdshell @cmd;
 						  and sec.IsTrading = 'y'
 
 					) sec
+
+					outer apply (
+
+						select top 1 id, SubAccCode
+
+						from QORT_BACK_DB.dbo.Subaccs sub
+
+						where sub.SubAccCode = com.SubAcc COLLATE Cyrillic_General_CI_AS
+
+						  and ass.Enabled = 0
+
+					) sub
 
 					where com.rn = @n and sec.SecCode is not null
 

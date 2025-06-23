@@ -62,6 +62,8 @@ BEGIN
 
 		exec QORT_ARM_SUPPORT.dbo.Alert_POA_DateEnd -- уведомление об окончании срока дествия доверенностей за 3 рабочих дня
 
+		exec QORT_ARM_SUPPORT.dbo.Portfolio_Valuation_email -- ежедневный отчет по оценке портфеля клиента (фонды Glocal) (PM-15)
+
 	end try
 
 	begin catch

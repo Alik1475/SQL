@@ -142,7 +142,7 @@ BEGIN
 
 				''Excel 12.0; Database='+ @FilePath + @FileName + '; HDR=YES;IMEX=0'',
 
-				''SELECT * FROM [' + @Sheet + '$A1:E150]'')'
+				''SELECT * FROM [' + @Sheet + '$A1:E166]'')'
 
 
 

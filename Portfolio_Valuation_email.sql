@@ -2,11 +2,11 @@
 
 
 
--- exec QORT_ARM_SUPPORT.dbo.DRAFT2
+-- exec QORT_ARM_SUPPORT.dbo.Portfolio_Valuation_email
 
 
 
-CREATE PROCEDURE [dbo].[DRAFT2]
+CREATE PROCEDURE [dbo].[Portfolio_Valuation_email]
 
 
 
@@ -22,22 +22,23 @@ BEGIN
 					VALUES 
 			
 			  (1, 'AS1358' , 'marine.zakharyan@armbrok.am;QORT@ARMBROK.AM')
+					--/*	
 						, (2, 'AS1937' , 'maxim.biryukov@armbrok.am;QORT@ARMBROK.AM')
 						, (3, 'AS1061' , 'marine.zakharyan@armbrok.am;QORT@ARMBROK.AM')
-						, (4, 'AS1063' , 'marine.zakharyan@armbrok.a
-m;QORT@ARMBROK.AM')
+						, (4, 'AS1063' , 'marine.zakharya
+n@armbrok.am;QORT@ARMBROK.AM')
 						, (5, 'AS1614' , 'marine.zakharyan@armbrok.am;QORT@ARMBROK.AM')
 						, (6, 'AS1697' , 'marine.zakharyan@armbrok.am;QORT@ARMBROK.AM')
 						, (7, 'AS1752' , 'marine.zakharyan@armbrok.am;QORT@ARMBROK.AM')
-						, (8, 'AS1806' , 'm
-arine.zakharyan@armbrok.am;QORT@ARMBROK.AM')
+						, (8, 'A
+S1806' , 'marine.zakharyan@armbrok.am;QORT@ARMBROK.AM')
 						, (9, 'AS1918' , 'marine.zakharyan@armbrok.am;QORT@ARMBROK.AM')
 						, (10, 'AS1919' , 'marine.zakharyan@armbrok.am;QORT@ARMBROK.AM')
-
+						--*/
 
 		DECLARE @todayDate DATE = GETDATE()
-		DECLARE @todayInt INT = CAS
-T(CONVERT(VARCHAR, @todayDate, 112) AS INT)
+		DECLAR
+E @todayInt INT = CAST(CONVERT(VARCHAR, @todayDate, 112) AS INT)
 		DECLARE @Message VARCHAR(1024)
 		DECLARE @ytdDate DATE
 
@@ -138,54 +139,105 @@ e
 			 , ass.ShortName as Ticker
 			 , dbo.fFloatToMoney2Varchar (pos.VolFree) as Qty
 			 , isnull(dbo.fFloatYieldToVarchar(mrkt.LastPrice) + iif (mrkt.IsProcent = 'y', '%', mrkt.currency),'-') as LastPrice
-			-- , mrkt.IsProcent as
- IsProcent		
-			 , isnull(dbo.fFloatToMoney2Varchar(mrkt.LastPrice * (iif (mrkt.IsProcent = 'y', ass.BaseValue/100 , 1)) * pos.VolFree) + iif (mrkt.IsProcent = 'y', AssCur.name , mrkt.currency), '-') as Asset_Value
-			 , iif (mrkt.IsProcent = 'y', AssCur.
-name , mrkt.currency) as currency
-			 , isnull(mrkt.LastPrice * (iif (mrkt.IsProcent = 'y', ass.BaseValue/100 , 1)) * pos.VolFree, 0) as Asset_Value_Float
+			 , isnull(dbo.fFloatTo
+Money2Varchar(ACI.Vol_ACI* pos.VolFree)  + AssCur.name , '-') as ACI
+			-- , mrkt.IsProcent as IsProcent		
+			 , isnull(dbo.fFloatToMoney2Varchar(mrkt.LastPrice * isnull(FX.FX_Coefficient,1) * (iif (mrkt.IsProcent = 'y', ass.BaseValue/100 , 1)) * pos.VolF
+ree + isnull(ACI.Vol_ACI* pos.VolFree , 0) ) + iif (mrkt.IsProcent = 'y', AssCur.name , mrkt.currency), '-') as Asset_Value
+			 , iif (mrkt.IsProcent = 'y', AssCur.name , mrkt.currency) as currency
+			 , isnull(mrkt.LastPrice * isnull(FX.FX_Coefficient,1)
+ * (iif (mrkt.IsProcent = 'y', ass.BaseValue/100 , 1)) * pos.VolFree + isnull(ACI.Vol_ACI* pos.VolFree , 0), 0) as Asset_Value_Float
 			 , ass.AssetClass_Const as AssetClass_Const
-			 
+			 , FX.FX_Coefficient
 
 			--, pos.*			
 			
 		INTO #r
-		FROM QORT_BACK_
-DB.dbo.Subaccs sub WITH (NOLOCK)
+		FROM QORT_BACK_DB.
+dbo.Subaccs sub WITH (NOLOCK)
 	--	QORT_BACK_DB.dbo.Assets ass WITH (NOLOCK)
 		LEFT JOIN QORT_BACK_DB.dbo.PositionHist pos ON pos.Subacc_ID = sub.ID and pos.Date = @todayInt
 		LEFT JOIN QORT_BACK_DB.dbo.Assets ass ON ass.ID = pos.Asset_ID
-		LEFT JOIN QO
-RT_BACK_DB.dbo.Assets AssCur ON AssCur.ID = ass.BaseCurrencyAsset_ID
+		LEFT JOIN QORT_
+BACK_DB.dbo.Assets AssCur ON AssCur.ID = ass.BaseCurrencyAsset_ID
 		outer apply (select top 1 
 						  mrkt.LastPrice  as LastPrice
 						, mrkt.IsProcent as IsProcent
 						, AssCr.name as currency
-								from QORT_BACK_DB.dbo.MarketInfoHist mrkt 
-		
-						LEFT JOIN QORT_BACK_DB.dbo.Assets AssCr ON AssCr.ID = mrkt.PriceAsset_ID
-								where mrkt.Asset_ID = ass.id and mrkt.OldDate = @ytdDateint and mrkt.LastPrice > 0
-								order by mrkt.LastPrice desc
+						, mrkt.PriceAsset_ID as PriceAsset_ID
+								from
+ QORT_BACK_DB.dbo.MarketInfoHist mrkt 
+								LEFT JOIN QORT_BACK_DB.dbo.Assets AssCr ON AssCr.ID = mrkt.PriceAsset_ID
+								where mrkt.Asset_ID = ass.id and mrkt.OldDate = @ytdDateint and mrkt.LastPrice > 0 and mrkt.TSSection_ID in (154,165)
+								o
+rder by mrkt.TSSection_ID asc
 								) as mrkt
-		WHERE sub.SubAccCode =  @Sub
-Account
+		outer apply (select top 1 
+					 aci.Volume as Vol_ACI
+								from QORT_BACK_DB.dbo.AccruedInt aci 
+								where aci.Asset_ID = ass.id and aci.AccruedDate = @ytdDateint							
+								) as ACI
+		OUTER AP
+PLY (
+
+			SELECT 
+
+				CRH.Bid AS Price_Quote,
+
+				CRH_ass.Bid AS Price_ASS,
+
+				CASE 
+
+					WHEN CRH_ass.Bid IS NOT NULL AND CRH.Bid IS NOT NULL THEN CRH.Bid / CRH_ass.Bid
+
+					ELSE NULL
+
+				END AS FX_Coefficient
+
+			FROM 
+
+				QORT_BACK_DB.dbo.CrossRatesHist CRH
+
+				
+
+			LEFT JOIN 
+
+				QORT_BACK_DB.dbo.CrossRatesHist CRH_ass
+
+				ON CRH_ass.TradeAsset_ID = ass.BaseCurrencyAsset_ID
+
+				AND CRH_ass.OldDate = @ytdDateint and CRH_ass.InfoSource = 'MainCurBank'
+
+			WHERE 
+
+				CRH.TradeAsset_ID = mrkt.PriceAsset_ID 
+
+				AND CRH.OldDate = @ytdDateint 
+
+				and CRH.InfoSource = 'MainCurBank'
+
+		) AS FX
+
+		WHERE sub.SubAccCode =  @SubAccount
 		AND pos.VolFree <> 0
 		--and ass.AssetType_Const = 1
 
-		select * from #r --return
+		select * from #r 
+		--return
 
 		CREATE TABLE ##Template_02 (number INT, value VARCHAR(100));
 					INSERT INTO ##Template_02 (number, value)
-					VALUES 
+					VAL
+UES 
 						(1, ''),
-						(2, CAST((SELECT t
-op 1 SubAccCode COLLATE Cyrillic_General_CI_AS FROM #r)  AS VARCHAR(100))),
+						(2, CAST((SELECT top 1 SubAccCode COLLATE Cyrillic_General_CI_AS FROM #r)  AS VARCHAR(100))),
 						(3, ''),
 						(4, CAST(@ytdDatevarch COLLATE Cyrillic_General_CI_AS AS VARCHAR(16))),
 						(5, ''),
 						(6, '');
 
-					SELECT * FROM ##Template_02;
+					SELECT
+ * FROM ##Template_02;
 
 		  select value from ##Template_02 order by number asc 
 
@@ -238,6 +290,8 @@ END AS Asset_Class
 		, r.Qty Qty
 
 		, r.LastPrice LastPrice
+
+		, r.ACI ACI
 
 		, r.Asset_Value Asset_Value
 
@@ -311,7 +365,7 @@ END AS Asset_Class
 
 			''Excel 12.0; Database='+ @TempFileName + '; HDR=YES;IMEX=0'',
 
-			''SELECT * FROM [' + @Sheet1 + '$A9:F100]'')
+			''SELECT * FROM [' + @Sheet1 + '$A9:G100]'')
 
 			select * from ##Template_01 order by Asset_Class asc'
 
@@ -339,12 +393,12 @@ s an automatically generated message.';
 
 		  -- Отправка email
 
-		   set @NotifyEmail = 'aleksandr.mironov@armbrok.am' -- for test
+		   --set @NotifyEmail = 'aleksandr.mironov@armbrok.am' -- for test
             EXEC msdb.dbo.sp_send_dbmail
                 @profile_name = 'qort-sql-mail',--'qort-test-sql',
                 @recipients = @NotifyEmail,
-             
-   @subject = @NotifyTitle,
+           
+     @subject = @NotifyTitle,
                 @BODY_FORMAT = 'HTML',
                 @body = @NotifyMessage,
                 @file_attachments = @fileReport;
@@ -355,8 +409,8 @@ s an automatically generated message.';
 		end
 	END TRY
 	BEGIN CATCH
-		WHILE @@TRANCOUNT > 0 ROLLBACK TRANSACT
-ION
+		WHILE @@TRANCOUNT > 0 ROLLBACK TRANSA
+CTION
 		SET @Message = 'ERROR: ' + ERROR_MESSAGE()
 		INSERT INTO QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) VALUES (@Message, 1001)
 		PRINT @Message
