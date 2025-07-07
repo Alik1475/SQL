@@ -35,7 +35,7 @@ BEGIN
 				
 				exec QORT_ARM_SUPPORT.dbo.DepoReconcil @sendmail = 1 -- сверка клиентских позиций с от
 правкой уведомления
-
+				exec QORT_ARM_SUPPORT.dbo.Portfolio_Valuation_email -- ежедневный отчет по оценке портфеля клиента (фонды Glocal) (PM-15)
 				END
 				ELSE
 				BEGIN
@@ -62,7 +62,7 @@ BEGIN
 
 		exec QORT_ARM_SUPPORT.dbo.Alert_POA_DateEnd -- уведомление об окончании срока дествия доверенностей за 3 рабочих дня
 
-		exec QORT_ARM_SUPPORT.dbo.Portfolio_Valuation_email -- ежедневный отчет по оценке портфеля клиента (фонды Glocal) (PM-15)
+		
 
 	end try
 

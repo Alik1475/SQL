@@ -2,7 +2,7 @@
 
  
 
--- exec QORT_ARM_SUPPORT.dbo.upload_MarketInfo @ip = '192.168.13.80',	@IsinCode = null 'XS2340149439 CORP' null
+-- exec QORT_ARM_SUPPORT.dbo.upload_MarketInfo @ip = '192.168.13.80',	@IsinCode = 'IE00BD3V0B10 EQUITY' null
 
 
 
@@ -26,7 +26,9 @@ BEGIN
 
         DECLARE @Message VARCHAR(1024);
 
-        DECLARE @todayDate DATE = GETDATE() -- DATEADD(DAY, -1, GETDATE())--;
+        DECLARE @todayDate DATE = GETDATE()--DATEADD(DAY, -1, GETDATE())--;
+
+		--print @todayDate
 
         DECLARE @todayInt INT = CAST(CONVERT(VARCHAR, @todayDate, 112) AS INT);
 
@@ -420,7 +422,7 @@ SELECT * FROM @CodeAssets
 
 		--  , Accruedint
 
-        )
+)
 
 		--*/
 
@@ -448,7 +450,7 @@ SELECT * FROM @CodeAssets
 
 
 
-		from #t t
+		from #t t return
 
 --/* ---------------------------Блок вставки значений ACI для расчета купонов----------------------
 
@@ -566,7 +568,7 @@ while @n >= @ytdDateintS
 
       , 1 as IsProcessed
 
-      , 'n' as IsProcent
+      , CTE.IsProcent as IsProcent
 
       , CTE.PriceAsset_ShortName
 
@@ -587,6 +589,8 @@ while @n >= @ytdDateintS
           , ROW_NUMBER() OVER (PARTITION BY ass.ShortName ORDER BY trad.TradeDate DESC) as RowNum
 
 		  , trad.TradeDate
+
+		  , sec.IsProcent
 
         from QORT_BACK_DB..Trades trad 
 

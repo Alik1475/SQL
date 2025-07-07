@@ -17,60 +17,121 @@ AS
 BEGIN
 	BEGIN TRY
 
-		DECLARE @todayDate DATE = GETDATE()
-		DECLARE @todayInt INT = CAST(CONVERT(VARCHAR, @todayDate, 112) AS INT)
-		DECLARE @Message VARCHAR(1024)
-
-		DECLARE @FirmID INT
 
 
-		SELECT
-		FIR.BOCode,
-			Sub.SubAccCode as SubAccCode,
-			firP.Name
-U AS BPName,
-			iif( fir.IsFirm = 'y', fir.RegistrNum, fir.IDocNum) as DocNum,
-			isnull(couTAX.CodeISO_1,'-') as TaxResidentCountry,
-			isnull(cou.CodeISO_1,'-') as Country,
-			isnull(couR.CodeISO_1,'-') as CountryR
+		declare @FilePath varchar(255) = '\\192.168.14.22\Exchange\QORT_Files\PRODUCTION\Lida\Max_VS_Qort.xlsx'
+
+		declare @Sheet varchar(16) 
+
+		declare @TodayDate date = getdate()
+
+		declare @TodayDateInt int = cast(convert(varchar, @TodayDate, 112) as int)
+
+		declare @Message varchar(1024)
+
+		SET NOCOUNT ON
 
 
-		FROM QORT_BACK_DB.dbo.Subaccs sub 
-WITH (NOLOCK)
-		left outer join QORT_BACK_DB.dbo.Firms fir on fir.id = iif(sub.SubAccCode = 'Onderka Eduard', 940, sub.OwnerFirm_ID)
-		left outer join QORT_BACK_DB.dbo.FirmProperties firP on firP.Firm_ID = fir.id 
-		left outer join QORT_BACK_DB.dbo.Countr
-ies couTAX on couTAX.ID = firp.TaxResidentCountry_ID 
-		left outer join QORT_BACK_DB.dbo.Countries cou on cou.ID = fir.Country_ID 
-		left outer join QORT_BACK_DB.dbo.Regions reg on reg.id = fir.AddrJuRegion_ID
-		left outer join QORT_BACK_DB.dbo.Countries 
-couR on couR.ID = reg.Country_ID 
 
-		OUTER APPLY (SELECT TOP 1 FlagName FROM dbo.FTGetIncludedFlags(fir.FT_Flags) WHERE FlagName = 'FT_CLIENT') fClient
-		OUTER APPLY (SELECT TOP 1 tar.Name as Tariff
-		FROM QORT_BACK_DB.dbo.ClientTariffs ClTariff 
-		left o
-uter join QORT_BACK_DB.dbo.Tariffs tar on tar.id = ClTariff.Tariff_ID
-		WHERE ClTariff.Firm_ID = fir.id 
-		and sub.Enabled = 0
+		declare @cmd varchar(255)
+
+		declare @sql varchar(1024)
+
+
+
+
+
+			set @Sheet = 'Sheet1'
+
 	
-									
-		) ClTariff
 
-		WHERE sub.Enabled = 0
-		and left(sub.SubAccCode,2) not in ('AA', 'AB', 'AR')
+	IF OBJECT_ID('tempdb..##ExcelHeader', 'U') IS NOT NULL DROP TABLE ##ExcelHeader;
 
-		ORDER BY SubAccCode
+			SET @sql = 'SELECT * INTO ##ExcelHeader
+
+			FROM OPENROWSET (
+
+				''Microsoft.ACE.OLEDB.12.0'',
+
+				''Excel 12.0;Database=' + @filePath + ';HDR=NO;IMEX=1'',
+
+				''SELECT * FROM [' + @Sheet + '$A1:D1]'')'
 
 
+
+			EXEC(@sql)
+
+
+
+
+
+			SELECT * FROM ##ExcelHeader
+
+
+
+		  if OBJECT_ID('tempdb..##comms', 'U') is not null drop table ##comms
+
+			
+
+	
+
+			SET @sql = 'SELECT * INTO ##comms
+
+			FROM OPENROWSET (
+
+				''Microsoft.ACE.OLEDB.12.0'',
+
+				''Excel 12.0; Database='+ @FilePath  + '; HDR=NO;IMEX=1'',
+
+				''SELECT * FROM [' + @Sheet + '$A2:D500]'')'
+
+
+
+			exec(@sql)
+
+			select * from ##comms 
+
+			DECLARE @date1 INT, @date2 INT, @date3 INT 
+
+			SELECT TOP 1 @date1 = cast(convert(varchar, [F2], 112) as int)
+
+			, @date2 = cast(convert(varchar, [F3], 112) as int)
+
+			, @date3 = cast(convert(varchar, [F4], 112) as int)
+
+			FROM ##ExcelHeader 
+
+	--/*
+
+			UPDATE C
+
+			SET 
+
+			 
+
+			   F2 = dbo.fn_Quote_AMD((select top 1 id from QORT_BACK_DB.dbo.Assets ass where F1 = ass.ISIN and ass.enabled = 0 ), @date1)
+
+			 , F3 = dbo.fn_Quote_AMD((select top 1 id from QORT_BACK_DB.dbo.Assets ass where F1 = ass.ISIN and ass.enabled = 0 ), @date2)
+
+			 , F4 = dbo.fn_Quote_AMD((select top 1 id from QORT_BACK_DB.dbo.Assets ass where F1 = ass.ISIN and ass.enabled = 0 ), @date3)
+
+
+
+				FROM ##comms C
+
+				WHERE F1 IS NOT NULL
+
+
+  --*/
+  	select * from ##comms 
 	END TRY
 	BEGIN CATCH
 		WHILE @@TRANCOUNT > 0 ROLLBACK TRANSACTION
 		SET @Message = 'ERROR: ' + ERROR_MESSAGE()
 		INSERT INTO QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) VALUES (@Message, 1001)
-		PRINT @Message
-		SELECT @Message AS Result, 'r
-ed' AS ResultColor
+		PRINT @Messag
+e
+		SELECT @Message AS Result, 'red' AS ResultColor
 	END CATCH
 END
 
