@@ -2,11 +2,11 @@
 
 
 
--- exec QORT_ARM_SUPPORT.dbo.DRAFT1 
+-- exec QORT_ARM_SUPPORT.dbo.Quotes_Lida
 
 
 
-CREATE PROCEDURE [dbo].[DRAFT1]
+CREATE PROCEDURE [dbo].[Quotes_Lida]
 
 	
 

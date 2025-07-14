@@ -28,9 +28,9 @@ HAR(8)-- Дата окончания в формате YYYYMMDD
     DECLARE @CurlCommand NVARCHAR(4000);
     DECLARE @JsonResult NVARCHAR(MAX);
     DECLARE @ErrorMessage NVARCHAR(MAX);
-	DECLARE @Fields NVARCHAR(MAX) = 'PX_LAST\",\"INT_ACC_PER_BOND';
-	IF 
-OBJECT_ID('tempdb..##ParsedResults', 'U') IS NOT NULL DROP TABLE ##ParsedResults
+	DECLARE @Fields NVARCHAR(MAX) = 'PX_LAST';
+	IF OBJECT_ID('tempdb..##
+ParsedResults', 'U') IS NOT NULL DROP TABLE ##ParsedResults
 CREATE TABLE ##ParsedResults (
 
     Code NVARCHAR(50),
@@ -39,7 +39,7 @@ CREATE TABLE ##ParsedResults (
 
     Date BIGINT,
 
-	CRNCY NVARCHAR(50),
+	--CRNCY NVARCHAR(50),
 
     DateText NVARCHAR(50), -- добавлено для читаемой даты
 
@@ -75,23 +75,23 @@ ST (output)
             -- Вставка распарс
 енных данных в таблицу #ParsedResults
             INSERT INTO ##ParsedResults (
-                Code, Px_Last, Date, CRNCY, ErrorMessage)
+                Code, Px_Last, Date, /*CRNCY,*/ ErrorMessage)
             SELECT 
                 ISNULL (JSON_VALUE(jsonData.value, '$.CODE'), @IsinCodes) AS Code,
-              
-  ISNULL (JSON_VALUE(jsonData.value, '$.PX_LAST'),'') AS Px_Last,
-                ISNULL (JSON_VALUE(jsonData.value, '$.Date'), '') AS Date,
-				ISNULL (JSON_VALUE(jsonData.value, '$.INT_ACC_PER_BOND'), '') AS CRNCY,
+          
+      ISNULL (JSON_VALUE(jsonData.value, '$.PX_LAST'),'') AS Px_Last,
+                ISNULL (JSON_VALUE(jsonData.value, '$.date'), '') AS Date,
+			--	ISNULL (JSON_VALUE(jsonData.value, '$.Crncy'), '') AS CRNCY,
                 '' AS ErrorMessage
-   
-         FROM OPENJSON(@JsonResult) AS jsonData;
+        
+    FROM OPENJSON(@JsonResult) AS jsonData;
         END
         ELSE
         BEGIN
             -- Если JSON некорректен, добавляем запись с сообщением об ошибке
             INSERT INTO ##ParsedResults(Code, ErrorMessage)
-            VALUES (@IsinCode
-s, 'Некорректный JSON');
+            VALUES (@IsinCodes, 'Н
+екорректный JSON');
         END;
 		--SELECT * FROM ##ParsedResults;
 

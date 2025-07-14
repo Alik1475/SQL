@@ -14,19 +14,19 @@ sage VARCHAR(1024);
         DECLARE @SendMail BIT = 0;
         DECLARE @FileName VARCHAR(128) = '\\192.168.14.22\Exchange\QORT_Files\Assets\Assets_Bloomberg.xlsx';
 
-        DECLARE @NotifyEmail VARCHAR(1024) = 'depo@armbrok.am;backoffice@armbrok.am;qort@
-armbrok.am'--aleksandr.mironov@armbrok.am;sona.nalbandyan@armbrok.am;armine.khachatryan@armbrok.am';
+        DECLARE @NotifyEmail VARCHAR(1024) = 'aleksandr.mironov@armbrok.am;sona.nalbandya
+n@armbrok.am;armine.khachatryan@armbrok.am';
         DECLARE @Sheet1 VARCHAR(64) = 'Sheet1';
 		DECLARE @todayDate DATE = GETDATE()
-        DECLARE @todayInt INT = CAST(CONVERT(VARCHAR, @todayDate, 11
-2) AS INT)
+        DECLARE @todayInt INT = CAST(CONVERT(VARCHAR, @todayDate, 112) AS INT)
         DECLARE @sql VARCHAR(1024);
 
-        -- Очистка временных таблиц, если они существуют
+        
+-- Очистка временных таблиц, если они существуют
         IF OBJECT_ID('tempdb..##f', 'U') IS NOT NULL DROP TABLE ##f;
         IF OBJECT_ID('tempdb..#t', 'U') IS NOT NULL DROP TABLE #t;
-        IF OBJ
-ECT_ID('tempdb..##resultT', 'U') IS NOT NULL DROP TABLE ##resultT;
+        IF OBJECT_ID('tempdb..##resultT', 'U') IS NOT NULL DROP TABLE 
+##resultT;
 
 -- обновление справочника про бумаги с истекшим сроком погашения--------------	
 				insert into QORT_BACK_TDB.dbo.Assets (ET_Const, IsProcessed, marking, IsTrading, IsDefault)  
@@ -115,7 +115,7 @@ Columns
         SELECT DISTINCT
               1 AS IsProcessed
             , 4 AS ET_Const
-            , CAST(t.ISIN AS VARCHAR(16)) AS ISIN
+            , CAST(t.ISIN AS VARCHAR(30)) AS ISIN
             , IIF(ass.IsInSanctionList = 'n' AND t.Sanction = 'y', t.Sanction, ass.IsInSanctionList) AS IsInSanct
 ionList
             , ass.ShortName AS shortName
@@ -304,110 +304,113 @@ ileTemplate VARCHAR(512) = 'template_Asset_Check_Bloomberg.xlsx';
            
  DECLARE @cmd VARCHAR(512);
             DECLARE @sql2 VARCHAR(1024);
-
+	/*
             -- Копирование шаблона отчета
             SET @cmd = 'copy "' + @FilePath + @fileTemplate + '" "' + @FilePath + @fileReport + '"';
-            EXEC master.dbo.xp_cmdshell @c
-md, no_output;
+            EXEC master.dbo.xp_cmdshell
+ @cmd, no_output;
 
             -- Вставка данных в новый файл Excel
             SET @sql2 = 'INSERT INTO OPENROWSET (
                 ''Microsoft.ACE.OLEDB.12.0'',
                 ''Excel 12.0; Database=' + @FilePath + @fileReport + '; HDR=YES;IMEX=0'',
-    
-            ''SELECT * FROM [' + @SheetClient + '$A1:Q1000000]'')
+ 
+               ''SELECT * FROM [' + @SheetClient + '$A1:Q1000000]'')
                 SELECT ISIN, ISINQ, Issue_date, Issue_dateQ, Ticker, AssetShortNameQ, Nominal, NominalQ,
-                       Maturity_date, Maturity_dateQ, Issuer, IssuerQ, Sanction, San
-ctionQ, Result
+                       Maturity_date, Maturity_dateQ, Issuer, IssuerQ, Sanction, 
+SanctionQ, Result
                 FROM ##resultT ORDER BY ISINQ';
             EXEC(@sql2);
-
+	--*/
             -- Подготовка сообщения для отправки по email
             DECLARE @NotifyMessage VARCHAR(MAX);
-            DECLARE @NotifyTitle VARCHAR(1024) = NULL;
-    
-        SET @NotifyMessage = CAST((
+            DECLARE @NotifyTitle VARCHAR(1024) = NU
+LL;
+			--return
+            SET @NotifyMessage = CAST((
                 SELECT '//1\\' + ISNULL(CAST(tt.ISINQ AS VARCHAR), 'NOT FOUND!!!')
                    -- + '//2\\' + IIF(tt.ISIN IS NULL, 'NOT FOUND!!!', CAST(tt.ISIN AS VARCHAR))
-                    --+ '//2\\' + ISNUL
-L(CAST(tt.Issue_date AS VARCHAR), '----------')
+                   
+ --+ '//2\\' + ISNULL(CAST(tt.Issue_date AS VARCHAR), '----------')
                     --+ '//2\\' + ISNULL(CAST(tt.Issue_dateQ AS VARCHAR), '----------')
                     + '//2\\' + ISNULL(CAST(tt.Ticker AS VARCHAR), '----------')
-                    + '//2\\' + ISNULL
-(tt.AssetShortNameQ, '----------') COLLATE Cyrillic_General_CI_AS
+                  
+  + '//2\\' + ISNULL(tt.AssetShortNameQ, '----------') COLLATE Cyrillic_General_CI_AS
                     + '//2\\' + ISNULL(CAST(tt.Nominal AS VARCHAR), '----------')
                     + '//2\\' + ISNULL(CAST(tt.NominalQ AS VARCHAR), '----------')
-                   -- + 
-'//2\\' + ISNULL(CAST(tt.Maturity_date AS VARCHAR), '----------')
+    
+               -- + '//2\\' + ISNULL(CAST(tt.Maturity_date AS VARCHAR), '----------')
                     --+ '//2\\' + ISNULL(CAST(tt.Maturity_dateQ AS VARCHAR), '----------')
-                    + '//2\\' + ISNULL(CAST(tt.Issuer AS VARCHAR), '----------')
-                 
-   + '//2\\' + ISNULL(CAST(tt.IssuerQ AS VARCHAR), '----------')
+                    + '//2\\' + ISNULL(CAST(tt.Issuer AS VARCHAR), '----------
+')
+                    + '//2\\' + ISNULL(CAST(tt.IssuerQ AS VARCHAR), '----------')
                     + '//2\\' + ISNULL(CAST(tt.Sanction AS VARCHAR), '----------')
                     + '//2\\' + ISNULL(CAST(tt.SanctionQ AS VARCHAR), '----------')
-                    + '
-//2\\' + isnull(tt.Result,'')
+   
+                 + '//2\\' + isnull(tt.Result,'')
                 FROM ##resultT tt
                 WHERE tt.Result <> 'OK' AND tt.ISIN IS NOT NULL
                 ORDER BY ISINQ ASC
                 FOR XML PATH('')
             ) AS VARCHAR(MAX));
-
-            SET @NotifyMes
-sage = REPLACE(@NotifyMessage, '//1\\', '<tr><td>');
+			--re
+turn
+            SET @NotifyMessage = REPLACE(@NotifyMessage, '//1\\', '<tr><td>');
             SET @NotifyMessage = REPLACE(@NotifyMessage, '//2\\', '</td><td>');
             SET @NotifyMessage = REPLACE(@NotifyMessage, '//3\\', '</td></tr>');
-            SET @NotifyMessage = REPLACE(
-@NotifyMessage, '//4\\', '</td><td ');
-            SET @NotifyMessage = REPLACE(@NotifyMessage, '//5\\', '>');
+          
+  SET @NotifyMessage = REPLACE(@NotifyMessage, '//4\\', '</td><td ');
+           SET @NotifyMessage = REPLACE(@NotifyMessage, '//5\\', '>');
 
             SET @NotifyMessage = '<br><br><table border="1"><tr BGColor="#CCCCCC"><font color="black"/>'
-                                --+ '<
-td>ISIN(Bloomberg)</td>'
+        
+                        --+ '<td>ISIN(Bloomberg)</td>'
 								+ '<td>ISIN(Qort)'
 								--+ '</td><td>IssuerDate(Bloomberg)</td>'
 								--+ '<td>IssuerDate(Qort)</td>'
 								+ '<td>Ticker(Bloomberg)</td><td>AssetShortName(Qort)</td>'
-								+ '<td>Nominal(Bloomberg)</td>'
-					
-			+ '<td>Nominal(Qort)</td>'
+								+ '<td>
+Nominal(Bloomberg)</td>'
+								+ '<td>Nominal(Qort)</td>'
 								--+ '<td>MaturityDate(Bloomberg)</td>'
 								--+ '<td>MaturityDate(Qort)</td>'
 								+ '<td>Issuer(Bloomberg)</td>'
 								+ '<td>Issuer(Qort)</td>'
 								+ '<td>Sanction</td>'
-								+ '<td>SanctionQ</td><td>
-Result</td></tr>'
+			
+					+ '<td>SanctionQ</td><td>Result</td></tr>'
                                 + @NotifyMessage + '</table>';
 
             SET @fileReport = @FilePath + @fileReport;
             SET @NotifyTitle = 'Alert!!! Assets for check';
 
-            -- Отправка email
-            EXEC msdb.dbo.s
-p_send_dbmail
+            -- Отправка ema
+il
+            EXEC msdb.dbo.sp_send_dbmail
                 @profile_name = 'qort-sql-mail',
                 @recipients = @NotifyEmail,
                 @subject = @NotifyTitle,
                 @BODY_FORMAT = 'HTML',
-                @body = @NotifyMessage,
-                @file_attach
-ments = @fileReport;
+                @body = @NotifyMessage
+;   /*,
+                @file_attachments = @fileReport;
 
             -- Удаление старых отчетов
             SET @cmd = 'del "' + @FilePath + 'Asset_Check_Bloomberg_*.*"';
             EXEC master.dbo.xp_cmdshell @cmd, no_output;
+			*/
 
-            PRINT @NotifyTitle;
-        END -- Конец блока от
-правки сообщения
+
+            PRINT 
+@NotifyTitle;
+        END -- Конец блока отправки сообщения
     END TRY
     BEGIN CATCH
         -- Обработка ошибок
         WHILE @@TRANCOUNT > 0 ROLLBACK TRAN;
         SET @Message = 'ERROR: ' + ERROR_MESSAGE();
-        INSERT INTO QORT_ARM_SUPPORT.dbo.uploadLogs(logMessage, errorLevel) VALUES (@
-Message, 1001);
+        INSERT INTO QORT_ARM_SUPPORT.dbo.u
+ploadLogs(logMessage, errorLevel) VALUES (@Message, 1001);
         PRINT @Message;
         SELECT @Message AS Result, 'red' AS ResultColor;
     END CATCH

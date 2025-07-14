@@ -20,7 +20,7 @@ BEGIN
 
 
 
-		WAITFOR DELAY '00:02:00';
+		WAITFOR DELAY '00:02:30';
 
 
 

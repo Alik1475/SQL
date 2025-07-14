@@ -26,16 +26,12 @@ BEGIN
 
 		-----------------------------процедуры запускаемые по армянскому календарю праздников--------------------------------
 
-						  IF NOT EXISTS (
-					SELECT 1
-					FROM QORT_BACK_DB.dbo.CalendarDates
-					WHERE Date =  cast(convert(varchar, GETDATE(), 112) as int)
-				)
+						  IF QORT_ARM_SUPPORT.dbo.fIsBusinessDay(GETDATE()) = 1
 				BEGIN
 				
-				exec QORT_ARM_SUPPORT.dbo.DepoReconcil @sendmail = 1 -- сверка клиентских позиций с от
-правкой уведомления
-				exec QORT_ARM_SUPPORT.dbo.Portfolio_Valuation_email -- ежедневный отчет по оценке портфеля клиента (фонды Glocal) (PM-15)
+				exec QORT_ARM_SUPPORT.dbo.DepoReconcil @sendmail = 1 -- сверка клиентских позиций с отправкой уведомления
+				exec QORT_ARM_SUPPORT.dbo.Portfolio_Valuation_email -- ежедневны
+й отчет по оценке портфеля клиента (фонды Glocal) (PM-15)
 				END
 				ELSE
 				BEGIN
