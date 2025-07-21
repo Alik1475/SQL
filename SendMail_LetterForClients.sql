@@ -278,7 +278,9 @@ Armbrok Team <br/><br/>
 
 				SET @profile_name = 'onboarding-sql'; 
 
-				SET @copy_recipients = '';
+				--SET @copy_recipients = '';
+
+				SET @copy_recipients = 'lilit.paronyan@armbrok.am;ashot.minasyan@armbrok.am';
 
 			END
 
