@@ -28,9 +28,9 @@ HAR(8)-- Дата окончания в формате YYYYMMDD
     DECLARE @CurlCommand NVARCHAR(4000);
     DECLARE @JsonResult NVARCHAR(MAX);
     DECLARE @ErrorMessage NVARCHAR(MAX);
-	DECLARE @Fields NVARCHAR(MAX) = 'PX_LAST';
-	IF OBJECT_ID('tempdb..##
-ParsedResults', 'U') IS NOT NULL DROP TABLE ##ParsedResults
+	DECLARE @Fields NVARCHAR(MAX) = '\"PX_LAST\",\"DIRTY_PRICE\"';
+	IF O
+BJECT_ID('tempdb..##ParsedResults', 'U') IS NOT NULL DROP TABLE ##ParsedResults
 CREATE TABLE ##ParsedResults (
 
     Code NVARCHAR(50),
